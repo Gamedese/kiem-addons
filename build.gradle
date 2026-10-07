@@ -1,0 +1,110 @@
+plugins {
+	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+}
+
+repositories {
+	// Add repositories to retrieve artifacts from in here.
+	// You should only use this when depending on other mods because
+	// Loom adds the essential maven repositories to download Minecraft and libraries from automatically.
+	// See https://docs.gradle.org/current/userguide/declaring_repositories.html
+	// for more information about repositories.
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	mods {
+		"modid" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+dependencies {
+	// To change the versions see the gradle.properties file
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	// Fabric API. This is technically optional, but you probably want it anyway.
+	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+processResources {
+	def version = project.version
+	def mcVersion = project.minecraft_version
+	inputs.property "version", version
+	inputs.property "mcVersion", mcVersion
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version, "mcVersion": mcVersion
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 25
+}
+
+java {
+	// Loom will automatically attach sourcesJar to a RemapSourcesJar task and to the "build" task
+	// if it is present.
+	// If you remove this line, sources will not be generated.
+	withSourcesJar()
+
+	sourceCompatibility = JavaVersion.VERSION_25
+	targetCompatibility = JavaVersion.VERSION_25
+}
+
+jar {
+	archiveFileName = "kiems-qol-${project.version}-${project.minecraft_version}.jar"
+	def projectName = project.name
+	inputs.property "projectName", projectName
+
+	from("LICENSE") {
+		rename { "${it}_$projectName"}
+	}
+}
+
+tasks.register("build26_1", Exec) {
+	group = "build"
+	description = "Builds Kiem's QoL for Minecraft 26.1.2"
+	if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+		commandLine "cmd", "/c", "gradlew.bat", "build", "-Pminecraft_version=26.1.2", "-Pfabric_api_version=0.155.3+26.1.2"
+	} else {
+		commandLine "./gradlew", "build", "-Pminecraft_version=26.1.2", "-Pfabric_api_version=0.155.3+26.1.2"
+	}
+}
+
+tasks.register("build26_2", Exec) {
+	group = "build"
+	description = "Builds Kiem's QoL for Minecraft 26.2"
+	if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+		commandLine "cmd", "/c", "gradlew.bat", "build", "-Pminecraft_version=26.2", "-Pfabric_api_version=0.161.0+26.2"
+	} else {
+		commandLine "./gradlew", "build", "-Pminecraft_version=26.2", "-Pfabric_api_version=0.161.0+26.2"
+	}
+}
+
+tasks.register("buildAll") {
+	group = "build"
+	description = "Builds Kiem's QoL for both 26.1.2 and 26.2"
+	dependsOn "build26_1", "build26_2"
+}
+
+// configure the maven publication
+publishing {
+	publications {
+		create("mavenJava", MavenPublication) {
+			from components.java
+		}
+	}
+
+	// See https://docs.gradle.org/current/userguide/publishing_maven.html for information on how to set up publishing.
+	repositories {
+		// Add repositories to publish to here.
+		// Notice: This block does NOT have the same function as the block in the top level.
+		// The repositories here will be used for publishing your artifact, not for
+		// retrieving dependencies.
+	}
+}

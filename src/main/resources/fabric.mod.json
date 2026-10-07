@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "modid",
+	"version": "${version}",
+	"name": "Kiem Addons",
+	"description": "Quality of life and visual client mod with custom animated capes, viewmodel customization, smooth zoom, dynamic third person, cinematic cameras and utility improvements.",
+	"authors": [
+		"gamedese"
+	],
+	"contact": {
+		"homepage": "https://github.com/KMDS-a/kiem-addons"
+	},
+	"license": "CC0-1.0",
+	"icon": "assets/modid/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.example.ExampleMod"
+		],
+		"client": [
+			"com.example.client.ExampleModClient"
+		]
+	},
+	"mixins": [
+		"modid.mixins.json",
+		{
+			"config": "modid.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~${mcVersion}",
+		"java": ">=25",
+		"fabric-api": "*"
+	}
+}

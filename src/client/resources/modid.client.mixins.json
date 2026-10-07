@@ -1,0 +1,26 @@
+{
+	"required": true,
+	"package": "com.example.client.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"ExampleClientMixin",
+		"AbstractClientPlayerMixin",
+		"ChatComponentMixin",
+		"MouseHandlerMixin",
+		"ChatScreenMixin",
+		"GuiGraphicsExtractorMixin",
+		"AbstractContainerScreenMixin",
+		"CameraMixin",
+		"AvatarRendererMixin",
+		"ItemInHandRendererMixin",
+		"LivingEntityMixin",
+		"WingsLayerMixin",
+		"KeyboardHandlerMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}
