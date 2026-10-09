@@ -15,7 +15,8 @@
 		"ItemInHandRendererMixin",
 		"LivingEntityMixin",
 		"WingsLayerMixin",
-		"KeyboardHandlerMixin"
+		"KeyboardHandlerMixin",
+		"CapeLayerMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

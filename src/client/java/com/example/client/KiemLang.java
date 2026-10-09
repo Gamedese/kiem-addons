@@ -375,8 +375,45 @@ public class KiemLang {
         // Cosmetics (Capes)
         tr("mod.cosmetics.title", "Pelerin Yöneticisi (Capes)");
         en("mod.cosmetics.title", "Cape Manager (Capes)");
-        tr("mod.cosmetics.desc", "Sanara (V1/V2/V3) ve Rikka hareketli & sabit pelerinler.");
-        en("mod.cosmetics.desc", "Sanara (V1/V2/V3) and Rikka animated & static capes.");
+        tr("mod.cosmetics.desc", "Sanara, Rikka ve kullanıcı tanımlı GIF/PNG pelerinler.");
+        en("mod.cosmetics.desc", "Sanara, Rikka, and user custom GIF/PNG capes.");
+
+        tr("cosmetics.custom_title", "ÖZEL PELERİN");
+        en("cosmetics.custom_title", "CUSTOM CAPE");
+        tr("cosmetics.open_folder", "📂 Klasör");
+        en("cosmetics.open_folder", "📂 Folder");
+        tr("cosmetics.empty_folder", "📂 Klasör Boş");
+        en("cosmetics.empty_folder", "📂 Folder Empty");
+        tr("cosmetics.empty_sub", "kiem/capes içine");
+        en("cosmetics.empty_sub", "into kiem/capes");
+        tr("cosmetics.empty_hint", ".gif veya .png atın");
+        en("cosmetics.empty_hint", "drop .gif or .png");
+        tr("cosmetics.open_folder_btn", "➕ Klasörü Aç");
+        en("cosmetics.open_folder_btn", "➕ Open Folder");
+        tr("cosmetics.equip", "KUŞAN");
+        en("cosmetics.equip", "EQUIP");
+        tr("cosmetics.equipped", "✓ KUŞANILDI");
+        en("cosmetics.equipped", "✓ EQUIPPED");
+        tr("cosmetics.true_color_on", "Canlı Renk: AÇIK");
+        en("cosmetics.true_color_on", "True Color: ON");
+        tr("cosmetics.true_color_off", "Canlı Renk: KAPALI");
+        en("cosmetics.true_color_off", "True Color: OFF");
+
+        tr("cosmetics.unequip", "✕ Çıkar");
+        en("cosmetics.unequip", "✕ Unequip");
+        tr("cosmetics.other_active", "● Başka Pelerin Aktif");
+        en("cosmetics.other_active", "● Another Cape Active");
+        tr("cosmetics.inactive", "○ Pasif");
+        en("cosmetics.inactive", "○ Inactive");
+
+        tr("cosmetics.active_selection", "Aktif Seçim");
+        en("cosmetics.active_selection", "Active Selection");
+        tr("cosmetics.none", "Pelerin Seçilmedi (Pasif)");
+        en("cosmetics.none", "No Cape Equipped (Inactive)");
+        tr("cosmetics.custom_cape_prefix", "Özel Pelerin");
+        en("cosmetics.custom_cape_prefix", "Custom Cape");
+        tr("cosmetics.info_desc", "Seçilen pelerin anında uygulanır ve kaydedilir.");
+        en("cosmetics.info_desc", "Selected cape is applied and saved instantly.");
     }
 
     private static void tr(String key, String value) {

@@ -87,6 +87,10 @@ public class KiemConfig {
     public static boolean afkRaycastEnabled = true; // Toggleable wall collision check
     public static boolean afkCinematicBars = true; // Black letterbox bars during AFK
 
+    // Custom Cape
+    public static String customCapeFileName = "";
+    public static boolean capeTrueColor = true; // Emissive rendering to preserve full GIF brightness and avoid directional dimming
+
     static {
         load();
     }
@@ -269,6 +273,8 @@ public class KiemConfig {
             }
 
             // Load Cape
+            customCapeFileName = props.getProperty("cape.custom_name", "");
+            capeTrueColor = Boolean.parseBoolean(props.getProperty("cape.true_color", "true"));
             String cape = props.getProperty("cape", "SANARA_V2_ANIMATED");
             if ("ANIMATED".equals(cape)) {
                 CapeManager.setCurrentCapeDirect(CapeManager.CapeType.SANARA_ANIMATED);
@@ -292,6 +298,8 @@ public class KiemConfig {
             try (FileWriter writer = new FileWriter(CONFIG_FILE)) {
                 Properties props = new Properties();
                 props.setProperty("cape", CapeManager.getCurrentCape().name());
+                props.setProperty("cape.custom_name", customCapeFileName);
+                props.setProperty("cape.true_color", String.valueOf(capeTrueColor));
                 props.setProperty("chat.infinite_history", String.valueOf(infiniteChat));
                 props.setProperty("chat.peek_enabled", String.valueOf(chatPeekEnabled));
                 props.setProperty("chat.peek_key", String.valueOf(chatPeekKey));

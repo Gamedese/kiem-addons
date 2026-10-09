@@ -93,6 +93,7 @@ public class KiemScreen extends Screen {
         } else if (c == CapeManager.CapeType.SANARA_V3_STATIC || c == CapeManager.CapeType.SANARA_V3_ANIMATED) {
             selectedSanaraVersion = 3;
         }
+        CustomCapeManager.scanAndLoad();
     }
 
     @Override
@@ -380,11 +381,11 @@ public class KiemScreen extends Screen {
         int footerY = btnY + btnH + 6;
         if (hasThisVersionActive) {
             boolean unequipHover = mouseX >= card1X + 16 && mouseX <= card1X + cardW - 16 && mouseY >= footerY && mouseY <= footerY + 14;
-            graphics.centeredText(this.font, "✕ Çıkar", card1X + cardW / 2, footerY + 2, unequipHover ? 0xFFFF6666 : COLOR_TEXT_DIM);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.unequip"), card1X + cardW / 2, footerY + 2, unequipHover ? 0xFFFF6666 : COLOR_TEXT_DIM);
         } else if (current != CapeManager.CapeType.OFF) {
-            graphics.centeredText(this.font, "● Başka Pelerin Aktif", card1X + cardW / 2, footerY + 2, 0xFF70768C);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.other_active"), card1X + cardW / 2, footerY + 2, 0xFF70768C);
         } else {
-            graphics.centeredText(this.font, "○ Pasif", card1X + cardW / 2, footerY + 2, COLOR_TEXT_DIM);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.inactive"), card1X + cardW / 2, footerY + 2, COLOR_TEXT_DIM);
         }
 
         // ----------------- CARD 2: RIKKA -----------------
@@ -436,31 +437,154 @@ public class KiemScreen extends Screen {
         // Rikka Footer
         if (rikkaActive) {
             boolean unequipHover2 = mouseX >= card2X + 16 && mouseX <= card2X + cardW - 16 && mouseY >= footerY && mouseY <= footerY + 14;
-            graphics.centeredText(this.font, "✕ Çıkar", card2X + cardW / 2, footerY + 2, unequipHover2 ? 0xFFFF6666 : COLOR_TEXT_DIM);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.unequip"), card2X + cardW / 2, footerY + 2, unequipHover2 ? 0xFFFF6666 : COLOR_TEXT_DIM);
         } else if (current != CapeManager.CapeType.OFF) {
-            graphics.centeredText(this.font, "● Başka Pelerin Aktif", card2X + cardW / 2, footerY + 2, 0xFF70768C);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.other_active"), card2X + cardW / 2, footerY + 2, 0xFF70768C);
         } else {
-            graphics.centeredText(this.font, "○ Pasif", card2X + cardW / 2, footerY + 2, COLOR_TEXT_DIM);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.inactive"), card2X + cardW / 2, footerY + 2, COLOR_TEXT_DIM);
         }
 
-        // ----------------- CARD 3: COMING SOON -----------------
+        // ----------------- CARD 3: ÖZEL PELERİN (CUSTOM CAPE) -----------------
         int card3X = card2X + cardW + cardGap;
-        if (card3X + 70 <= x + w) {
-            int card3W = Math.min(cardW, (x + w) - card3X);
-            drawRoundedRect(graphics, card3X, card1Y, card3W, cardH, 0x44181A24, 0x332C3040);
-            graphics.centeredText(this.font, "+ YAKINDA", card3X + card3W / 2, card1Y + cardH / 2 - 10, COLOR_TEXT_DIM);
-            graphics.centeredText(this.font, "Yeni Kozmetikler", card3X + card3W / 2, card1Y + cardH / 2 + 4, 0xFF3D4459);
+        if (card3X + cardW <= x + w + 10) {
+            boolean isCustomActive = (current == CapeManager.CapeType.CUSTOM);
+            int card3Bg = isCustomActive ? COLOR_CARD_ACTIVE : COLOR_CARD_BG;
+            int card3Border = isCustomActive ? COLOR_ACTIVE_BORDER : COLOR_BORDER;
+            drawRoundedRect(graphics, card3X, card1Y, cardW, cardH, card3Bg, card3Border);
+
+            // Header: "ÖZEL PELERİN" on left, [ 📂 Klasör ] and [ 🔄 ] pills on right
+            graphics.text(this.font, KiemLang.get("cosmetics.custom_title"), card3X + 12, card1Y + 11, COLOR_TEXT_WHITE, false);
+
+            pillH = 13;
+            int refreshPillW = 16;
+            int folderPillW = 46;
+            int refreshPillX = card3X + cardW - 12 - refreshPillW;
+            int folderPillX = refreshPillX - folderPillW - 4;
+            int customPillY = card1Y + 9;
+
+            boolean folderHover = mouseX >= folderPillX && mouseX <= folderPillX + folderPillW && mouseY >= customPillY && mouseY <= customPillY + pillH;
+            boolean refreshHover = mouseX >= refreshPillX && mouseX <= refreshPillX + refreshPillW && mouseY >= customPillY && mouseY <= customPillY + pillH;
+
+            drawPill(graphics, folderPillX, customPillY, folderPillW, pillH, folderHover ? 0x33FFFFFF : 0x18FFFFFF, folderHover ? 0xFF667085 : COLOR_BORDER);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.open_folder"), folderPillX + folderPillW / 2, customPillY + 3, folderHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+
+            drawPill(graphics, refreshPillX, customPillY, refreshPillW, pillH, refreshHover ? 0x33FFFFFF : 0x18FFFFFF, refreshHover ? 0xFF667085 : COLOR_BORDER);
+            graphics.centeredText(this.font, "🔄", refreshPillX + refreshPillW / 2, customPillY + 3, refreshHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+
+            // Preview Area (Image Preview or Empty Folder notice)
+            int img3X = card3X + 12;
+            int img3Y = card1Y + 26;
+            drawRoundedRect(graphics, img3X - 1, img3Y - 1, imgW + 2, imgH + 2, 0xFF12131A, 0xFF2A2E40);
+
+            CustomCapeManager.CustomCapeEntry activeCustom = CustomCapeManager.getSelectedCape();
+            java.util.List<CustomCapeManager.CustomCapeEntry> capes = CustomCapeManager.getLoadedCapes();
+
+            if (capes.isEmpty()) {
+                // Empty state: helpful placeholder
+                graphics.centeredText(this.font, KiemLang.get("cosmetics.empty_folder"), img3X + imgW / 2, img3Y + 32, 0xFF8A90A6);
+                graphics.centeredText(this.font, KiemLang.get("cosmetics.empty_sub"), img3X + imgW / 2, img3Y + 52, 0xFF555A70);
+                graphics.centeredText(this.font, KiemLang.get("cosmetics.empty_hint"), img3X + imgW / 2, img3Y + 68, 0xFF555A70);
+
+                int openBtnW = imgW - 20;
+                int openBtnH = 22;
+                int openBtnX = img3X + 10;
+                int openBtnY = img3Y + 98;
+                boolean openHover = mouseX >= openBtnX && mouseX <= openBtnX + openBtnW && mouseY >= openBtnY && mouseY <= openBtnY + openBtnH;
+                drawPill(graphics, openBtnX, openBtnY, openBtnW, openBtnH, openHover ? 0x44E05688 : 0x22FFFFFF, openHover ? COLOR_ACCENT : COLOR_BORDER);
+                graphics.centeredText(this.font, KiemLang.get("cosmetics.open_folder_btn"), openBtnX + openBtnW / 2, openBtnY + 7, openHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+            } else if (activeCustom != null) {
+                // Cape texture preview (Back face) - Static first frame preview (ultra-fast)
+                Identifier previewTex = activeCustom.frameIdentifiers[0];
+                float u0 = 192.0f / 1024.0f;
+                float u1 = 352.0f / 1024.0f;
+                float v0 = 16.0f / 512.0f;
+                float v1 = 272.0f / 512.0f;
+                graphics.blit(previewTex, img3X, img3Y, img3X + imgW, img3Y + imgH, u0, u1, v0, v1);
+
+                // Selector bar at bottom of preview: < Name (1/3) >
+                int selBarH = 16;
+                int selBarY = img3Y + imgH - selBarH - 4;
+                int arrowW = 16;
+                int leftArrowX = img3X + 4;
+                int rightArrowX = img3X + imgW - arrowW - 4;
+                int selMidW = rightArrowX - (leftArrowX + arrowW);
+                int selMidX = leftArrowX + arrowW;
+
+                boolean leftArrowHover = mouseX >= leftArrowX && mouseX <= leftArrowX + arrowW && mouseY >= selBarY && mouseY <= selBarY + selBarH;
+                boolean rightArrowHover = mouseX >= rightArrowX && mouseX <= rightArrowX + arrowW && mouseY >= selBarY && mouseY <= selBarY + selBarH;
+
+                drawRoundedRect(graphics, img3X + 2, selBarY - 1, imgW - 4, selBarH + 2, 0xB310121A, 0x44FFFFFF);
+                graphics.centeredText(this.font, "◀", leftArrowX + arrowW / 2, selBarY + 4, leftArrowHover ? COLOR_ACCENT : COLOR_TEXT_MUTED);
+                graphics.centeredText(this.font, "▶", rightArrowX + arrowW / 2, selBarY + 4, rightArrowHover ? COLOR_ACCENT : COLOR_TEXT_MUTED);
+
+                String capeLabel = activeCustom.displayName;
+                if (this.font.width(capeLabel) > selMidW - 6) {
+                    capeLabel = this.font.plainSubstrByWidth(capeLabel, selMidW - 14) + "...";
+                }
+                graphics.centeredText(this.font, capeLabel, selMidX + selMidW / 2, selBarY + 4, COLOR_TEXT_WHITE);
+
+                // Badge top-right of preview: e.g. "GIF • 45F" or "PNG"
+                String badge = activeCustom.isAnimated ? ("GIF • " + activeCustom.frameCount + "F") : "PNG";
+                int badgeW = this.font.width(badge) + 8;
+                int badgeH = 12;
+                drawPill(graphics, img3X + imgW - badgeW - 4, img3Y + 4, badgeW, badgeH, 0x9910121A, 0x44FFFFFF);
+                graphics.centeredText(this.font, badge, img3X + imgW - badgeW / 2 - 4, img3Y + 3, COLOR_TEXT_WHITE);
+
+                // Equip / Active Button
+                int equipBtnW = imgW;
+                int equipBtnH = 22;
+                int equipBtnX = img3X;
+                int equipBtnY = img3Y + imgH + 8;
+                boolean equipHover = mouseX >= equipBtnX && mouseX <= equipBtnX + equipBtnW && mouseY >= equipBtnY && mouseY <= equipBtnY + equipBtnH;
+
+                if (isCustomActive && activeCustom.fileName.equalsIgnoreCase(KiemConfig.customCapeFileName)) {
+                    drawPill(graphics, equipBtnX, equipBtnY, equipBtnW, equipBtnH, COLOR_ACCENT_BG, COLOR_ACCENT);
+                    graphics.centeredText(this.font, KiemLang.get("cosmetics.equipped"), equipBtnX + equipBtnW / 2, equipBtnY + 7, COLOR_ACCENT);
+                } else {
+                    drawPill(graphics, equipBtnX, equipBtnY, equipBtnW, equipBtnH, equipHover ? 0x2EFFFFFF : 0x18FFFFFF, equipHover ? 0xFF4A526A : COLOR_BORDER);
+                    graphics.centeredText(this.font, KiemLang.get("cosmetics.equip"), equipBtnX + equipBtnW / 2, equipBtnY + 7, equipHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+                }
+
+                // Custom Footer
+                if (isCustomActive) {
+                    boolean unequipHover3 = mouseX >= card3X + 16 && mouseX <= card3X + cardW - 16 && mouseY >= footerY && mouseY <= footerY + 14;
+                    graphics.centeredText(this.font, KiemLang.get("cosmetics.unequip"), card3X + cardW / 2, footerY + 2, unequipHover3 ? 0xFFFF6666 : COLOR_TEXT_DIM);
+                } else if (current != CapeManager.CapeType.OFF) {
+                    graphics.centeredText(this.font, KiemLang.get("cosmetics.other_active"), card3X + cardW / 2, footerY + 2, 0xFF70768C);
+                } else {
+                    graphics.centeredText(this.font, KiemLang.get("cosmetics.inactive"), card3X + cardW / 2, footerY + 2, COLOR_TEXT_DIM);
+                }
+            }
         }
 
-        // Bottom Info Card
+        // Bottom Info Card & Controls
         int infoY = card1Y + cardH + 14;
-        drawRoundedRect(graphics, x, infoY, w, 44, 0xFF1A1C26, COLOR_BORDER);
-        String currentName = current.getTitle();
+        int bottomCardH = 44;
+        drawRoundedRect(graphics, x, infoY, w, bottomCardH, 0xFF1A1C26, COLOR_BORDER);
+        String currentName;
         if (current == CapeManager.CapeType.OFF) {
-            currentName = "Pelerin Seçilmedi (Pasif)";
+            currentName = KiemLang.get("cosmetics.none");
+        } else if (current == CapeManager.CapeType.CUSTOM) {
+            currentName = KiemLang.get("cosmetics.custom_cape_prefix") + " (" + CustomCapeManager.getSelectedCapeName() + ")";
+        } else {
+            currentName = current.getTitle();
         }
-        graphics.text(this.font, "Aktif Seçim: " + currentName, x + 14, infoY + 11, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, "Seçilen pelerin anında uygulanır ve oyundan çıksanız bile kaydedilir.", x + 14, infoY + 24, COLOR_TEXT_MUTED, false);
+        graphics.text(this.font, KiemLang.get("cosmetics.active_selection") + ": " + currentName, x + 14, infoY + 9, COLOR_TEXT_WHITE, false);
+        graphics.text(this.font, KiemLang.get("cosmetics.info_desc"), x + 14, infoY + 22, COLOR_TEXT_MUTED, false);
+
+        // True Color Toggle Button
+        int toggleW = 126;
+        int toggleH = 22;
+        int toggleX = x + w - toggleW - 12;
+        int toggleY = infoY + 11;
+        boolean toggleHover = mouseX >= toggleX && mouseX <= toggleX + toggleW && mouseY >= toggleY && mouseY <= toggleY + toggleH;
+        if (KiemConfig.capeTrueColor) {
+            drawPill(graphics, toggleX, toggleY, toggleW, toggleH, COLOR_ACCENT_BG, COLOR_ACCENT);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.true_color_on"), toggleX + toggleW / 2, toggleY + 7, COLOR_ACCENT);
+        } else {
+            drawPill(graphics, toggleX, toggleY, toggleW, toggleH, toggleHover ? 0x2EFFFFFF : 0x18FFFFFF, toggleHover ? 0xFF4A526A : COLOR_BORDER);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.true_color_off"), toggleX + toggleW / 2, toggleY + 7, toggleHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        }
     }
 
     private void renderMiniModelsView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
@@ -2048,6 +2172,104 @@ public class KiemScreen extends Screen {
                         CapeManager.setCurrentCape(CapeManager.CapeType.OFF);
                         return true;
                     }
+                }
+
+                // --- CARD 3 (CUSTOM CAPE) ---
+                int card3X = card2X + cardW + cardGap;
+                int customPillY = card1Y + 9;
+                int refreshPillW = 16;
+                int folderPillW = 46;
+                int refreshPillX = card3X + cardW - 12 - refreshPillW;
+                int folderPillX = refreshPillX - folderPillW - 4;
+                pillH = 13;
+
+                // Folder Pill Click (open explorer)
+                if (mouseX >= folderPillX && mouseX <= folderPillX + folderPillW && mouseY >= customPillY && mouseY <= customPillY + pillH) {
+                    CustomCapeManager.openCapesFolder();
+                    return true;
+                }
+
+                // Refresh Pill Click
+                if (mouseX >= refreshPillX && mouseX <= refreshPillX + refreshPillW && mouseY >= customPillY && mouseY <= customPillY + pillH) {
+                    CustomCapeManager.forceRescan();
+                    return true;
+                }
+
+                int img3X = card3X + 12;
+                int img3Y = card1Y + 26;
+                java.util.List<CustomCapeManager.CustomCapeEntry> capes = CustomCapeManager.getLoadedCapes();
+
+                if (capes.isEmpty()) {
+                    // Empty folder: Open Folder button click
+                    int openBtnW = imgW - 20;
+                    int openBtnH = 22;
+                    int openBtnX = img3X + 10;
+                    int openBtnY = img3Y + 98;
+                    if (mouseX >= openBtnX && mouseX <= openBtnX + openBtnW && mouseY >= openBtnY && mouseY <= openBtnY + openBtnH) {
+                        CustomCapeManager.openCapesFolder();
+                        return true;
+                    }
+                } else {
+                    // Selector arrows
+                    int selBarH = 16;
+                    int selBarY = img3Y + imgH - selBarH - 4;
+                    int arrowW = 16;
+                    int leftArrowX = img3X + 4;
+                    int rightArrowX = img3X + imgW - arrowW - 4;
+
+                    // Left arrow (previous cape)
+                    if (mouseX >= leftArrowX && mouseX <= leftArrowX + arrowW && mouseY >= selBarY && mouseY <= selBarY + selBarH) {
+                        CustomCapeManager.setSelectedIndex(CustomCapeManager.getSelectedIndex() - 1);
+                        return true;
+                    }
+
+                    // Right arrow (next cape)
+                    if (mouseX >= rightArrowX && mouseX <= rightArrowX + arrowW && mouseY >= selBarY && mouseY <= selBarY + selBarH) {
+                        CustomCapeManager.setSelectedIndex(CustomCapeManager.getSelectedIndex() + 1);
+                        return true;
+                    }
+
+                    // Equip Button Click
+                    int equipBtnW = imgW;
+                    int equipBtnH = 22;
+                    int equipBtnX = img3X;
+                    int equipBtnY = img3Y + imgH + 8;
+                    if (mouseX >= equipBtnX && mouseX <= equipBtnX + equipBtnW && mouseY >= equipBtnY && mouseY <= equipBtnY + equipBtnH) {
+                        CustomCapeManager.CustomCapeEntry activeCustom = CustomCapeManager.getSelectedCape();
+                        if (activeCustom != null) {
+                            if (CapeManager.getCurrentCape() == CapeManager.CapeType.CUSTOM && activeCustom.fileName.equalsIgnoreCase(KiemConfig.customCapeFileName)) {
+                                CapeManager.setCurrentCape(CapeManager.CapeType.OFF);
+                            } else {
+                                KiemConfig.customCapeFileName = activeCustom.fileName;
+                                CapeManager.setCurrentCape(CapeManager.CapeType.CUSTOM);
+                                KiemConfig.save();
+                            }
+                        }
+                        return true;
+                    }
+
+                    // Unequip Click
+                    if (mouseX >= card3X + 16 && mouseX <= card3X + cardW - 16 && mouseY >= footerY && mouseY <= footerY + 14) {
+                        if (CapeManager.getCurrentCape() == CapeManager.CapeType.CUSTOM) {
+                            CapeManager.setCurrentCape(CapeManager.CapeType.OFF);
+                            return true;
+                        }
+                    }
+                }
+
+                // Bottom Info Card - Controls Click
+                int cardH = 236;
+                int infoY = card1Y + cardH + 14;
+
+                // True Color Toggle
+                int toggleW = 126;
+                int toggleH = 22;
+                int toggleX = contentX + (modalW - sidebarW - 40) - toggleW - 12;
+                int toggleY = infoY + 11;
+                if (mouseX >= toggleX && mouseX <= toggleX + toggleW && mouseY >= toggleY && mouseY <= toggleY + toggleH) {
+                    KiemConfig.capeTrueColor = !KiemConfig.capeTrueColor;
+                    KiemConfig.save();
+                    return true;
                 }
             }
 

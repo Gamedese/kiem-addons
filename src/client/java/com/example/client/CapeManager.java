@@ -17,6 +17,7 @@ public class CapeManager {
         SANARA_V3_STATIC("Sanara V3 (Standard)", "1024x512 yüksek çözünürlük"),
         RIKKA_ANIMATED("Rikka (Animated)", "240-kare 24 FPS sinematik döngü"),
         RIKKA_STATIC("Rikka (Standard)", "1024x512 yüksek çözünürlük"),
+        CUSTOM("Özel Pelerin", "Kullanıcı tanımlı GIF/PNG"),
         OFF("Yok", "Pelerin kapalı");
 
         private final String title;
@@ -79,6 +80,7 @@ public class CapeManager {
                     Identifier.fromNamespaceAndPath("modid", "cape/rikka/anim/frame_" + i)
             );
         }
+        CustomCapeManager.init();
         loadConfig();
     }
 
@@ -139,6 +141,9 @@ public class CapeManager {
             if (frameIndex < 0) frameIndex = 0;
             if (frameIndex >= 240) frameIndex = 239;
             return RIKKA_ANIM_CAPE_ASSETS[frameIndex];
+        }
+        if (currentCape == CapeType.CUSTOM) {
+            return CustomCapeManager.getCurrentCapeAsset();
         }
         return null;
     }

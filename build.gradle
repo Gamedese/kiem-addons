@@ -86,6 +86,16 @@ tasks.register("build26_2", Exec) {
 	}
 }
 
+tasks.register("build26_3", Exec) {
+	group = "build"
+	description = "Builds Kiem's QoL for Minecraft 26.3"
+	if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+		commandLine "cmd", "/c", "gradlew.bat", "build", "-Pminecraft_version=26.3", "-Pfabric_api_version=0.162.0+26.3"
+	} else {
+		commandLine "./gradlew", "build", "-Pminecraft_version=26.3", "-Pfabric_api_version=0.162.0+26.3"
+	}
+}
+
 tasks.register("buildAll") {
 	group = "build"
 	description = "Builds Kiem's QoL for both 26.1.2 and 26.2"
