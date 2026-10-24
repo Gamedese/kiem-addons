@@ -414,6 +414,57 @@ public class KiemLang {
         en("cosmetics.custom_cape_prefix", "Custom Cape");
         tr("cosmetics.info_desc", "Seçilen pelerin anında uygulanır ve kaydedilir.");
         en("cosmetics.info_desc", "Selected cape is applied and saved instantly.");
+
+        // Cosmetics Sub-tabs
+        tr("cosmetics.sub.capes", "Pelerinler");
+        en("cosmetics.sub.capes", "Capes");
+        tr("cosmetics.sub.pets", "Omuz Yoldaşları");
+        en("cosmetics.sub.pets", "Shoulder Pets");
+
+        // Shoulder Pets
+        tr("pets.none", "Yoldaş Yok (Pasif)");
+        en("pets.none", "No Pet Equipped (Inactive)");
+        tr("pets.hamster.title", "Klasik Hamster");
+        en("pets.hamster.title", "Classic Hamster");
+        tr("pets.hamster.desc", "Tombul patileri ve minik burnuyla omzunuzda nefes alan sevimli dost.");
+        en("pets.hamster.desc", "Chubby paws and breathing animation on your shoulder.");
+        tr("pets.hamster_hd.title", "Pofuduk Hamster");
+        en("pets.hamster_hd.title", "Fluffy Hamster");
+        tr("pets.hamster_hd.desc", "Pofuduk tombul yanakları, pembe patileri ve ışıl ışıl gözleriyle HD dostumuz.");
+        en("pets.hamster_hd.desc", "Ultra-chubby cheeks, pink paws and sparkling eyes in high definition.");
+        tr("pets.octopus.title", "Ruh Hali Ahtapotu");
+        en("pets.octopus.title", "Mood Octopus");
+        tr("pets.octopus.desc", "Mutlu pembeden kızgın maviye takla atan peluş ahtapot.");
+        en("pets.octopus.desc", "Flipping plush octopus changing between happy and angry mood.");
+        tr("pets.dragon.title", "Bebek Ender Ejderhası");
+        en("pets.dragon.title", "Baby Ender Dragon");
+        tr("pets.dragon.desc", "Mor parlayan gözleri, minik kanatları ve kıvrık kuyruğu olan bebek ejderha.");
+        en("pets.dragon.desc", "Cute baby dragon with glowing purple eyes, flapping wings and tail.");
+        tr("pets.dragon.variant_ender", "Ejderha: Ender");
+        en("pets.dragon.variant_ender", "Dragon: Ender");
+        tr("pets.dragon.variant_toothless", "Ejderha: Dişsiz (Toothless)");
+        en("pets.dragon.variant_toothless", "Dragon: Toothless");
+        tr("pets.inventory_curse.title", "Lanet Solucanı (Toji)");
+        en("pets.inventory_curse.title", "Inventory Curse (Toji)");
+        tr("pets.inventory_curse.desc", "Toji Fushiguro'nun gövdeye dolanan ve ağzında silah taşıyan lanet ruhu.");
+        en("pets.inventory_curse.desc", "Toji Fushiguro's coiled torso curse spirit holding the Inverted Spear.");
+        tr("pets.worm.sword_on", "⚔ Kılıç: AÇIK");
+        en("pets.worm.sword_on", "⚔ Sword: ON");
+        tr("pets.worm.sword_off", "⚔ Kılıç: KAPALI");
+        en("pets.worm.sword_off", "⚔ Sword: OFF");
+        tr("pets.customize.btn", "⚙ Özelleştir");
+        en("pets.customize.btn", "⚙ Customize");
+
+        tr("pets.side.title", "Omuz Seçimi");
+        en("pets.side.title", "Shoulder Side");
+        tr("pets.side.right", "Sağ Omuz");
+        en("pets.side.right", "Right Shoulder");
+        tr("pets.side.left", "Sol Omuz");
+        en("pets.side.left", "Left Shoulder");
+        tr("pets.active_selection", "Aktif Yoldaş");
+        en("pets.active_selection", "Active Companion");
+        tr("pets.info_desc", "Seçilen yoldaş omzunuza konar, eğilme ve koşma hareketlerinize uyum sağlar.");
+        en("pets.info_desc", "Selected companion sits on your shoulder and follows your movement.");
     }
 
     private static void tr(String key, String value) {

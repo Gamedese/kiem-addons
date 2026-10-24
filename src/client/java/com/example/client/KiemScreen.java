@@ -1,5 +1,7 @@
 package com.example.client;
 
+import com.example.client.pet.ShoulderPetManager;
+import com.example.client.pet.ShoulderPetType;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
@@ -17,6 +19,21 @@ public class KiemScreen extends Screen {
             Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_sanara_v3.png");
     private static final Identifier RIKKA_PREVIEW =
             Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_rikka.png");
+    private static final Identifier HAMSTER_PREVIEW =
+            Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_pet_hamster.png");
+    private static final Identifier HAMSTER_HD_PREVIEW =
+            Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_pet_hamster_hd.png");
+    private static final Identifier OCTOPUS_PREVIEW =
+            Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_pet_octopus.png");
+    private static final Identifier DRAGON_PREVIEW =
+            Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_pet_dragon.png");
+    private static final Identifier INVENTORY_CURSE_PREVIEW =
+            Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_pet_inventory_curse.png");
+
+    private enum CosmeticsSub {
+        CAPES,
+        PETS
+    }
 
     private enum Tab {
         WELCOME("Welcome"),
@@ -47,6 +64,7 @@ public class KiemScreen extends Screen {
     }
 
     private Tab currentTab = Tab.WELCOME;
+    private CosmeticsSub currentCosmeticsSub = CosmeticsSub.CAPES;
     private ConfigSubView configSubView = ConfigSubView.MAIN;
     private boolean listeningForKey = false;
     private boolean listeningForZoomKey = false;
@@ -205,7 +223,7 @@ public class KiemScreen extends Screen {
         if (currentTab == Tab.WELCOME) {
             currentSub = KiemLang.get("tab.welcome");
         } else if (currentTab == Tab.COSMETICS) {
-            currentSub = "Cape Manager";
+            currentSub = currentCosmeticsSub == CosmeticsSub.CAPES ? KiemLang.get("cosmetics.sub.capes") : KiemLang.get("cosmetics.sub.pets");
         } else {
             if (configSubView == ConfigSubView.MAIN) {
                 currentSub = KiemLang.get("ui.modules");
@@ -258,11 +276,37 @@ public class KiemScreen extends Screen {
     }
 
     private void renderCosmeticsTab(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
-        // Section Title with subtle line
-        graphics.text(this.font, "Capes", x, y, COLOR_TEXT_WHITE, false);
-        int titleW = this.font.width("Capes");
-        graphics.fill(x + titleW + 10, y + 5, x + w, y + 6, COLOR_BORDER);
+        // Sub-tabs (Capes / Pets)
+        int subBtnW = 96;
+        int subBtnH = 18;
+        int subGap = 6;
+        int sub1X = x;
+        int sub2X = sub1X + subBtnW + subGap;
+        int subY = y - 1;
 
+        boolean sub1Hover = mouseX >= sub1X && mouseX <= sub1X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH;
+        boolean sub2Hover = mouseX >= sub2X && mouseX <= sub2X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH;
+
+        boolean isCapes = (currentCosmeticsSub == CosmeticsSub.CAPES);
+        boolean isPets = (currentCosmeticsSub == CosmeticsSub.PETS);
+
+        drawPill(graphics, sub1X, subY, subBtnW, subBtnH, isCapes ? COLOR_ACCENT_BG : (sub1Hover ? 0x2AFFFFFF : 0x18FFFFFF), isCapes ? COLOR_ACCENT : (sub1Hover ? 0x66FFFFFF : COLOR_BORDER));
+        graphics.centeredText(this.font, KiemLang.get("cosmetics.sub.capes"), sub1X + subBtnW / 2, subY + 5, isCapes ? COLOR_ACCENT : (sub1Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+
+        drawPill(graphics, sub2X, subY, subBtnW, subBtnH, isPets ? COLOR_ACCENT_BG : (sub2Hover ? 0x2AFFFFFF : 0x18FFFFFF), isPets ? COLOR_ACCENT : (sub2Hover ? 0x66FFFFFF : COLOR_BORDER));
+        graphics.centeredText(this.font, KiemLang.get("cosmetics.sub.pets"), sub2X + subBtnW / 2, subY + 5, isPets ? COLOR_ACCENT : (sub2Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+
+        int dividerX = sub2X + subBtnW + 12;
+        graphics.fill(dividerX, y + 8, x + w, y + 9, COLOR_BORDER);
+
+        if (isCapes) {
+            renderCapesSubView(graphics, x, y, w, mouseX, mouseY);
+        } else {
+            renderPetsSubView(graphics, x, y, w, mouseX, mouseY);
+        }
+    }
+
+    private void renderCapesSubView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
         int cardW = 176;
         int cardH = 236;
         int cardGap = 12;
@@ -584,6 +628,133 @@ public class KiemScreen extends Screen {
         } else {
             drawPill(graphics, toggleX, toggleY, toggleW, toggleH, toggleHover ? 0x2EFFFFFF : 0x18FFFFFF, toggleHover ? 0xFF4A526A : COLOR_BORDER);
             graphics.centeredText(this.font, KiemLang.get("cosmetics.true_color_off"), toggleX + toggleW / 2, toggleY + 7, toggleHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        }
+    }
+
+    private void renderPetsSubView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
+        int cardGap = 8;
+        int cardW = (w - (4 * cardGap)) / 5;
+        int cardH = 236;
+
+        int card1X = x;
+        int card1Y = y + 18;
+        int card2X = card1X + cardW + cardGap;
+        int card3X = card2X + cardW + cardGap;
+        int card4X = card3X + cardW + cardGap;
+        int card5X = card4X + cardW + cardGap;
+
+        // 5 Cards: Klasik Hamster, Pofuduk Hamster, Ahtapot, Bebek Ejderha, Lanet Solucanı
+        renderPetCard(graphics, card1X, card1Y, cardW, cardH, ShoulderPetType.HAMSTER,
+                KiemLang.get("pets.hamster.title"), HAMSTER_PREVIEW, mouseX, mouseY);
+        renderPetCard(graphics, card2X, card1Y, cardW, cardH, ShoulderPetType.HAMSTER_HD,
+                KiemLang.get("pets.hamster_hd.title"), HAMSTER_HD_PREVIEW, mouseX, mouseY);
+        renderPetCard(graphics, card3X, card1Y, cardW, cardH, ShoulderPetType.OCTOPUS,
+                KiemLang.get("pets.octopus.title"), OCTOPUS_PREVIEW, mouseX, mouseY);
+        renderPetCard(graphics, card4X, card1Y, cardW, cardH, ShoulderPetType.DRAGON,
+                KiemLang.get("pets.dragon.title"), DRAGON_PREVIEW, mouseX, mouseY);
+        renderPetCard(graphics, card5X, card1Y, cardW, cardH, ShoulderPetType.INVENTORY_CURSE,
+                KiemLang.get("pets.inventory_curse.title"), INVENTORY_CURSE_PREVIEW, mouseX, mouseY);
+
+        // Bottom Info Card & Controls
+        int infoY = card1Y + cardH + 14;
+        int bottomCardH = 44;
+        drawRoundedRect(graphics, x, infoY, w, bottomCardH, 0xFF1A1C26, COLOR_BORDER);
+
+        ShoulderPetType sel = ShoulderPetManager.getSelectedPet();
+        String currentName = sel == ShoulderPetType.OFF ? KiemLang.get("pets.none") : KiemLang.get(sel.titleKey);
+        graphics.text(this.font, KiemLang.get("pets.active_selection") + ": " + currentName, x + 14, infoY + 9, COLOR_TEXT_WHITE, false);
+        graphics.text(this.font, KiemLang.get("pets.info_desc"), x + 14, infoY + 22, COLOR_TEXT_MUTED, false);
+
+        // Shoulder Side Selection Pills [ Sağ Omuz ] [ Sol Omuz ] + Sword Customize Pill
+        boolean isLeft = ShoulderPetManager.isLeftShoulder();
+        int sideBtnW = 74;
+        int sideBtnH = 22;
+        int sideBtnGap = 6;
+        int side1X = x + w - (sideBtnW * 2 + sideBtnGap) - 12;
+        int side2X = side1X + sideBtnW + sideBtnGap;
+        int sideBtnY = infoY + 11;
+
+        int swordBtnW = 104;
+        int swordBtnX = side1X - swordBtnW - 6;
+
+        if (sel == ShoulderPetType.INVENTORY_CURSE) {
+            boolean swordHover = mouseX >= swordBtnX && mouseX <= swordBtnX + swordBtnW && mouseY >= sideBtnY && mouseY <= sideBtnY + sideBtnH;
+            String swordLabel = KiemConfig.inventoryCurseWithSword ? KiemLang.get("pets.worm.sword_on") : KiemLang.get("pets.worm.sword_off");
+            if (KiemConfig.inventoryCurseWithSword) {
+                drawPill(graphics, swordBtnX, sideBtnY, swordBtnW, sideBtnH, COLOR_ACCENT_BG, COLOR_ACCENT);
+                graphics.centeredText(this.font, swordLabel, swordBtnX + swordBtnW / 2, sideBtnY + 7, COLOR_ACCENT);
+            } else {
+                drawPill(graphics, swordBtnX, sideBtnY, swordBtnW, sideBtnH, swordHover ? 0x2EFFFFFF : 0x18FFFFFF, swordHover ? 0xFF4A526A : COLOR_BORDER);
+                graphics.centeredText(this.font, swordLabel, swordBtnX + swordBtnW / 2, sideBtnY + 7, swordHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+            }
+        }
+
+        boolean s1Hover = mouseX >= side1X && mouseX <= side1X + sideBtnW && mouseY >= sideBtnY && mouseY <= sideBtnY + sideBtnH;
+        boolean s2Hover = mouseX >= side2X && mouseX <= side2X + sideBtnW && mouseY >= sideBtnY && mouseY <= sideBtnY + sideBtnH;
+
+        if (!isLeft) {
+            drawPill(graphics, side1X, sideBtnY, sideBtnW, sideBtnH, COLOR_ACCENT_BG, COLOR_ACCENT);
+            graphics.centeredText(this.font, KiemLang.get("pets.side.right"), side1X + sideBtnW / 2, sideBtnY + 7, COLOR_ACCENT);
+        } else {
+            drawPill(graphics, side1X, sideBtnY, sideBtnW, sideBtnH, s1Hover ? 0x2EFFFFFF : 0x18FFFFFF, s1Hover ? 0xFF4A526A : COLOR_BORDER);
+            graphics.centeredText(this.font, KiemLang.get("pets.side.right"), side1X + sideBtnW / 2, sideBtnY + 7, s1Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        }
+
+        if (isLeft) {
+            drawPill(graphics, side2X, sideBtnY, sideBtnW, sideBtnH, COLOR_ACCENT_BG, COLOR_ACCENT);
+            graphics.centeredText(this.font, KiemLang.get("pets.side.left"), side2X + sideBtnW / 2, sideBtnY + 7, COLOR_ACCENT);
+        } else {
+            drawPill(graphics, side2X, sideBtnY, sideBtnW, sideBtnH, s2Hover ? 0x2EFFFFFF : 0x18FFFFFF, s2Hover ? 0xFF4A526A : COLOR_BORDER);
+            graphics.centeredText(this.font, KiemLang.get("pets.side.left"), side2X + sideBtnW / 2, sideBtnY + 7, s2Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        }
+    }
+
+    private void renderPetCard(GuiGraphicsExtractor graphics, int cardX, int cardY, int cardW, int cardH,
+                               ShoulderPetType type, String title, Identifier preview, int mouseX, int mouseY) {
+        boolean equipped = ShoulderPetManager.isEquipped(type);
+        boolean anyEquipped = ShoulderPetManager.getSelectedPet() != ShoulderPetType.OFF;
+
+        int cardBg = equipped ? COLOR_CARD_ACTIVE : COLOR_CARD_BG;
+        int cardBorder = equipped ? COLOR_ACTIVE_BORDER : COLOR_BORDER;
+        drawRoundedRect(graphics, cardX, cardY, cardW, cardH, cardBg, cardBorder);
+
+        // Header: title (bounded so 5-column layout stays clean)
+        drawBoundedText(graphics, title, cardX + 8, cardY + 11, cardW - 16, COLOR_TEXT_WHITE);
+
+        // Preview box
+        int imgW = cardW - 16;
+        int imgH = 145;
+        int imgX = cardX + 8;
+        int imgY = cardY + 26;
+        drawRoundedRect(graphics, imgX - 1, imgY - 1, imgW + 2, imgH + 2, 0xFF12131A, 0xFF2A2E40);
+        graphics.blit(preview, imgX, imgY, imgX + imgW, imgY + imgH, 0.0f, 1.0f, 0.0f, 1.0f);
+
+
+
+        // Equip / Unequip Button
+        int btnY = imgY + imgH + 8;
+        int btnW = imgW;
+        int btnH = 22;
+        int btnX = imgX;
+        boolean btnHover = mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= btnY && mouseY <= btnY + btnH;
+
+        if (equipped) {
+            drawPill(graphics, btnX, btnY, btnW, btnH, COLOR_ACCENT_BG, COLOR_ACCENT);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.equipped"), btnX + btnW / 2, btnY + 7, COLOR_ACCENT);
+        } else {
+            drawPill(graphics, btnX, btnY, btnW, btnH, btnHover ? 0x2EFFFFFF : 0x18FFFFFF, btnHover ? 0xFF4A526A : COLOR_BORDER);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.equip"), btnX + btnW / 2, btnY + 7, btnHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        }
+
+        // Footer status text
+        int footerY = btnY + btnH + 6;
+        if (equipped) {
+            boolean unequipHover = mouseX >= cardX + 8 && mouseX <= cardX + cardW - 8 && mouseY >= footerY && mouseY <= footerY + 14;
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.unequip"), cardX + cardW / 2, footerY + 2, unequipHover ? 0xFFFF6666 : COLOR_TEXT_DIM);
+        } else if (anyEquipped) {
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.other_active"), cardX + cardW / 2, footerY + 2, 0xFF70768C);
+        } else {
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.inactive"), cardX + cardW / 2, footerY + 2, COLOR_TEXT_DIM);
         }
     }
 
@@ -2067,11 +2238,29 @@ public class KiemScreen extends Screen {
                 int contentX = modalX + sidebarW + 20;
                 int contentY = modalY + 40 + 20;
 
-                int cardW = 176;
-                int cardGap = 12;
-                int card1X = contentX;
-                int card1Y = contentY + 18;
-                int card2X = card1X + cardW + cardGap;
+                // Sub-tabs (Capes / Pets) click
+                int subBtnW = 96;
+                int subBtnH = 18;
+                int subGap = 6;
+                int sub1X = contentX;
+                int sub2X = sub1X + subBtnW + subGap;
+                int subY = contentY - 1;
+
+                if (mouseX >= sub1X && mouseX <= sub1X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH) {
+                    currentCosmeticsSub = CosmeticsSub.CAPES;
+                    return true;
+                }
+                if (mouseX >= sub2X && mouseX <= sub2X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH) {
+                    currentCosmeticsSub = CosmeticsSub.PETS;
+                    return true;
+                }
+
+                if (currentCosmeticsSub == CosmeticsSub.CAPES) {
+                    int cardW = 176;
+                    int cardGap = 12;
+                    int card1X = contentX;
+                    int card1Y = contentY + 18;
+                    int card2X = card1X + cardW + cardGap;
 
                 // --- CARD 1 (SANARA) ---
                 int pillW = 20;
@@ -2271,7 +2460,123 @@ public class KiemScreen extends Screen {
                     KiemConfig.save();
                     return true;
                 }
+            } else if (currentCosmeticsSub == CosmeticsSub.PETS) {
+                int contentW = modalW - sidebarW - 40;
+                int cardGap = 8;
+                int cardW = (contentW - (4 * cardGap)) / 5;
+                int cardH = 236;
+                int card1X = contentX;
+                int card1Y = contentY + 18;
+                int card2X = card1X + cardW + cardGap;
+                int card3X = card2X + cardW + cardGap;
+                int card4X = card3X + cardW + cardGap;
+                int card5X = card4X + cardW + cardGap;
+
+                int imgW = cardW - 16;
+                int imgH = 145;
+                int btnY = card1Y + 26 + imgH + 8;
+                int btnW = imgW;
+                int btnH = 22;
+                int footerY = btnY + btnH + 6;
+
+                // 1. Klasik Hamster
+                int btn1X = card1X + 8;
+                if (mouseX >= btn1X && mouseX <= btn1X + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
+                    ShoulderPetManager.togglePet(ShoulderPetType.HAMSTER);
+                    return true;
+                }
+                if (mouseX >= card1X + 8 && mouseX <= card1X + cardW - 8 && mouseY >= footerY && mouseY <= footerY + 14) {
+                    if (ShoulderPetManager.isEquipped(ShoulderPetType.HAMSTER)) {
+                        ShoulderPetManager.setSelectedPet(ShoulderPetType.OFF);
+                        return true;
+                    }
+                }
+
+                // 2. Pofuduk Hamster (HAMSTER_HD)
+                int btn2X = card2X + 8;
+                if (mouseX >= btn2X && mouseX <= btn2X + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
+                    ShoulderPetManager.togglePet(ShoulderPetType.HAMSTER_HD);
+                    return true;
+                }
+                if (mouseX >= card2X + 8 && mouseX <= card2X + cardW - 8 && mouseY >= footerY && mouseY <= footerY + 14) {
+                    if (ShoulderPetManager.isEquipped(ShoulderPetType.HAMSTER_HD)) {
+                        ShoulderPetManager.setSelectedPet(ShoulderPetType.OFF);
+                        return true;
+                    }
+                }
+
+                // 3. Octopus
+                int btn3X = card3X + 8;
+                if (mouseX >= btn3X && mouseX <= btn3X + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
+                    ShoulderPetManager.togglePet(ShoulderPetType.OCTOPUS);
+                    return true;
+                }
+                if (mouseX >= card3X + 8 && mouseX <= card3X + cardW - 8 && mouseY >= footerY && mouseY <= footerY + 14) {
+                    if (ShoulderPetManager.isEquipped(ShoulderPetType.OCTOPUS)) {
+                        ShoulderPetManager.setSelectedPet(ShoulderPetType.OFF);
+                        return true;
+                    }
+                }
+
+                // 4. Dragon
+                int btn4X = card4X + 8;
+                if (mouseX >= btn4X && mouseX <= btn4X + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
+                    ShoulderPetManager.togglePet(ShoulderPetType.DRAGON);
+                    return true;
+                }
+                if (mouseX >= card4X + 8 && mouseX <= card4X + cardW - 8 && mouseY >= footerY && mouseY <= footerY + 14) {
+                    if (ShoulderPetManager.isEquipped(ShoulderPetType.DRAGON)) {
+                        ShoulderPetManager.setSelectedPet(ShoulderPetType.OFF);
+                        return true;
+                    }
+                }
+
+                // 5. Inventory Curse (Lanet Solucanı)
+
+                int btn5X = card5X + 8;
+                if (mouseX >= btn5X && mouseX <= btn5X + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
+                    ShoulderPetManager.togglePet(ShoulderPetType.INVENTORY_CURSE);
+                    return true;
+                }
+                if (mouseX >= card5X + 8 && mouseX <= card5X + cardW - 8 && mouseY >= footerY && mouseY <= footerY + 14) {
+                    if (ShoulderPetManager.isEquipped(ShoulderPetType.INVENTORY_CURSE)) {
+                        ShoulderPetManager.setSelectedPet(ShoulderPetType.OFF);
+                        return true;
+                    }
+                }
+
+                // Bottom Controls - Shoulder Side selection & Sword Customize Toggle
+                int infoY = card1Y + cardH + 14;
+                int sideBtnW = 74;
+                int sideBtnH = 22;
+                int sideBtnGap = 6;
+                int side1X = contentX + contentW - (sideBtnW * 2 + sideBtnGap) - 12;
+                int side2X = side1X + sideBtnW + sideBtnGap;
+                int sideBtnY = infoY + 11;
+                ShoulderPetType sel = ShoulderPetManager.getSelectedPet();
+
+                if (sel == ShoulderPetType.INVENTORY_CURSE) {
+                    int swordBtnW = 104;
+                    int swordBtnX = side1X - swordBtnW - 6;
+                    if (mouseX >= swordBtnX && mouseX <= swordBtnX + swordBtnW && mouseY >= sideBtnY && mouseY <= sideBtnY + sideBtnH) {
+                        KiemConfig.inventoryCurseWithSword = !KiemConfig.inventoryCurseWithSword;
+                        KiemConfig.save();
+                        return true;
+                    }
+                }
+
+                // Right shoulder button click
+                if (mouseX >= side1X && mouseX <= side1X + sideBtnW && mouseY >= sideBtnY && mouseY <= sideBtnY + sideBtnH) {
+                    ShoulderPetManager.setLeftShoulder(false);
+                    return true;
+                }
+                // Left shoulder button click
+                if (mouseX >= side2X && mouseX <= side2X + sideBtnW && mouseY >= sideBtnY && mouseY <= sideBtnY + sideBtnH) {
+                    ShoulderPetManager.setLeftShoulder(true);
+                    return true;
+                }
             }
+        }
 
             // In Config tab (Features):
             if (currentTab == Tab.CONFIG) {

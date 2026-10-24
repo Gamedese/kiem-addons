@@ -16,7 +16,8 @@
 		"LivingEntityMixin",
 		"WingsLayerMixin",
 		"KeyboardHandlerMixin",
-		"CapeLayerMixin"
+		"CapeLayerMixin",
+		"LivingEntityRendererAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1

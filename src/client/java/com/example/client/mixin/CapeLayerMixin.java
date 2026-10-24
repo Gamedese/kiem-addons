@@ -39,11 +39,11 @@ public abstract class CapeLayerMixin {
         if (CapeManager.getCurrentCape() != CapeManager.CapeType.OFF) {
             AvatarRenderState avatarState = (AvatarRenderState) state;
             if (avatarState.skin != null && avatarState.skin.cape() != null) {
+                // Vanilla cape always uses entitySolid. Eyes/BreezeWind was causing depth-mask failure
+                // and making parts of the cape invisible/transparent!
+                renderType = RenderTypes.entitySolid(avatarState.skin.cape().texturePath());
                 if (KiemConfig.capeTrueColor) {
-                    renderType = RenderTypes.eyes(avatarState.skin.cape().texturePath());
-                    light = 0x00F000F0; // Full emissive brightness
-                } else {
-                    renderType = RenderTypes.breezeWind(avatarState.skin.cape().texturePath(), 0.0f, 0.0f);
+                    light = 0x00F000F0; // Full emissive brightness without breaking depth
                 }
             }
         }

@@ -9,7 +9,13 @@ import java.io.FileWriter;
 import java.util.Properties;
 
 public class KiemConfig {
-    private static final File CONFIG_FILE = new File("config/kiem.properties");
+    public static File getConfigFile() {
+        try {
+            return net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir().resolve("kiem.properties").toFile();
+        } catch (Throwable t) {
+            return new File("config/kiem.properties");
+        }
+    }
 
     // Language Settings (TR / EN)
     public static String language = "tr"; // "tr" or "en"
@@ -91,16 +97,23 @@ public class KiemConfig {
     public static String customCapeFileName = "";
     public static boolean capeTrueColor = true; // Emissive rendering to preserve full GIF brightness and avoid directional dimming
 
+    // Shoulder Pet
+    public static String shoulderPetType = "OFF";
+    public static String shoulderPetSide = "RIGHT";
+    public static boolean inventoryCurseWithSword = true;
+    public static String dragonVariant = "TOOTHLESS"; // "TOOTHLESS" or "ENDER"
+
     static {
         load();
     }
 
     public static void load() {
-        if (!CONFIG_FILE.exists()) {
+        File configFile = getConfigFile();
+        if (!configFile.exists()) {
             save();
             return;
         }
-        try (FileReader reader = new FileReader(CONFIG_FILE)) {
+        try (FileReader reader = new FileReader(configFile)) {
             Properties props = new Properties();
             props.load(reader);
 
@@ -286,20 +299,31 @@ public class KiemConfig {
                 } catch (Exception ignored) {
                 }
             }
+
+            // Load Shoulder Pet
+            shoulderPetType = props.getProperty("pet.type", "OFF");
+            shoulderPetSide = props.getProperty("pet.side", "RIGHT");
+            inventoryCurseWithSword = Boolean.parseBoolean(props.getProperty("pet.inventory_curse_sword", "true"));
+            dragonVariant = props.getProperty("pet.dragon_variant", "TOOTHLESS");
         } catch (Exception ignored) {
         }
     }
 
     public static void save() {
+        File configFile = getConfigFile();
         try {
-            if (CONFIG_FILE.getParentFile() != null) {
-                CONFIG_FILE.getParentFile().mkdirs();
+            if (configFile.getParentFile() != null) {
+                configFile.getParentFile().mkdirs();
             }
-            try (FileWriter writer = new FileWriter(CONFIG_FILE)) {
+            try (FileWriter writer = new FileWriter(configFile)) {
                 Properties props = new Properties();
                 props.setProperty("cape", CapeManager.getCurrentCape().name());
                 props.setProperty("cape.custom_name", customCapeFileName);
                 props.setProperty("cape.true_color", String.valueOf(capeTrueColor));
+                props.setProperty("pet.type", shoulderPetType);
+                props.setProperty("pet.side", shoulderPetSide);
+                props.setProperty("pet.inventory_curse_sword", String.valueOf(inventoryCurseWithSword));
+                props.setProperty("pet.dragon_variant", dragonVariant);
                 props.setProperty("chat.infinite_history", String.valueOf(infiniteChat));
                 props.setProperty("chat.peek_enabled", String.valueOf(chatPeekEnabled));
                 props.setProperty("chat.peek_key", String.valueOf(chatPeekKey));
@@ -473,6 +497,11 @@ public class KiemConfig {
 
         // Cape
         CapeManager.setCurrentCape(CapeManager.CapeType.SANARA_V2_ANIMATED);
+
+        // Shoulder Pet
+        shoulderPetType = "OFF";
+        shoulderPetSide = "RIGHT";
+        dragonVariant = "TOOTHLESS";
 
         // Reset recents to clean defaults
         recentModules.clear();
