@@ -89,6 +89,8 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
     @Override
     public void submit(PoseStack poseStack, SubmitNodeCollector collector, int light,
                        AvatarRenderState state, float yRot, float xRot) {
+        // GUI aura preview must not run this layer's live shoulder-pet physics twice.
+        if (((com.example.client.aura.SakuraPreviewState) (Object) state).kiem$getSakuraPreview() != null) return;
         ShoulderPetType type = ShoulderPetType.fromName(KiemConfig.shoulderPetType);
         if (type == ShoulderPetType.OFF) return;
 

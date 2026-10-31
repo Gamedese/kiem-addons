@@ -418,6 +418,188 @@ public class KiemLang {
         // Cosmetics Sub-tabs
         tr("cosmetics.sub.capes", "Pelerinler");
         en("cosmetics.sub.capes", "Capes");
+        tr("cosmetics.sub.auras", "Auralar");
+        en("cosmetics.sub.auras", "Auras");
+        tr("auras.sakura.title", "Sakura Lop");
+        en("auras.sakura.title", "Sakura Lop");
+        tr("auras.sakura.subtitle", "Küçük bir bahar yörüngesi");
+        en("auras.sakura.subtitle", "A little orbit of spring");
+        tr("auras.sakura.desc1", "Üç minik tavşan, süzülen bir yörünge.");
+        en("auras.sakura.desc1", "Three tiny bunnies in a bobbing orbit.");
+        tr("auras.sakura.desc2", "Krem ve pembe, kısa sevimli kulaklar.");
+        en("auras.sakura.desc2", "Cream and pink, with cute short ears.");
+        tr("auras.sakura.desc3", "Arkalarında süzülen sakura yaprakları.");
+        en("auras.sakura.desc3", "Drifting sakura petals follow behind.");
+        tr("auras.local", "Yalnızca sana görünür.");
+        en("auras.local", "Only visible to you.");
+        tr("auras.compatible", "Pet ve pelerinle birlikte kullanılabilir.");
+        en("auras.compatible", "Works alongside your pet and cape.");
+        tr("auras.enable", "Aurayı aç");
+        en("auras.enable", "Enable aura");
+        tr("auras.disable", "Aurayı kapat");
+        en("auras.disable", "Disable aura");
+        tr("auras.custom.title", "Sakura Lop • Özelleştir");
+        en("auras.custom.title", "Sakura Lop • Customize");
+        tr("auras.custom.hint", "Canlı ayarlar • 1x hız = 4 saniyelik tur");
+        en("auras.custom.hint", "Live settings • 1x speed = a 4-second orbit");
+        tr("auras.custom.scale", "Boyut");
+        en("auras.custom.scale", "Scale");
+        tr("auras.custom.speed", "Hız");
+        en("auras.custom.speed", "Speed");
+        tr("auras.custom.bob", "Salınım");
+        en("auras.custom.bob", "Bobbing");
+        tr("auras.custom.height", "Yükseklik");
+        en("auras.custom.height", "Height");
+        tr("auras.custom.radius", "Uzaklık");
+        en("auras.custom.radius", "Radius");
+        tr("auras.custom.blocks", "blok");
+        en("auras.custom.blocks", "blocks");
+        tr("auras.custom.bunny", "Tavşan");
+        en("auras.custom.bunny", "Bunny");
+        tr("auras.custom.petals", "Havadaki Yapraklar");
+        en("auras.custom.petals", "Floating Petals");
+        tr("auras.custom.ground_bloom", "🌸 Çiçek Halısı");
+        en("auras.custom.ground_bloom", "🌸 Flower Carpet");
+        tr("auras.custom.bloom.0", "Kapalı");
+        en("auras.custom.bloom.0", "Off");
+        tr("auras.custom.bloom.1", "Tek Tük");
+        en("auras.custom.bloom.1", "Sparse");
+        tr("auras.custom.bloom.2", "Normal");
+        en("auras.custom.bloom.2", "Normal");
+        tr("auras.custom.bloom.3", "Dolu Çember");
+        en("auras.custom.bloom.3", "Full Ring");
+        tr("auras.custom.density.0", "Kapalı");
+        en("auras.custom.density.0", "Off");
+        tr("auras.custom.density.1", "Az");
+        en("auras.custom.density.1", "Low");
+        tr("auras.custom.density.2", "Normal");
+        en("auras.custom.density.2", "Normal");
+        tr("auras.custom.density.3", "Yoğun");
+        en("auras.custom.density.3", "High");
+        tr("auras.custom.defaults", "Aura ayarlarını sıfırla");
+        en("auras.custom.defaults", "Reset aura settings");
+        tr("auras.custom.reset_setting", "Bu ayarı varsayılana döndür");
+        en("auras.custom.reset_setting", "Reset this setting to its default");
+        tr("auras.custom.speed_hint", "1x = 4 saniye/tur. Hız değişirken yörünge kesilmez.");
+        en("auras.custom.speed_hint", "1x = 4 seconds/orbit. Changing speed preserves the orbit phase.");
+        tr("auras.custom.petals_hint", "Havadaki uçuşan yaprak yoğunluğu: Kapalı → Az → Normal → Yoğun");
+        en("auras.custom.petals_hint", "Floating petal density: Off → Low → Normal → High");
+        tr("auras.custom.bloom_hint", "Zemin çiçek halısı: Kapalı → Tek Tük → Normal → Dolu Çember");
+        en("auras.custom.bloom_hint", "Ground flower carpet: Off → Sparse → Normal → Full Ring");
+        tr("auras.custom.general", "Genel");
+        en("auras.custom.general", "General");
+        tr("auras.custom.preview", "Önizleme");
+        en("auras.custom.preview", "Preview");
+        tr("auras.custom.live", "CANLI");
+        en("auras.custom.live", "LIVE");
+        tr("auras.custom.drag_hint", "Çevirmek için sürükle");
+        en("auras.custom.drag_hint", "Drag to rotate");
+        tr("auras.custom.reset_view", "Görünümü sıfırla");
+        en("auras.custom.reset_view", "Reset view");
+
+        // --- OBSIDIAN VOID GARGOYLE AURA ---
+        tr("auras.void_gargoyle.title", "Obsidyen Hiçlik Heykeli");
+        en("auras.void_gargoyle.title", "Obsidian Void Gargoyle");
+        tr("auras.void_gargoyle.subtitle", "Karanlık Obsidyen & Akkor Magma Aurası");
+        en("auras.void_gargoyle.subtitle", "Dark Obsidian & Molten Magma Aura");
+        tr("auras.void_gargoyle.desc1", "Etrafında süzülen 3 obsidyen yavru gargoyle");
+        en("auras.void_gargoyle.desc1", "3 orbiting obsidian imp whelps");
+        tr("auras.void_gargoyle.desc2", "Yırtıcı çene açılma refleksi & lav közleri");
+        en("auras.void_gargoyle.desc2", "Predatory jaw snapping & lava ember bursts");
+        tr("auras.void_gargoyle.desc3", "Bastığın adımlardan tüten kara duman ve korlar");
+        en("auras.void_gargoyle.desc3", "Rising dark smoke and ground ember trail");
+
+        // Gargoyle Aliases for title & description
+        tr("auras.gargoyle.title", "Obsidyen Hiçlik Heykeli");
+        en("auras.gargoyle.title", "Obsidian Void Gargoyle");
+        tr("auras.gargoyle.subtitle", "Karanlık Obsidyen & Akkor Magma Aurası");
+        en("auras.gargoyle.subtitle", "Dark Obsidian & Molten Magma Aura");
+        tr("auras.gargoyle.desc1", "Etrafında süzülen 3 obsidyen yavru gargoyle");
+        en("auras.gargoyle.desc1", "3 orbiting obsidian imp whelps");
+        tr("auras.gargoyle.desc2", "Yırtıcı çene açılma refleksi & lav közleri");
+        en("auras.gargoyle.desc2", "Predatory jaw snapping & lava ember bursts");
+        tr("auras.gargoyle.desc3", "Bastığın adımlardan tüten kara duman ve korlar");
+        en("auras.gargoyle.desc3", "Rising dark smoke and ground ember trail");
+
+        // Gargoyle Settings & Levels
+        tr("auras.gargoyle.embers", "Akkor Közler");
+        en("auras.gargoyle.embers", "Lava Embers");
+        tr("auras.gargoyle.ground_smoke", "Zemin Dumanı");
+        en("auras.gargoyle.ground_smoke", "Ground Smoke");
+        tr("auras.gargoyle.jaw_rate", "Çene Sıklığı");
+        en("auras.gargoyle.jaw_rate", "Jaw Snapping");
+
+        tr("auras.gargoyle.off", "Kapalı");
+        en("auras.gargoyle.off", "Off");
+        tr("auras.gargoyle.low", "Hafif");
+        en("auras.gargoyle.low", "Low");
+        tr("auras.gargoyle.normal", "Normal");
+        en("auras.gargoyle.normal", "Normal");
+        tr("auras.gargoyle.high", "Yoğun");
+        en("auras.gargoyle.high", "High");
+
+        tr("auras.gargoyle.jaw.slow", "Sakin");
+        en("auras.gargoyle.jaw.slow", "Calm");
+        tr("auras.gargoyle.jaw.normal", "Normal");
+        en("auras.gargoyle.jaw.normal", "Normal");
+        tr("auras.gargoyle.jaw.aggressive", "Yırtıcı");
+        en("auras.gargoyle.jaw.aggressive", "Aggressive");
+
+        // Gargoyle Customize Screen helpers
+        tr("auras.gargoyle.custom.title", "Obsidyen Hiçlik Heykeli • Özelleştir");
+        en("auras.gargoyle.custom.title", "Obsidian Void Gargoyle • Customize");
+        tr("auras.void_gargoyle.custom.title", "Obsidyen Hiçlik Heykeli • Özelleştir");
+        en("auras.void_gargoyle.custom.title", "Obsidian Void Gargoyle • Customize");
+        tr("auras.gargoyle.whelp", "Gargoyle");
+        en("auras.gargoyle.whelp", "Gargoyle");
+        tr("auras.gargoyle.embers_hint", "Havada patlayan lav közlerinin yoğunluğu");
+        en("auras.gargoyle.embers_hint", "Density of floating lava embers");
+        tr("auras.gargoyle.smoke_hint", "Zeminden yükselen volkanik kara duman yoğunluğu");
+        en("auras.gargoyle.smoke_hint", "Density of rising ground dark smoke");
+        tr("auras.gargoyle.jaw_hint", "Yavru gargoyleların çene açıp kapama refleksi");
+        en("auras.gargoyle.jaw_hint", "Jaw snapping rate of imp whelps");
+
+        // Numeric indexed level aliases
+        tr("auras.gargoyle.embers.0", "Kapalı");
+        en("auras.gargoyle.embers.0", "Off");
+        tr("auras.gargoyle.embers.1", "Hafif");
+        en("auras.gargoyle.embers.1", "Low");
+        tr("auras.gargoyle.embers.2", "Normal");
+        en("auras.gargoyle.embers.2", "Normal");
+        tr("auras.gargoyle.embers.3", "Yoğun");
+        en("auras.gargoyle.embers.3", "High");
+
+        tr("auras.gargoyle.smoke.0", "Kapalı");
+        en("auras.gargoyle.smoke.0", "Off");
+        tr("auras.gargoyle.smoke.1", "Hafif");
+        en("auras.gargoyle.smoke.1", "Low");
+        tr("auras.gargoyle.smoke.2", "Normal");
+        en("auras.gargoyle.smoke.2", "Normal");
+        tr("auras.gargoyle.smoke.3", "Yoğun");
+        en("auras.gargoyle.smoke.3", "High");
+
+        tr("auras.gargoyle.ground_smoke.0", "Kapalı");
+        en("auras.gargoyle.ground_smoke.0", "Off");
+        tr("auras.gargoyle.ground_smoke.1", "Hafif");
+        en("auras.gargoyle.ground_smoke.1", "Low");
+        tr("auras.gargoyle.ground_smoke.2", "Normal");
+        en("auras.gargoyle.ground_smoke.2", "Normal");
+        tr("auras.gargoyle.ground_smoke.3", "Yoğun");
+        en("auras.gargoyle.ground_smoke.3", "High");
+
+        tr("auras.gargoyle.jaw.0", "Sakin");
+        en("auras.gargoyle.jaw.0", "Calm");
+        tr("auras.gargoyle.jaw.1", "Normal");
+        en("auras.gargoyle.jaw.1", "Normal");
+        tr("auras.gargoyle.jaw.2", "Yırtıcı");
+        en("auras.gargoyle.jaw.2", "Aggressive");
+
+        tr("auras.gargoyle.jaw_rate.0", "Sakin");
+        en("auras.gargoyle.jaw_rate.0", "Calm");
+        tr("auras.gargoyle.jaw_rate.1", "Normal");
+        en("auras.gargoyle.jaw_rate.1", "Normal");
+        tr("auras.gargoyle.jaw_rate.2", "Yırtıcı");
+        en("auras.gargoyle.jaw_rate.2", "Aggressive");
         tr("cosmetics.sub.pets", "Omuz Yoldaşları");
         en("cosmetics.sub.pets", "Shoulder Pets");
 

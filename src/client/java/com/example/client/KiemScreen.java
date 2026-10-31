@@ -30,9 +30,15 @@ public class KiemScreen extends Screen {
     private static final Identifier INVENTORY_CURSE_PREVIEW =
             Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_pet_inventory_curse.png");
 
+    private static final Identifier SAKURA_AURA_PREVIEW =
+            Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_aura_sakura.png");
+    private static final Identifier GARGOYLE_AURA_PREVIEW =
+            Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_aura_gargoyle.png");
+
     private enum CosmeticsSub {
         CAPES,
-        PETS
+        PETS,
+        AURAS
     }
 
     private enum Tab {
@@ -223,7 +229,11 @@ public class KiemScreen extends Screen {
         if (currentTab == Tab.WELCOME) {
             currentSub = KiemLang.get("tab.welcome");
         } else if (currentTab == Tab.COSMETICS) {
-            currentSub = currentCosmeticsSub == CosmeticsSub.CAPES ? KiemLang.get("cosmetics.sub.capes") : KiemLang.get("cosmetics.sub.pets");
+            currentSub = KiemLang.get(switch (currentCosmeticsSub) {
+                case CAPES -> "cosmetics.sub.capes";
+                case PETS -> "cosmetics.sub.pets";
+                case AURAS -> "cosmetics.sub.auras";
+            });
         } else {
             if (configSubView == ConfigSubView.MAIN) {
                 currentSub = KiemLang.get("ui.modules");
@@ -276,12 +286,13 @@ public class KiemScreen extends Screen {
     }
 
     private void renderCosmeticsTab(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
-        // Sub-tabs (Capes / Pets)
+        // Sub-tabs (Capes / Pets / Auras)
         int subBtnW = 96;
         int subBtnH = 18;
         int subGap = 6;
         int sub1X = x;
         int sub2X = sub1X + subBtnW + subGap;
+        int sub3X = sub2X + subBtnW + subGap;
         int subY = y - 1;
 
         boolean sub1Hover = mouseX >= sub1X && mouseX <= sub1X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH;
@@ -296,14 +307,78 @@ public class KiemScreen extends Screen {
         drawPill(graphics, sub2X, subY, subBtnW, subBtnH, isPets ? COLOR_ACCENT_BG : (sub2Hover ? 0x2AFFFFFF : 0x18FFFFFF), isPets ? COLOR_ACCENT : (sub2Hover ? 0x66FFFFFF : COLOR_BORDER));
         graphics.centeredText(this.font, KiemLang.get("cosmetics.sub.pets"), sub2X + subBtnW / 2, subY + 5, isPets ? COLOR_ACCENT : (sub2Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
 
-        int dividerX = sub2X + subBtnW + 12;
+        boolean isAuras = currentCosmeticsSub == CosmeticsSub.AURAS;
+        boolean sub3Hover = mouseX >= sub3X && mouseX <= sub3X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH;
+        drawPill(graphics, sub3X, subY, subBtnW, subBtnH, isAuras ? COLOR_ACCENT_BG : (sub3Hover ? 0x2AFFFFFF : 0x18FFFFFF), isAuras ? COLOR_ACCENT : (sub3Hover ? 0x66FFFFFF : COLOR_BORDER));
+        graphics.centeredText(this.font, KiemLang.get("cosmetics.sub.auras"), sub3X + subBtnW / 2, subY + 5, isAuras ? COLOR_ACCENT : (sub3Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+
+        int dividerX = sub3X + subBtnW + 12;
         graphics.fill(dividerX, y + 8, x + w, y + 9, COLOR_BORDER);
 
         if (isCapes) {
             renderCapesSubView(graphics, x, y, w, mouseX, mouseY);
-        } else {
+        } else if (isPets) {
             renderPetsSubView(graphics, x, y, w, mouseX, mouseY);
+        } else {
+            renderAurasSubView(graphics, x, y, w, mouseX, mouseY);
         }
+    }
+
+    private void renderAurasSubView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
+        int cardW = 180;
+        int cardH = 236;
+        int cardGap = 12;
+
+        int card1X = x;
+        int card1Y = y + 18;
+
+        int card2X = card1X + cardW + cardGap;
+        int card2Y = card1Y;
+
+        // --- CARD 1: SAKURA LOP ---
+        boolean active1 = "SAKURA_LOP".equals(KiemConfig.activeAura) || KiemConfig.sakuraAuraEnabled;
+        drawRoundedRect(graphics, card1X, card1Y, cardW, cardH, active1 ? COLOR_CARD_ACTIVE : COLOR_CARD_BG, active1 ? COLOR_ACTIVE_BORDER : COLOR_BORDER);
+        graphics.text(this.font, KiemLang.get("auras.sakura.title"), card1X + 12, card1Y + 11, COLOR_TEXT_WHITE, false);
+        int img1X = card1X + 8;
+        int img1Y = card1Y + 26;
+        int img1W = cardW - 16;
+        drawRoundedRect(graphics, img1X - 1, img1Y - 1, img1W + 2, 147, 0xFF12131A, COLOR_BORDER);
+        graphics.blit(SAKURA_AURA_PREVIEW, img1X, img1Y, img1X + img1W, img1Y + 145, 0.0f, 1.0f, 0.0f, 1.0f);
+        int btn1Y = card1Y + 179;
+        boolean hover1 = mouseX >= img1X && mouseX <= img1X + img1W && mouseY >= btn1Y && mouseY <= btn1Y + 22;
+        drawPill(graphics, img1X, btn1Y, img1W, 22, active1 ? COLOR_ACCENT_BG : (hover1 ? 0x2EFFFFFF : 0x18FFFFFF), active1 ? COLOR_ACCENT : COLOR_BORDER);
+        graphics.centeredText(this.font, KiemLang.get(active1 ? "auras.disable" : "auras.enable"), card1X + cardW / 2, btn1Y + 7, active1 ? COLOR_ACCENT : COLOR_TEXT_WHITE);
+        int cust1Y = btn1Y + 27;
+        boolean custHover1 = mouseX >= img1X && mouseX <= img1X + img1W && mouseY >= cust1Y && mouseY <= cust1Y + 22;
+        drawPill(graphics, img1X, cust1Y, img1W, 22, custHover1 ? 0x44E05688 : 0x18FFFFFF, custHover1 ? COLOR_ACCENT : COLOR_BORDER);
+        graphics.centeredText(this.font, KiemLang.get("ui.customize"), card1X + cardW / 2, cust1Y + 7, custHover1 ? COLOR_ACCENT : COLOR_TEXT_WHITE);
+
+        // --- CARD 2: OBSIDIAN VOID GARGOYLE ---
+        boolean active2 = "VOID_GARGOYLE".equals(KiemConfig.activeAura) || KiemConfig.voidGargoyleAuraEnabled;
+        int gargoyleAccent = 0xFFFF5522;
+        int gargoyleBorder = active2 ? gargoyleAccent : COLOR_BORDER;
+        int gargoyleCardBg = active2 ? 0x302A1822 : COLOR_CARD_BG;
+        int gargoyleAccentBg = 0x44FF4400;
+
+        drawRoundedRect(graphics, card2X, card2Y, cardW, cardH, gargoyleCardBg, gargoyleBorder);
+        graphics.text(this.font, KiemLang.get("auras.void_gargoyle.title"), card2X + 12, card2Y + 11, COLOR_TEXT_WHITE, false);
+        int img2X = card2X + 8;
+        int img2Y = card2Y + 26;
+        int img2W = cardW - 16;
+        drawRoundedRect(graphics, img2X - 1, img2Y - 1, img2W + 2, 147, 0xFF121017, COLOR_BORDER);
+        graphics.blit(GARGOYLE_AURA_PREVIEW, img2X, img2Y, img2X + img2W, img2Y + 145, 0.0f, 1.0f, 0.0f, 1.0f);
+        int btn2Y = card2Y + 179;
+        boolean hover2 = mouseX >= img2X && mouseX <= img2X + img2W && mouseY >= btn2Y && mouseY <= btn2Y + 22;
+        drawPill(graphics, img2X, btn2Y, img2W, 22, active2 ? gargoyleAccentBg : (hover2 ? 0x2EFFFFFF : 0x18FFFFFF), active2 ? gargoyleAccent : COLOR_BORDER);
+        graphics.centeredText(this.font, KiemLang.get(active2 ? "auras.disable" : "auras.enable"), card2X + cardW / 2, btn2Y + 7, active2 ? gargoyleAccent : COLOR_TEXT_WHITE);
+        int cust2Y = btn2Y + 27;
+        boolean custHover2 = mouseX >= img2X && mouseX <= img2X + img2W && mouseY >= cust2Y && mouseY <= cust2Y + 22;
+        drawPill(graphics, img2X, cust2Y, img2W, 22, custHover2 ? 0x44FF5522 : 0x18FFFFFF, custHover2 ? gargoyleAccent : COLOR_BORDER);
+        graphics.centeredText(this.font, KiemLang.get("ui.customize"), card2X + cardW / 2, cust2Y + 7, custHover2 ? gargoyleAccent : COLOR_TEXT_WHITE);
+
+        int infoY = card1Y + cardH + 8;
+        graphics.text(this.font, KiemLang.get("auras.local"), x, infoY, COLOR_TEXT_MUTED, false);
+        graphics.text(this.font, KiemLang.get("auras.compatible"), x, infoY + 12, COLOR_TEXT_MUTED, false);
     }
 
     private void renderCapesSubView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
@@ -2238,12 +2313,13 @@ public class KiemScreen extends Screen {
                 int contentX = modalX + sidebarW + 20;
                 int contentY = modalY + 40 + 20;
 
-                // Sub-tabs (Capes / Pets) click
+                // Sub-tabs (Capes / Pets / Auras) click
                 int subBtnW = 96;
                 int subBtnH = 18;
                 int subGap = 6;
                 int sub1X = contentX;
                 int sub2X = sub1X + subBtnW + subGap;
+                int sub3X = sub2X + subBtnW + subGap;
                 int subY = contentY - 1;
 
                 if (mouseX >= sub1X && mouseX <= sub1X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH) {
@@ -2253,6 +2329,47 @@ public class KiemScreen extends Screen {
                 if (mouseX >= sub2X && mouseX <= sub2X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH) {
                     currentCosmeticsSub = CosmeticsSub.PETS;
                     return true;
+                }
+                if (mouseX >= sub3X && mouseX <= sub3X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH) {
+                    currentCosmeticsSub = CosmeticsSub.AURAS;
+                    return true;
+                }
+                if (currentCosmeticsSub == CosmeticsSub.AURAS) {
+                    int cardW = 180;
+                    int cardGap = 12;
+                    int card1X = contentX;
+                    int card2X = card1X + cardW + cardGap;
+                    int cardY = contentY + 18;
+                    int btnY = cardY + 179;
+                    int custY = btnY + 27;
+
+                    // Card 1: Sakura Lop
+                    int btn1X = card1X + 8;
+                    int img1W = cardW - 16;
+                    if (mouseX >= btn1X && mouseX <= btn1X + img1W && mouseY >= btnY && mouseY <= btnY + 22) {
+                        boolean active1 = "SAKURA_LOP".equals(KiemConfig.activeAura) || KiemConfig.sakuraAuraEnabled;
+                        KiemConfig.setActiveAura(active1 ? "NONE" : "SAKURA_LOP");
+                        KiemConfig.save();
+                        return true;
+                    }
+                    if (mouseX >= btn1X && mouseX <= btn1X + img1W && mouseY >= custY && mouseY <= custY + 22) {
+                        KiemCompat.setScreen(this.minecraft, new SakuraAuraScreen(this));
+                        return true;
+                    }
+
+                    // Card 2: Obsidian Void Gargoyle
+                    int btn2X = card2X + 8;
+                    int img2W = cardW - 16;
+                    if (mouseX >= btn2X && mouseX <= btn2X + img2W && mouseY >= btnY && mouseY <= btnY + 22) {
+                        boolean active2 = "VOID_GARGOYLE".equals(KiemConfig.activeAura) || KiemConfig.voidGargoyleAuraEnabled;
+                        KiemConfig.setActiveAura(active2 ? "NONE" : "VOID_GARGOYLE");
+                        KiemConfig.save();
+                        return true;
+                    }
+                    if (mouseX >= btn2X && mouseX <= btn2X + img2W && mouseY >= custY && mouseY <= custY + 22) {
+                        KiemCompat.setScreen(this.minecraft, new VoidGargoyleScreen(this));
+                        return true;
+                    }
                 }
 
                 if (currentCosmeticsSub == CosmeticsSub.CAPES) {

@@ -97,6 +97,65 @@ public class KiemConfig {
     public static String customCapeFileName = "";
     public static boolean capeTrueColor = true; // Emissive rendering to preserve full GIF brightness and avoid directional dimming
 
+    // Local aura (independent of shoulder pets and capes)
+    public static String activeAura = "NONE"; // "NONE", "SAKURA_LOP", "VOID_GARGOYLE"
+    public static boolean sakuraAuraEnabled = false;
+    public static boolean voidGargoyleAuraEnabled = false;
+    private static String lastActiveAura = "NONE";
+
+    // Sakura Lop Aura settings
+    private static final float[] DEFAULT_SAKURA_HEIGHTS = {0.63f, 0.954f, 1.278f};
+    private static final float[] DEFAULT_SAKURA_RADII = {0.74f, 0.84f, 0.79f};
+    public static float sakuraAuraScale = 0.8f;
+    public static float sakuraAuraSpeed = 1f;
+    public static float sakuraAuraBob = 1f;
+    public static float[] sakuraAuraHeights = DEFAULT_SAKURA_HEIGHTS.clone();
+    public static float[] sakuraAuraRadii = DEFAULT_SAKURA_RADII.clone();
+    public static int sakuraAuraPetals = 2; // 0=off, 1=low, 2=normal, 3=high
+    public static int sakuraAuraGroundBloom = 3; // 0=off, 1=sparse, 2=normal, 3=full ring
+
+    // Obsidian Void Gargoyle Aura settings
+    public static float voidGargoyleScale = 0.85f; // bounds 0.3f .. 1.5f
+    public static float voidGargoyleSpeed = 1.0f; // bounds 0.25f .. 2.0f
+    public static float voidGargoyleBob = 1.0f; // bounds 0.0f .. 3.0f
+    private static final float[] DEFAULT_GARGOYLE_HEIGHTS = {0.70f, 1.05f, 1.40f};
+    private static final float[] DEFAULT_GARGOYLE_RADII = {0.80f, 0.90f, 0.85f};
+    public static float[] voidGargoyleHeights = DEFAULT_GARGOYLE_HEIGHTS.clone();
+    public static float[] voidGargoyleRadii = DEFAULT_GARGOYLE_RADII.clone();
+    public static int voidGargoyleEmbers = 2; // 0=Off, 1=Low, 2=Normal, 3=High
+    public static int voidGargoyleGroundSmoke = 2; // 0=Off, 1=Subtle, 2=Normal, 3=Heavy
+    public static int voidGargoyleJawRate = 1; // 0=Rare, 1=Normal, 2=Frequent
+
+    public static void setActiveAura(String aura) {
+        if (aura == null || aura.trim().isEmpty()) {
+            activeAura = "NONE";
+        } else {
+            activeAura = aura.trim().toUpperCase();
+        }
+        syncAuraBooleans();
+    }
+
+    public static void syncAuraBooleans() {
+        if (!activeAura.equals(lastActiveAura)) {
+            sakuraAuraEnabled = "SAKURA_LOP".equals(activeAura);
+            voidGargoyleAuraEnabled = "VOID_GARGOYLE".equals(activeAura);
+            lastActiveAura = activeAura;
+            return;
+        }
+        if (voidGargoyleAuraEnabled && !"VOID_GARGOYLE".equals(activeAura)) {
+            activeAura = "VOID_GARGOYLE";
+        } else if (sakuraAuraEnabled && !"SAKURA_LOP".equals(activeAura)) {
+            activeAura = "SAKURA_LOP";
+        } else if (!voidGargoyleAuraEnabled && "VOID_GARGOYLE".equals(activeAura)) {
+            activeAura = "NONE";
+        } else if (!sakuraAuraEnabled && "SAKURA_LOP".equals(activeAura)) {
+            activeAura = "NONE";
+        }
+        sakuraAuraEnabled = "SAKURA_LOP".equals(activeAura);
+        voidGargoyleAuraEnabled = "VOID_GARGOYLE".equals(activeAura);
+        lastActiveAura = activeAura;
+    }
+
     // Shoulder Pet
     public static String shoulderPetType = "OFF";
     public static String shoulderPetSide = "RIGHT";
@@ -300,6 +359,70 @@ public class KiemConfig {
                 }
             }
 
+            String loadedActive = props.getProperty("aura.active");
+            sakuraAuraEnabled = Boolean.parseBoolean(props.getProperty("aura.sakura_lop", "false"));
+            voidGargoyleAuraEnabled = Boolean.parseBoolean(props.getProperty("aura.void_gargoyle", "false"));
+
+            if (loadedActive != null && !loadedActive.trim().isEmpty()) {
+                activeAura = loadedActive.trim().toUpperCase();
+            } else {
+                if (sakuraAuraEnabled) {
+                    activeAura = "SAKURA_LOP";
+                } else if (voidGargoyleAuraEnabled) {
+                    activeAura = "VOID_GARGOYLE";
+                } else {
+                    activeAura = "NONE";
+                }
+            }
+            sakuraAuraEnabled = "SAKURA_LOP".equals(activeAura);
+            voidGargoyleAuraEnabled = "VOID_GARGOYLE".equals(activeAura);
+            lastActiveAura = activeAura;
+
+            sakuraAuraScale = boundedFloat(props, "aura.sakura_lop.scale", 0.8f, 0.3f, 1.4f);
+            sakuraAuraSpeed = boundedFloat(props, "aura.sakura_lop.speed", 1f, 0.25f, 2f);
+            sakuraAuraBob = boundedFloat(props, "aura.sakura_lop.bob", 1f, 0f, 3f);
+            for (int i = 0; i < 3; i++) {
+                sakuraAuraHeights[i] = boundedFloat(props, "aura.sakura_lop.height." + i,
+                        DEFAULT_SAKURA_HEIGHTS[i], 0.15f, 2.2f);
+                sakuraAuraRadii[i] = boundedFloat(props, "aura.sakura_lop.radius." + i,
+                        DEFAULT_SAKURA_RADII[i], 0.4f, 1.5f);
+            }
+            try {
+                sakuraAuraPetals = Math.clamp(Integer.parseInt(props.getProperty("aura.sakura_lop.petals", "2")), 0, 3);
+            } catch (NumberFormatException exception) {
+                sakuraAuraPetals = 2;
+            }
+            try {
+                sakuraAuraGroundBloom = Math.clamp(Integer.parseInt(props.getProperty("aura.sakura_lop.ground_bloom", "3")), 0, 3);
+            } catch (NumberFormatException exception) {
+                sakuraAuraGroundBloom = 3;
+            }
+
+            voidGargoyleScale = boundedFloat(props, "aura.void_gargoyle.scale", 0.85f, 0.3f, 1.5f);
+            voidGargoyleSpeed = boundedFloat(props, "aura.void_gargoyle.speed", 1.0f, 0.25f, 2.0f);
+            voidGargoyleBob = boundedFloat(props, "aura.void_gargoyle.bob", 1.0f, 0.0f, 3.0f);
+            for (int i = 0; i < 3; i++) {
+                voidGargoyleHeights[i] = boundedFloat(props, "aura.void_gargoyle.height." + i,
+                        DEFAULT_GARGOYLE_HEIGHTS[i], 0.15f, 2.2f);
+                voidGargoyleRadii[i] = boundedFloat(props, "aura.void_gargoyle.radius." + i,
+                        DEFAULT_GARGOYLE_RADII[i], 0.4f, 1.5f);
+            }
+            try {
+                voidGargoyleEmbers = Math.clamp(Integer.parseInt(props.getProperty("aura.void_gargoyle.embers", "2")), 0, 3);
+            } catch (NumberFormatException exception) {
+                voidGargoyleEmbers = 2;
+            }
+            try {
+                voidGargoyleGroundSmoke = Math.clamp(Integer.parseInt(props.getProperty("aura.void_gargoyle.ground_smoke", "2")), 0, 3);
+            } catch (NumberFormatException exception) {
+                voidGargoyleGroundSmoke = 2;
+            }
+            try {
+                voidGargoyleJawRate = Math.clamp(Integer.parseInt(props.getProperty("aura.void_gargoyle.jaw_rate", "1")), 0, 2);
+            } catch (NumberFormatException exception) {
+                voidGargoyleJawRate = 1;
+            }
+
             // Load Shoulder Pet
             shoulderPetType = props.getProperty("pet.type", "OFF");
             shoulderPetSide = props.getProperty("pet.side", "RIGHT");
@@ -316,10 +439,33 @@ public class KiemConfig {
                 configFile.getParentFile().mkdirs();
             }
             try (FileWriter writer = new FileWriter(configFile)) {
+                syncAuraBooleans();
                 Properties props = new Properties();
                 props.setProperty("cape", CapeManager.getCurrentCape().name());
                 props.setProperty("cape.custom_name", customCapeFileName);
                 props.setProperty("cape.true_color", String.valueOf(capeTrueColor));
+                props.setProperty("aura.active", activeAura);
+                props.setProperty("aura.sakura_lop", String.valueOf(sakuraAuraEnabled));
+                props.setProperty("aura.sakura_lop.scale", String.valueOf(sakuraAuraScale));
+                props.setProperty("aura.sakura_lop.speed", String.valueOf(sakuraAuraSpeed));
+                props.setProperty("aura.sakura_lop.bob", String.valueOf(sakuraAuraBob));
+                for (int i = 0; i < 3; i++) {
+                    props.setProperty("aura.sakura_lop.height." + i, String.valueOf(sakuraAuraHeights[i]));
+                    props.setProperty("aura.sakura_lop.radius." + i, String.valueOf(sakuraAuraRadii[i]));
+                }
+                props.setProperty("aura.sakura_lop.petals", String.valueOf(sakuraAuraPetals));
+                props.setProperty("aura.sakura_lop.ground_bloom", String.valueOf(sakuraAuraGroundBloom));
+                props.setProperty("aura.void_gargoyle", String.valueOf(voidGargoyleAuraEnabled));
+                props.setProperty("aura.void_gargoyle.scale", String.valueOf(voidGargoyleScale));
+                props.setProperty("aura.void_gargoyle.speed", String.valueOf(voidGargoyleSpeed));
+                props.setProperty("aura.void_gargoyle.bob", String.valueOf(voidGargoyleBob));
+                for (int i = 0; i < 3; i++) {
+                    props.setProperty("aura.void_gargoyle.height." + i, String.valueOf(voidGargoyleHeights[i]));
+                    props.setProperty("aura.void_gargoyle.radius." + i, String.valueOf(voidGargoyleRadii[i]));
+                }
+                props.setProperty("aura.void_gargoyle.embers", String.valueOf(voidGargoyleEmbers));
+                props.setProperty("aura.void_gargoyle.ground_smoke", String.valueOf(voidGargoyleGroundSmoke));
+                props.setProperty("aura.void_gargoyle.jaw_rate", String.valueOf(voidGargoyleJawRate));
                 props.setProperty("pet.type", shoulderPetType);
                 props.setProperty("pet.side", shoulderPetSide);
                 props.setProperty("pet.inventory_curse_sword", String.valueOf(inventoryCurseWithSword));
@@ -422,6 +568,38 @@ public class KiemConfig {
         save();
     }
 
+    private static float boundedFloat(Properties props, String key, float fallback, float min, float max) {
+        try {
+            float value = Float.parseFloat(props.getProperty(key, String.valueOf(fallback)));
+            return Float.isFinite(value) ? Math.clamp(value, min, max) : fallback;
+        } catch (NumberFormatException exception) {
+            return fallback;
+        }
+    }
+
+    /** Reset aura customization only; the caller decides whether to save. */
+    public static void resetSakuraAuraSettings() {
+        sakuraAuraScale = 0.8f;
+        sakuraAuraSpeed = 1f;
+        sakuraAuraBob = 1f;
+        sakuraAuraHeights = DEFAULT_SAKURA_HEIGHTS.clone();
+        sakuraAuraRadii = DEFAULT_SAKURA_RADII.clone();
+        sakuraAuraPetals = 2;
+        sakuraAuraGroundBloom = 3;
+    }
+
+    /** Reset Void Gargoyle aura customization only; caller decides whether to save. */
+    public static void resetVoidGargoyleSettings() {
+        voidGargoyleScale = 0.85f;
+        voidGargoyleSpeed = 1.0f;
+        voidGargoyleBob = 1.0f;
+        voidGargoyleHeights = DEFAULT_GARGOYLE_HEIGHTS.clone();
+        voidGargoyleRadii = DEFAULT_GARGOYLE_RADII.clone();
+        voidGargoyleEmbers = 2;
+        voidGargoyleGroundSmoke = 2;
+        voidGargoyleJawRate = 1;
+    }
+
     public static void resetToDefaults() {
         // Chat
         infiniteChat = true;
@@ -497,6 +675,13 @@ public class KiemConfig {
 
         // Cape
         CapeManager.setCurrentCape(CapeManager.CapeType.SANARA_V2_ANIMATED);
+
+        activeAura = "NONE";
+        sakuraAuraEnabled = false;
+        voidGargoyleAuraEnabled = false;
+        lastActiveAura = "NONE";
+        resetSakuraAuraSettings();
+        resetVoidGargoyleSettings();
 
         // Shoulder Pet
         shoulderPetType = "OFF";

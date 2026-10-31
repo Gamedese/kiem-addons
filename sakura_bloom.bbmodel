@@ -1,0 +1,567 @@
+{
+  "meta": {
+    "format_version": "5.0",
+    "model_format": "modded_entity",
+    "box_uv": true
+  },
+  "name": "sakura_bloom",
+  "model_identifier": "sakura_bloom",
+  "modded_entity_version": "1.17",
+  "modded_entity_flip_y": true,
+  "resolution": {
+    "width": 16,
+    "height": 16
+  },
+  "elements": [
+    {
+      "name": "center",
+      "box_uv": true,
+      "from": [
+        -0.6,
+        0,
+        -0.6
+      ],
+      "to": [
+        0.6,
+        0.6,
+        0.6
+      ],
+      "autouv": 0,
+      "color": 4,
+      "origin": [
+        0,
+        0,
+        0
+      ],
+      "uv_offset": [
+        0,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            1.2,
+            1.2,
+            2.4,
+            1.8
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            0,
+            1.2,
+            1.2,
+            1.8
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            3.6,
+            1.2,
+            4.8,
+            1.8
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            2.4,
+            1.2,
+            3.6,
+            1.8
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            2.4,
+            1.2,
+            1.2,
+            0
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            3.6,
+            0,
+            2.4,
+            1.2
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "61552a8c-f2f1-a218-b7e0-c743e49dcc54"
+    },
+    {
+      "name": "petal_0",
+      "box_uv": true,
+      "from": [
+        -0.5,
+        0,
+        0.4
+      ],
+      "to": [
+        0.5,
+        0.35,
+        1.6
+      ],
+      "autouv": 0,
+      "color": 7,
+      "rotation": [
+        4,
+        0,
+        0
+      ],
+      "origin": [
+        0,
+        0,
+        1
+      ],
+      "uv_offset": [
+        5,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6.2,
+            1.2,
+            7.2,
+            1.55
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            5,
+            1.2,
+            6.2,
+            1.55
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            8.4,
+            1.2,
+            9.4,
+            1.55
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            7.2,
+            1.2,
+            8.4,
+            1.55
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            7.2,
+            1.2,
+            6.2,
+            0
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            8.2,
+            0,
+            7.2,
+            1.2
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "5082089a-b6b9-e60c-9f4f-572044fc7ba2"
+    },
+    {
+      "name": "petal_1",
+      "box_uv": true,
+      "from": [
+        0.45106,
+        0,
+        -0.29098
+      ],
+      "to": [
+        1.45106,
+        0.35,
+        0.90902
+      ],
+      "autouv": 0,
+      "color": 9,
+      "rotation": [
+        4,
+        72,
+        0
+      ],
+      "origin": [
+        0.95106,
+        0,
+        0.30902
+      ],
+      "uv_offset": [
+        5,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6.2,
+            1.2,
+            7.2,
+            1.55
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            5,
+            1.2,
+            6.2,
+            1.55
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            8.4,
+            1.2,
+            9.4,
+            1.55
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            7.2,
+            1.2,
+            8.4,
+            1.55
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            7.2,
+            1.2,
+            6.2,
+            0
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            8.2,
+            0,
+            7.2,
+            1.2
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "30fcc6d5-fb03-d676-fc4c-bbe4a187c384"
+    },
+    {
+      "name": "petal_2",
+      "box_uv": true,
+      "from": [
+        0.08779,
+        0,
+        -1.40902
+      ],
+      "to": [
+        1.08779,
+        0.35,
+        -0.20902
+      ],
+      "autouv": 0,
+      "color": 8,
+      "rotation": [
+        4,
+        144,
+        0
+      ],
+      "origin": [
+        0.58779,
+        0,
+        -0.80902
+      ],
+      "uv_offset": [
+        5,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6.2,
+            1.2,
+            7.2,
+            1.55
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            5,
+            1.2,
+            6.2,
+            1.55
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            8.4,
+            1.2,
+            9.4,
+            1.55
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            7.2,
+            1.2,
+            8.4,
+            1.55
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            7.2,
+            1.2,
+            6.2,
+            0
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            8.2,
+            0,
+            7.2,
+            1.2
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "2ffd39c1-a7e8-27cb-d545-d3ff4e3cae88"
+    },
+    {
+      "name": "petal_3",
+      "box_uv": true,
+      "from": [
+        -1.08779,
+        0,
+        -1.40902
+      ],
+      "to": [
+        -0.08779,
+        0.35,
+        -0.20902
+      ],
+      "autouv": 0,
+      "color": 4,
+      "rotation": [
+        4,
+        216,
+        0
+      ],
+      "origin": [
+        -0.58779,
+        0,
+        -0.80902
+      ],
+      "uv_offset": [
+        5,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6.2,
+            1.2,
+            7.2,
+            1.55
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            5,
+            1.2,
+            6.2,
+            1.55
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            8.4,
+            1.2,
+            9.4,
+            1.55
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            7.2,
+            1.2,
+            8.4,
+            1.55
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            7.2,
+            1.2,
+            6.2,
+            0
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            8.2,
+            0,
+            7.2,
+            1.2
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "44b9c60f-b2aa-fec1-4314-736a598ba8a1"
+    },
+    {
+      "name": "petal_4",
+      "box_uv": true,
+      "from": [
+        -1.45106,
+        0,
+        -0.29098
+      ],
+      "to": [
+        -0.45106,
+        0.35,
+        0.90902
+      ],
+      "autouv": 0,
+      "color": 6,
+      "rotation": [
+        4,
+        288,
+        0
+      ],
+      "origin": [
+        -0.95106,
+        0,
+        0.30902
+      ],
+      "uv_offset": [
+        5,
+        0
+      ],
+      "faces": {
+        "north": {
+          "uv": [
+            6.2,
+            1.2,
+            7.2,
+            1.55
+          ],
+          "texture": 0
+        },
+        "east": {
+          "uv": [
+            5,
+            1.2,
+            6.2,
+            1.55
+          ],
+          "texture": 0
+        },
+        "south": {
+          "uv": [
+            8.4,
+            1.2,
+            9.4,
+            1.55
+          ],
+          "texture": 0
+        },
+        "west": {
+          "uv": [
+            7.2,
+            1.2,
+            8.4,
+            1.55
+          ],
+          "texture": 0
+        },
+        "up": {
+          "uv": [
+            7.2,
+            1.2,
+            6.2,
+            0
+          ],
+          "texture": 0
+        },
+        "down": {
+          "uv": [
+            8.2,
+            0,
+            7.2,
+            1.2
+          ],
+          "texture": 0
+        }
+      },
+      "type": "cube",
+      "uuid": "286eb644-f69a-5f3a-afb7-4115a2618d52"
+    }
+  ],
+  "outliner": [
+    {
+      "name": "flower",
+      "uuid": "53130a0a-1187-6c86-450c-3a5b38085603",
+      "export": true,
+      "children": [
+        "61552a8c-f2f1-a218-b7e0-c743e49dcc54",
+        "5082089a-b6b9-e60c-9f4f-572044fc7ba2",
+        "30fcc6d5-fb03-d676-fc4c-bbe4a187c384",
+        "2ffd39c1-a7e8-27cb-d545-d3ff4e3cae88",
+        "44b9c60f-b2aa-fec1-4314-736a598ba8a1",
+        "286eb644-f69a-5f3a-afb7-4115a2618d52"
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "name": "sakura_bloom.png",
+      "id": "0",
+      "uuid": "6a9f2e6a-a90c-caea-1a38-a5b941d60afb",
+      "width": 64,
+      "height": 64,
+      "uv_width": 16,
+      "uv_height": 16,
+      "source": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAA9ElEQVR4nO3VMW7CQBBA0XFkcIQUipgyIESRa9DS0HGEXIGCM5CeE3CCdOk4AFIaoogCRQR3tguQEDYFaKhAYBewQRb8V854vZr1rMdajd43Ykjg/cjjsHEU9yd/qetKtfLJuNtpWfLP7KSE45YkCnwjmyQVmAV2UkKLX4RTeXquXLxJ/qWQmo9nS8ncASgt3kQnOPVqaj7uf0smD0CZuAa5Yl6yyjb9Qv3h6Z3Xttcvr8WP2x8Hz7x2m7KexxINfnftr2s0ti/sfck1PMids7zPN2NjUJ0ag+e6xhgEAAAAAAAAAAAAAAAAAAAAAAAAAAByM7bVuDpBEgtV5QAAAABJRU5ErkJggg=="
+    }
+  ]
+}

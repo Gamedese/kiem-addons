@@ -12,6 +12,8 @@
 		"AbstractContainerScreenMixin",
 		"CameraMixin",
 		"AvatarRendererMixin",
+		"SakuraAuraMixin",
+		"SakuraAuraPreviewState",
 		"ItemInHandRendererMixin",
 		"LivingEntityMixin",
 		"WingsLayerMixin",
