@@ -51,6 +51,8 @@ public class ExampleModClient implements ClientModInitializer {
             }));
         });
 
+        UpdateChecker.checkAsync();
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (menuKeyMapping != null && menuKeyMapping.consumeClick()) {
                 if (KiemCompat.getScreen(client) == null) {

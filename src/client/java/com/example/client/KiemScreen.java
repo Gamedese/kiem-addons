@@ -1486,15 +1486,36 @@ public class KiemScreen extends Screen {
     }
 
     private void renderWelcomeTab(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
+        int curBaseY = y;
+        if (KiemConfig.updateCheckerEnabled && UpdateChecker.hasUpdate()) {
+            int bannerH = 34;
+            int dlBtnW = 92;
+            int dlBtnH = 20;
+            int dlBtnX = x + w - dlBtnW - 12;
+            int dlBtnY = curBaseY + (bannerH - dlBtnH) / 2;
+            boolean dlHover = mouseX >= dlBtnX && mouseX <= dlBtnX + dlBtnW && mouseY >= dlBtnY && mouseY <= dlBtnY + dlBtnH;
+
+            drawRoundedRect(graphics, x, curBaseY, w, bannerH, 0x223CC878, dlHover ? 0xFF5CE698 : 0x883CC878);
+            int maxTextW = dlBtnX - (x + 14) - 8;
+            String verTag = "v" + UpdateChecker.getLatestVersion();
+            drawBoundedText(graphics, "✦ " + KiemLang.get("update.banner.title") + " (" + verTag + ")", x + 14, curBaseY + 6, maxTextW, 0xFF66EE99);
+            drawBoundedText(graphics, KiemLang.get("update.banner.desc") + " " + verTag, x + 14, curBaseY + 19, maxTextW, COLOR_TEXT_WHITE);
+
+            drawPill(graphics, dlBtnX, dlBtnY, dlBtnW, dlBtnH, dlHover ? 0xCC3CC878 : 0x663CC878, 0xFF3CC878);
+            graphics.centeredText(this.font, KiemLang.get("update.banner.download"), dlBtnX + dlBtnW / 2, dlBtnY + 6, COLOR_TEXT_WHITE);
+
+            curBaseY += bannerH + 8;
+        }
+
         // Hero Header Banner
         int heroH = 74;
-        drawRoundedRect(graphics, x, y, w, heroH, COLOR_CARD_BG, COLOR_BORDER);
-        graphics.text(this.font, KiemLang.get("welcome.hero_title"), x + 16, y + 14, COLOR_ACCENT, false);
-        graphics.text(this.font, KiemLang.get("welcome.hero_desc"), x + 16, y + 28, COLOR_TEXT_WHITE, false);
+        drawRoundedRect(graphics, x, curBaseY, w, heroH, COLOR_CARD_BG, COLOR_BORDER);
+        graphics.text(this.font, KiemLang.get("welcome.hero_title"), x + 16, curBaseY + 14, COLOR_ACCENT, false);
+        graphics.text(this.font, KiemLang.get("welcome.hero_desc"), x + 16, curBaseY + 28, COLOR_TEXT_WHITE, false);
 
         // Keybind Pill inside Hero Banner (Left side)
         int keyBoxX = x + 16;
-        int keyBoxY = y + 46;
+        int keyBoxY = curBaseY + 46;
         int keyBoxH = 20;
         String menuKeyName = KiemConfig.getKeyName(KiemConfig.menuKey);
         graphics.text(this.font, KiemLang.get("welcome.menu_key"), keyBoxX, keyBoxY + 5, COLOR_TEXT_MUTED, false);
@@ -1514,7 +1535,7 @@ public class KiemScreen extends Screen {
         graphics.centeredText(this.font, KiemLang.get("welcome.reset_all"), resetBtnX + resetBtnW / 2, keyBoxY + 6, resetText);
 
         // Recent Modules Section Header
-        int featY = y + heroH + 10;
+        int featY = curBaseY + heroH + 10;
         graphics.text(this.font, KiemLang.get("welcome.recent_title"), x, featY, COLOR_TEXT_WHITE, false);
         int titleW = this.font.width(KiemLang.get("welcome.recent_title"));
         graphics.fill(x + titleW + 10, featY + 5, x + w, featY + 6, COLOR_BORDER);
@@ -1788,6 +1809,28 @@ public class KiemScreen extends Screen {
         int bR4Y = r4Y + (cardH - badgeH) / 2;
         drawPill(graphics, bR4X, bR4Y, badgeW, badgeH, r4Hover ? 0x55E05688 : 0x33E05688, COLOR_ACCENT);
         graphics.centeredText(this.font, KiemLang.get("ui.customize"), bR4X + badgeW / 2, bR4Y + 6, COLOR_ACCENT);
+
+        // Full-width General Setting Bar: Update Checker
+        int updY = startY + 4 * cardH + 3 * cardGap + 10;
+        int updH = 36;
+        boolean updHover = mouseX >= x && mouseX <= x + w && mouseY >= updY && mouseY <= updY + updH;
+        drawRoundedRect(graphics, x, updY, w, updH, updHover ? COLOR_CARD_HOVER : COLOR_CARD_BG, updHover ? COLOR_ACCENT : COLOR_BORDER);
+
+        int toggleW = 64;
+        int toggleH = 20;
+        int toggleX = x + w - toggleW - 12;
+        int toggleY = updY + (updH - toggleH) / 2;
+        int maxUpdTextW = toggleX - (x + 12) - 8;
+
+        drawBoundedText(graphics, "🔄 " + KiemLang.get("features.update_checker.title"), x + 12, updY + 7, maxUpdTextW, COLOR_TEXT_WHITE);
+        drawBoundedText(graphics, KiemLang.get("features.update_checker.desc"), x + 12, updY + 20, maxUpdTextW, COLOR_TEXT_MUTED);
+
+        boolean updOn = KiemConfig.updateCheckerEnabled;
+        int pillBg = updOn ? (updHover ? 0x883CC878 : 0x443CC878) : (updHover ? 0x33FFFFFF : 0x1AFFFFFF);
+        int pillBdr = updOn ? 0xFF3CC878 : COLOR_BORDER;
+        int pillTxt = updOn ? 0xFF66EE99 : COLOR_TEXT_MUTED;
+        drawPill(graphics, toggleX, toggleY, toggleW, toggleH, pillBg, pillBdr);
+        graphics.centeredText(this.font, KiemLang.get(updOn ? "ui.on" : "ui.off"), toggleX + toggleW / 2, toggleY + 6, pillTxt);
     }
 
     private void renderBetterThirdPersonView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
@@ -2583,10 +2626,24 @@ public class KiemScreen extends Screen {
                 int contentY = modalY + 40 + 20;
                 int contentW = modalW - sidebarW - 40;
 
+                int updateOffset = 0;
+                if (KiemConfig.updateCheckerEnabled && UpdateChecker.hasUpdate()) {
+                    int bannerH = 34;
+                    int dlBtnW = 92;
+                    int dlBtnH = 20;
+                    int dlBtnX = contentX + contentW - dlBtnW - 12;
+                    int dlBtnY = contentY + (bannerH - dlBtnH) / 2;
+                    if (mouseX >= dlBtnX && mouseX <= dlBtnX + dlBtnW && mouseY >= dlBtnY && mouseY <= dlBtnY + dlBtnH) {
+                        net.minecraft.util.Util.getPlatform().openUri(UpdateChecker.getDownloadUrl());
+                        return true;
+                    }
+                    updateOffset = bannerH + 8;
+                }
+
                 // Keybind button click inside Hero Banner
                 int keyBoxX = contentX + 16;
-                int keyBoxY = contentY + 46;
-                int labelW = this.font.width("Menü Kısayolu:") + 8;
+                int keyBoxY = contentY + updateOffset + 46;
+                int labelW = this.font.width(KiemLang.get("welcome.menu_key")) + 8;
                 int btnW = 90;
                 int btnH = 20;
                 if (mouseX >= keyBoxX + labelW && mouseX <= keyBoxX + labelW + btnW && mouseY >= keyBoxY && mouseY <= keyBoxY + btnH) {
@@ -2595,7 +2652,7 @@ public class KiemScreen extends Screen {
                 }
 
                 // Reset to Defaults Button Click inside Hero Banner
-                int resetBtnW = 126;
+                int resetBtnW = 138;
                 int resetBtnX = contentX + contentW - resetBtnW - 14;
                 if (mouseX >= resetBtnX && mouseX <= resetBtnX + resetBtnW && mouseY >= keyBoxY && mouseY <= keyBoxY + btnH) {
                     showResetConfirmModal = true;
@@ -2603,7 +2660,7 @@ public class KiemScreen extends Screen {
                 }
 
                 // Dynamic Recent Modules Cards Click
-                int featY = contentY + 74 + 10;
+                int featY = contentY + updateOffset + 74 + 10;
                 int listY = featY + 14;
                 int itemH = 44;
                 int itemGap = 6;
@@ -3111,6 +3168,17 @@ public class KiemScreen extends Screen {
                     int r4Y = r3Y + cardH + cardGap;
                     if (mouseX >= rightColX && mouseX <= rightColX + colW && mouseY >= r4Y && mouseY <= r4Y + cardH) {
                         configSubView = ConfigSubView.ANTI_AFK;
+                        return true;
+                    }
+                    // Update Checker Toggle Bar
+                    int updY = startY + 4 * cardH + 3 * cardGap + 10;
+                    int updH = 36;
+                    if (mouseX >= contentX && mouseX <= contentX + contentW && mouseY >= updY && mouseY <= updY + updH) {
+                        KiemConfig.updateCheckerEnabled = !KiemConfig.updateCheckerEnabled;
+                        KiemConfig.save();
+                        if (KiemConfig.updateCheckerEnabled && !UpdateChecker.hasChecked()) {
+                            UpdateChecker.checkAsync();
+                        }
                         return true;
                     }
                 } else if (configSubView == ConfigSubView.MINI_MODELS) {

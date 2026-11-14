@@ -21,6 +21,9 @@ public class KiemConfig {
     public static String language = "tr"; // "tr" or "en"
     public static boolean hasSelectedLanguage = false;
 
+    // Update Checker
+    public static boolean updateCheckerEnabled = true;
+
     // Chat QoL Settings
     public static boolean infiniteChat = true;
     public static boolean chatPeekEnabled = true;
@@ -203,6 +206,7 @@ public class KiemConfig {
 
             language = props.getProperty("language", "tr");
             hasSelectedLanguage = Boolean.parseBoolean(props.getProperty("has_selected_language", "false"));
+            updateCheckerEnabled = Boolean.parseBoolean(props.getProperty("update.checker_enabled", "true"));
 
             infiniteChat = Boolean.parseBoolean(props.getProperty("chat.infinite_history", "true"));
             chatPeekEnabled = Boolean.parseBoolean(props.getProperty("chat.peek_enabled", "true"));
@@ -600,6 +604,7 @@ public class KiemConfig {
                 // Save Language
                 props.setProperty("language", language);
                 props.setProperty("has_selected_language", String.valueOf(hasSelectedLanguage));
+                props.setProperty("update.checker_enabled", String.valueOf(updateCheckerEnabled));
 
                 // Save Recents
                 props.setProperty("recent_modules", String.join(",", recentModules));
@@ -782,6 +787,9 @@ public class KiemConfig {
         cosmeticWaistHideCape = true;
         cosmeticFoot = "OFF";
         cosmeticTrailEffect = "OFF";
+
+        // Update Checker
+        updateCheckerEnabled = true;
 
         // Reset recents to clean defaults
         recentModules.clear();

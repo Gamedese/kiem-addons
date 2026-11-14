@@ -936,6 +936,18 @@ public class KiemLang {
         en("cosmetic.trail.crimson_petals.title", "Crimson Petals");
         tr("cosmetic.trail.crimson_petals.desc", "Rüzgarda savrulan kızıl sakura yaprakları.");
         en("cosmetic.trail.crimson_petals.desc", "Crimson blossom petals swirling in the wind.");
+
+        // --- UPDATE REMINDER ---
+        tr("update.banner.title", "Yeni Güncelleme Mevcut");
+        en("update.banner.title", "New Update Available");
+        tr("update.banner.desc", "Kiem Addons için yeni sürüm yayınlandı:");
+        en("update.banner.desc", "A new version of Kiem Addons is out:");
+        tr("update.banner.download", "İndir ↗");
+        en("update.banner.download", "Download ↗");
+        tr("features.update_checker.title", "Güncelleme Denetleyicisi");
+        en("features.update_checker.title", "Update Checker");
+        tr("features.update_checker.desc", "F6 menüsünde Modrinth üzerinden yeni sürüm bildirimi gösterir.");
+        en("features.update_checker.desc", "Shows a non-intrusive update reminder in the F6 menu via Modrinth.");
     }
 
     private static void tr(String key, String value) {
