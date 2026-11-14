@@ -126,6 +126,15 @@ public class KiemConfig {
     public static int voidGargoyleGroundSmoke = 2; // 0=Off, 1=Subtle, 2=Normal, 3=Heavy
     public static int voidGargoyleJawRate = 1; // 0=Rare, 1=Normal, 2=Frequent
 
+    // Shoulder Pet customization settings
+    public static String petMode = "AUTO"; // "AUTO", "SHOULDER", "GROUND"
+    public static boolean petGroundRoam = true;
+    public static int petBoredSeconds = 12; // 5 .. 30s idle before hopping down
+    public static float petScale = 1.0f; // 0.70 .. 1.40
+    public static boolean petEatSeed = true;
+    public static boolean petDryShake = true;
+    public static boolean petSleepEnabled = true;
+
     public static void setActiveAura(String aura) {
         if (aura == null || aura.trim().isEmpty()) {
             activeAura = "NONE";
@@ -161,6 +170,22 @@ public class KiemConfig {
     public static String shoulderPetSide = "RIGHT";
     public static boolean inventoryCurseWithSword = true;
     public static String dragonVariant = "TOOTHLESS"; // "TOOTHLESS" or "ENDER"
+    public static String octoMoodMode = "AUTO"; // "AUTO", "HAPPY", "ANGRY"
+    public static boolean octoReactiveAnim = true;
+
+    // General Cosmetics (independent slots)
+    public static String cosmeticWing = "OFF";
+    public static String cosmeticHat = "OFF";
+    public static String cosmeticNeck = "OFF";
+    public static String cosmeticHand = "OFF";
+    public static boolean cosmeticHandFirstPerson = true;
+    public static String cosmeticWaist = "OFF";
+    public static boolean cosmeticWaistHideCape = true;
+    public static String cosmeticFoot = "OFF";
+    public static String cosmeticTrailEffect = "OFF";
+
+    // Recents Tracker for Welcome Screen (must be initialized BEFORE static { load(); })
+    public static java.util.List<String> recentModules = new java.util.ArrayList<>();
 
     static {
         load();
@@ -428,6 +453,36 @@ public class KiemConfig {
             shoulderPetSide = props.getProperty("pet.side", "RIGHT");
             inventoryCurseWithSword = Boolean.parseBoolean(props.getProperty("pet.inventory_curse_sword", "true"));
             dragonVariant = props.getProperty("pet.dragon_variant", "TOOTHLESS");
+            petMode = props.getProperty("pet.mode", "AUTO").toUpperCase();
+            if (!"AUTO".equals(petMode) && !"SHOULDER".equals(petMode) && !"GROUND".equals(petMode)) {
+                petMode = "AUTO";
+            }
+            petGroundRoam = Boolean.parseBoolean(props.getProperty("pet.ground_roam", "true"));
+            try {
+                petBoredSeconds = Math.clamp(Integer.parseInt(props.getProperty("pet.bored_seconds", "12")), 5, 30);
+            } catch (NumberFormatException exception) {
+                petBoredSeconds = 12;
+            }
+            petScale = boundedFloat(props, "pet.scale", 1.0f, 0.70f, 1.40f);
+            petEatSeed = Boolean.parseBoolean(props.getProperty("pet.eat_seed", "true"));
+            petDryShake = Boolean.parseBoolean(props.getProperty("pet.dry_shake", "true"));
+            petSleepEnabled = Boolean.parseBoolean(props.getProperty("pet.sleep_enabled", "true"));
+            octoMoodMode = props.getProperty("pet.octo_mood_mode", "AUTO").toUpperCase();
+            if (!"AUTO".equals(octoMoodMode) && !"HAPPY".equals(octoMoodMode) && !"ANGRY".equals(octoMoodMode)) {
+                octoMoodMode = "AUTO";
+            }
+            octoReactiveAnim = Boolean.parseBoolean(props.getProperty("pet.octo_reactive_anim", "true"));
+
+            // Load General Cosmetics (normalize against active catalog so removed entries fall back to "OFF")
+            cosmeticWing = com.example.client.cosmetic.CosmeticCatalog.WingType.fromName(props.getProperty("cosmetic.wing", "OFF")).id;
+            cosmeticHat = com.example.client.cosmetic.CosmeticCatalog.HatType.fromName(props.getProperty("cosmetic.hat", "OFF")).id;
+            cosmeticNeck = com.example.client.cosmetic.CosmeticCatalog.NeckType.fromName(props.getProperty("cosmetic.neck", "OFF")).id;
+            cosmeticHand = com.example.client.cosmetic.CosmeticCatalog.HandType.fromName(props.getProperty("cosmetic.hand", "OFF")).id;
+            cosmeticHandFirstPerson = Boolean.parseBoolean(props.getProperty("cosmeticHandFirstPerson", "true"));
+            cosmeticWaist = com.example.client.cosmetic.CosmeticCatalog.WaistType.fromName(props.getProperty("cosmetic.waist", "OFF")).id;
+            cosmeticWaistHideCape = Boolean.parseBoolean(props.getProperty("cosmetic.waist_hide_cape", "true"));
+            cosmeticFoot = com.example.client.cosmetic.CosmeticCatalog.FootType.fromName(props.getProperty("cosmetic.foot", "OFF")).id;
+            cosmeticTrailEffect = com.example.client.cosmetic.CosmeticCatalog.TrailEffectType.fromName(props.getProperty("cosmetic.trail_effect", "OFF")).id;
         } catch (Exception ignored) {
         }
     }
@@ -470,6 +525,13 @@ public class KiemConfig {
                 props.setProperty("pet.side", shoulderPetSide);
                 props.setProperty("pet.inventory_curse_sword", String.valueOf(inventoryCurseWithSword));
                 props.setProperty("pet.dragon_variant", dragonVariant);
+                props.setProperty("pet.mode", petMode);
+                props.setProperty("pet.ground_roam", String.valueOf(petGroundRoam));
+                props.setProperty("pet.bored_seconds", String.valueOf(petBoredSeconds));
+                props.setProperty("pet.scale", String.valueOf(petScale));
+                props.setProperty("pet.eat_seed", String.valueOf(petEatSeed));
+                props.setProperty("pet.dry_shake", String.valueOf(petDryShake));
+                props.setProperty("pet.sleep_enabled", String.valueOf(petSleepEnabled));
                 props.setProperty("chat.infinite_history", String.valueOf(infiniteChat));
                 props.setProperty("chat.peek_enabled", String.valueOf(chatPeekEnabled));
                 props.setProperty("chat.peek_key", String.valueOf(chatPeekKey));
@@ -542,6 +604,20 @@ public class KiemConfig {
                 // Save Recents
                 props.setProperty("recent_modules", String.join(",", recentModules));
 
+                props.setProperty("pet.octo_mood_mode", octoMoodMode);
+                props.setProperty("pet.octo_reactive_anim", String.valueOf(octoReactiveAnim));
+
+                // Save General Cosmetics
+                props.setProperty("cosmetic.wing", cosmeticWing);
+                props.setProperty("cosmetic.hat", cosmeticHat);
+                props.setProperty("cosmetic.neck", cosmeticNeck);
+                props.setProperty("cosmetic.hand", cosmeticHand);
+                props.setProperty("cosmeticHandFirstPerson", String.valueOf(cosmeticHandFirstPerson));
+                props.setProperty("cosmetic.waist", cosmeticWaist);
+                props.setProperty("cosmetic.waist_hide_cape", String.valueOf(cosmeticWaistHideCape));
+                props.setProperty("cosmetic.foot", cosmeticFoot);
+                props.setProperty("cosmetic.trail_effect", cosmeticTrailEffect);
+
                 props.store(writer, "Kiem Addons Settings");
             }
         } catch (Exception ignored) {
@@ -554,9 +630,6 @@ public class KiemConfig {
         if (mc == null || mc.getWindow() == null || KiemCompat.getScreen(mc) != null) return false;
         return InputConstants.isKeyDown(mc.getWindow(), chatPeekKey);
     }
-
-    // Recents Tracker for Welcome Screen
-    public static java.util.List<String> recentModules = new java.util.ArrayList<>();
 
     public static void touchModule(String moduleId) {
         if (moduleId == null || moduleId.isEmpty()) return;
@@ -598,6 +671,17 @@ public class KiemConfig {
         voidGargoyleEmbers = 2;
         voidGargoyleGroundSmoke = 2;
         voidGargoyleJawRate = 1;
+    }
+
+    /** Reset shoulder pet customization settings; caller decides whether to save. */
+    public static void resetPetSettings() {
+        petMode = "AUTO";
+        petGroundRoam = true;
+        petBoredSeconds = 12;
+        petScale = 1.0f;
+        petEatSeed = true;
+        petDryShake = true;
+        petSleepEnabled = true;
     }
 
     public static void resetToDefaults() {
@@ -687,6 +771,17 @@ public class KiemConfig {
         shoulderPetType = "OFF";
         shoulderPetSide = "RIGHT";
         dragonVariant = "TOOTHLESS";
+
+        // General Cosmetics
+        cosmeticWing = "OFF";
+        cosmeticHat = "OFF";
+        cosmeticNeck = "OFF";
+        cosmeticHand = "OFF";
+        cosmeticHandFirstPerson = true;
+        cosmeticWaist = "OFF";
+        cosmeticWaistHideCape = true;
+        cosmeticFoot = "OFF";
+        cosmeticTrailEffect = "OFF";
 
         // Reset recents to clean defaults
         recentModules.clear();

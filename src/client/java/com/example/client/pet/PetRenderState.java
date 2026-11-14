@@ -40,4 +40,11 @@ public class PetRenderState {
     /** Katmanda tick tabanli yumusatilmis 0..1 gecisler (pozlar asla zipplamasin diye) */
     public float crouchAmount;
     public float eatAmount;
+    public float flyAmount;
+    /** Sudan cikinca/yagmurdan cikinca 0..1 silkinme yogunlugu */
+    public float dryShake;
+    /** Suda yuzme 0..1 gecisi */
+    public float swimAmount;
+    /** Yerde otonom geziyor mu (omuz yan bakisi kapatilir) */
+    public boolean groundRoam;
 }

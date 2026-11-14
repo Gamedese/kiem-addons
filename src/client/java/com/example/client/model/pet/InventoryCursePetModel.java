@@ -207,6 +207,11 @@ public class InventoryCursePetModel extends PetModel {
         float walkBounce = Math.abs(sin(s.walkPos * 0.6662f)) * walkSpeed;
         float stepJiggle = sin(walkCycle) * walkSpeed;
         float lsq = s.landSquash;
+        float sleep = Math.min(1.0f, Math.max(0.0f, s.sleepProgress));
+        float awake = 1.0f - sleep;
+        float hurt = s.hurtTime > 0f ? Math.min(1.0f, s.hurtTime / 10.0f) : 0f;
+        float swing = s.attackSwing > 0f ? sin(Math.min(1.0f, s.attackSwing) * (float) Math.PI) : 0f;
+        float fly = Math.min(1.0f, Math.max(0.0f, s.flyAmount));
 
         // 1. Toggle Inverted Spear of Heaven visibility via Customize option (`withSword`)
         if (s.withSword) {
@@ -220,26 +225,26 @@ public class InventoryCursePetModel extends PetModel {
         }
 
         // 2. Sleepy Breathing & Periodic Neck Nuzzle (from JJK Hidden Inventory anime!)
-        float breath = sin(t * 0.09f);
-        float nuzzle = burst(t % 160f, 28f); // Every 8s, rubs cheek affectionately toward Toji's neck!
+        float breath = sin(t * (sleep > 0.2f ? 0.05f : 0.09f));
+        float nuzzle = burst(t % 160f, 28f) * awake; // Every 8s, rubs cheek affectionately toward Toji's neck!
 
-        wormHead.x = -5.5f + (nuzzle * 0.35f);
-        wormHead.y = -0.5f - (breath * 0.15f) - (walkBounce * 0.35f) + (lsq * 0.35f) + (s.crouching ? 0.5f : 0f);
-        wormHead.z = -1.8f;
+        wormHead.x = -5.5f + (nuzzle * 0.35f) + (hurt * 0.25f);
+        wormHead.y = -0.5f - (breath * 0.15f) - (walkBounce * 0.35f) + (lsq * 0.35f) + (s.crouching ? 0.5f : 0f) + (sleep * 0.45f);
+        wormHead.z = -1.8f - (swing * 0.45f) + (hurt * 0.35f);
 
         // "Ma-ma..." two-syllable mouth murmur every 120 ticks
         float mamaPhase = (t + 30f) % 120f;
-        float mama = (!s.withSword && mamaPhase < 24f)
+        float mama = (!s.withSword && awake > 0.3f && mamaPhase < 24f)
                 ? Math.abs(sin(mamaPhase * ((float) Math.PI * 2f / 24f)))
                 : 0f;
 
-        wormHead.xRot = rad(-6f) + (breath * 0.045f) + (stepJiggle * 0.06f) - (mama * 0.08f) + (s.crouching ? 0.15f : 0f);
-        wormHead.yRot = rad(12f) + sin(t * 0.035f) * 0.10f - (nuzzle * 0.12f);
-        wormHead.zRot = rad(-8f) + (nuzzle * 0.16f) + (lsq * 0.12f);
+        wormHead.xRot = rad(-6f) + (breath * 0.045f) + (stepJiggle * 0.06f) - (mama * 0.08f) + (s.crouching ? 0.15f : 0f) + (sleep * 0.22f) - (swing * 0.14f) + (hurt * 0.18f);
+        wormHead.yRot = rad(12f) + sin(t * 0.035f) * 0.10f * awake - (nuzzle * 0.12f);
+        wormHead.zRot = rad(-8f) + (nuzzle * 0.16f) + (lsq * 0.12f) + (sleep * 0.08f);
 
-        // 3. Asymmetric Squinted Eye Blinks (Left eye blinks 2 ticks before right eye)
-        float blinkL = burst(t % 90f, 10f);
-        float blinkR = burst((t + 2f) % 90f, 10f);
+        // 3. Asymmetric Squinted Eye Blinks (Left eye blinks 2 ticks before right eye) + Sleep close
+        float blinkL = Math.max(burst(t % 90f, 10f), sleep * 0.78f);
+        float blinkR = Math.max(burst((t + 2f) % 90f, 10f), sleep * 0.78f);
         eyeL.yScale = 1.0f - (blinkL * 0.65f);
         eyeL.xScale = 1.0f + (blinkL * 0.12f);
         eyeR.yScale = 1.0f - (blinkR * 0.65f);
@@ -250,16 +255,16 @@ public class InventoryCursePetModel extends PetModel {
             float regrip = burst((t + 80f) % 140f, 16f);
             mouth.yScale = 1.35f + 0.05f * sin(t * 0.15f);
             mouth.xScale = 1.20f;
-            invertedSpear.xRot = rad(-14f) + sin(t * 0.09f - 0.6f) * 0.04f + (stepJiggle * 0.08f);
-            invertedSpear.z = -2.7f + (regrip * 0.55f); // Periodic throat re-gulp sucking the sword slightly inward!
+            invertedSpear.xRot = rad(-14f) + sin(t * 0.09f - 0.6f) * 0.04f + (stepJiggle * 0.08f) - (swing * 0.28f);
+            invertedSpear.z = -2.7f + (regrip * 0.55f) - (swing * 0.40f); // Periodic throat re-gulp sucking the sword slightly inward!
         } else {
             mouth.yScale = 1.0f + 0.04f * sin(t * 0.22f) + (mama * 0.35f);
             mouth.xScale = 1.0f - (mama * 0.10f);
         }
 
         // 5. Three Hair Sprouts Secondary Drag & Front Stub-Paws Kneading
-        hairTuft.xRot = sin(t * 0.09f - 0.8f) * 0.10f;
-        hairTuft.zRot = sin(t * 0.12f) * 0.08f;
+        hairTuft.xRot = sin(t * 0.09f - 0.8f) * 0.10f + fly * sin(t * 0.65f) * 0.28f;
+        hairTuft.zRot = sin(t * 0.12f) * 0.08f + fly * cos(t * 0.55f) * 0.18f;
 
         float knead = sin(t * 0.18f) * 0.10f + (nuzzle * sin(t * 1.1f) * 0.20f);
         frontPawL.xRot = rad(-12f) + knead;

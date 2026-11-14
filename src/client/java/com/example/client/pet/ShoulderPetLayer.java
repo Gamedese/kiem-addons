@@ -21,6 +21,7 @@ import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.entity.player.PlayerModelType;
 
 /**
  * Omuz yoldasi katmani. Vanilla {@code ParrotOnShoulderLayer} ile ayni koordinat uzayinda calisir:
@@ -80,6 +81,8 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
     private float eatAmount = 0f;
     private float flyAmount = 0f;
     private float airSinceAge = 0f;
+    private boolean wasInWater = false;
+    private float dryShakeStartAge = -10000f;
 
     /** Ustel yaklasma: rate = tick basina hiz, dt = gecen tick. */
     private static float approach(float cur, float target, float rate, float dt) {
@@ -97,6 +100,7 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
         if (((com.example.client.aura.SakuraPreviewState) (Object) state).kiem$getSakuraPreview() != null) return;
         ShoulderPetType type = ShoulderPetType.fromName(KiemConfig.shoulderPetType);
         if (type == ShoulderPetType.OFF) return;
+        if (GroundPetManager.isUsingWorldRenderer(type)) return;
 
         Minecraft mc = Minecraft.getInstance();
         if (mc.player == null || state.id != mc.player.getId()) return;
@@ -167,6 +171,22 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
         eatAmount = approach(eatAmount, isEating ? 1f : 0f, 0.25f, smoothDt);
         flyAmount = approach(flyAmount, isFlying ? 1f : 0f, 0.15f, smoothDt);
 
+        boolean inWaterNow = mc.player.isInWater();
+        if (wasInWater && !inWaterNow) {
+            dryShakeStartAge = state.ageInTicks;
+        }
+        wasInWater = inWaterNow;
+        if (state.ageInTicks < dryShakeStartAge) dryShakeStartAge = -10000f;
+        float dryShake = 0f;
+        if (dryShakeStartAge > 0f) {
+            float elapsed = state.ageInTicks - dryShakeStartAge;
+            if (elapsed >= 0f && elapsed < 18f) {
+                dryShake = 1f - (elapsed / 18f);
+            } else {
+                dryShakeStartAge = -10000f;
+            }
+        }
+
 
 
         petState.age = state.ageInTicks;
@@ -175,20 +195,24 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
         petState.crouching = state.isCrouching;
         petState.onGround = onGround;
         petState.yVel = yVel;
-        petState.landSquash = 0f;
+        petState.landSquash = landSquash;
         petState.withSword = KiemConfig.inventoryCurseWithSword;
         petState.hasCape = (CapeManager.getCurrentCape() != CapeManager.CapeType.OFF)
                 || (state.showCape && state.skin != null && state.skin.cape() != null);
         petState.capeAngleDeg = 6.0f + (state.capeLean / 2.0f) + state.capeFlap;
 
         petState.hurtTime = (float) mc.player.hurtTime;
-        petState.isEating = isEating;
-        petState.isSleeping = isSleeping;
-        petState.sleepProgress = sleepProgress;
+        petState.isEating = isEating && KiemConfig.petEatSeed;
+        petState.isSleeping = isSleeping && KiemConfig.petSleepEnabled;
+        petState.sleepProgress = KiemConfig.petSleepEnabled ? sleepProgress : 0f;
         petState.attackSwing = mc.player.getAttackAnim(0f);
         petState.leftShoulder = left;
         petState.crouchAmount = crouchAmount;
-        petState.eatAmount = eatAmount;
+        petState.eatAmount = KiemConfig.petEatSeed ? eatAmount : 0f;
+        petState.flyAmount = flyAmount;
+        petState.dryShake = KiemConfig.petDryShake ? dryShake : 0f;
+        petState.swimAmount = 0f;
+        petState.groundRoam = false;
 
         if (type == ShoulderPetType.OCTOPUS) {
             long now = System.nanoTime();
@@ -232,8 +256,25 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
             petState.inWaterOrRain = inWater || isRainingHere;
             petState.isSprinting = mc.player.isSprinting();
             petState.isSwimming = (state.swimAmount > 0.05f) || state.isVisuallySwimming;
+            if (mc.player.getAbilities().flying || mc.player.isFallFlying()) {
+                petState.flyAmount = Math.max(petState.flyAmount, 1.0f);
+            }
+            if (!KiemConfig.octoReactiveAnim) {
+                petState.hurtTime = 0f;
+                petState.attackSwing = 0f;
+                petState.landSquash = 0f;
+                petState.isSleeping = false;
+                petState.sleepProgress = 0f;
+            }
 
-            boolean shouldBeAngry = lowHp || isDarkCave || isNight || onFire;
+            boolean shouldBeAngry;
+            if ("HAPPY".equalsIgnoreCase(KiemConfig.octoMoodMode)) {
+                shouldBeAngry = false;
+            } else if ("ANGRY".equalsIgnoreCase(KiemConfig.octoMoodMode)) {
+                shouldBeAngry = true;
+            } else {
+                shouldBeAngry = lowHp || isDarkCave || isNight || onFire;
+            }
             updateMood(state.ageInTicks, shouldBeAngry);
         }
 
@@ -251,11 +292,14 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
         boolean hasCape = (CapeManager.getCurrentCape() != CapeManager.CapeType.OFF)
                 || (state.showCape && state.skin != null && state.skin.cape() != null);
         boolean isCrouching = state.isCrouching;
+        boolean isSlim = state.skin != null && state.skin.model() == PlayerModelType.SLIM;
+        float slimInset = isSlim ? 0.035f : 0f;
 
         switch (type) {
             case HAMSTER -> {
                 // Klasik Chibi Hamster: orijinal calisan duzgun degerlerine geri alindi
-                x = left ? 0.38f : -0.38f;
+                float xMag = 0.38f - slimInset;
+                x = left ? xMag : -xMag;
                 y = -0.01f;
                 z = -0.01f;
                 scale = 0.65f;
@@ -266,9 +310,10 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
                 if (isCrouching) y += 0.20f;   // Sneak ile govdeyle alcal
             }
             case HAMSTER_HD -> {
-                // HD Pofuduk Chibi Hamster: tam 1 piksel asagi ve 1 piksel geri hassas kalibre
-                x = left ? 0.38f : -0.38f;
-                y = 0.01f;
+                // HD Pofuduk Chibi Hamster: bosluk kalmamasi icin omuza tam basar
+                float xMag = 0.38f - slimInset;
+                x = left ? xMag : -xMag;
+                y = 0.08f;
                 z = 0.00f;
                 scale = 0.33f;
                 petFacingAngle = left ? -0.12f : 0.12f;
@@ -281,7 +326,8 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
                 // Havada suzulen yoldas: omza basmaz, omuz hizasinda havada yaninda ucar
                 float hoverBob = (float) Math.sin(state.ageInTicks * 0.085f) * 0.055f;
                 float hoverSway = (float) Math.cos(state.ageInTicks * 0.055f) * 0.035f;
-                x = (left ? 0.50f : -0.50f) + (left ? hoverSway : -hoverSway);
+                float xBase = 0.50f - (isSlim ? 0.025f : 0f);
+                x = (left ? xBase : -xBase) + (left ? hoverSway : -hoverSway);
                 y = -0.22f + hoverBob; // 2 piksel yukarida stabil suzulur, kosarken omuza batmaz
                 z = octoLagZ;          // Damped spring eylemsizlik fizigi
                 scale = 0.38f;
@@ -293,7 +339,8 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
             }
             case DRAGON -> {
                 // Bebek Ejderha: Sadece ve sadece omuzda sabit asil tunek (orbit/ucma/parasut yok)
-                x = left ? 0.35f : -0.35f;
+                float xMag = 0.35f - slimInset;
+                x = left ? xMag : -xMag;
                 y = 0.0f;
                 z = 0.0f;
                 scale = 0.90f;
@@ -316,7 +363,8 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
             }
             case VOID_GARGOYLE -> {
                 // Obsidian Void Gargoyle: Omuzda tuneyen minik akkor ejderha
-                x = left ? 0.36f : -0.36f;
+                float xMag = 0.36f - slimInset;
+                x = left ? xMag : -xMag;
                 y = -0.10f;
                 z = 0.0f;
                 scale = 0.44f;
@@ -327,6 +375,10 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
                 if (isCrouching) y += 0.20f;
             }
             default -> { }
+        }
+
+        if (type != ShoulderPetType.INVENTORY_CURSE) {
+            scale *= KiemConfig.petScale;
         }
 
         poseStack.translate(x, y, z);

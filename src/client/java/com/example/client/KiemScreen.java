@@ -1,13 +1,23 @@
 package com.example.client;
 
+import com.example.client.cosmetic.CosmeticCatalog.FootType;
+import com.example.client.cosmetic.CosmeticCatalog.HandType;
+import com.example.client.cosmetic.CosmeticCatalog.HatType;
+import com.example.client.cosmetic.CosmeticCatalog.NeckType;
+import com.example.client.cosmetic.CosmeticCatalog.TrailEffectType;
+import com.example.client.cosmetic.CosmeticCatalog.WaistType;
+import com.example.client.cosmetic.CosmeticCatalog.WingType;
 import com.example.client.pet.ShoulderPetManager;
 import com.example.client.pet.ShoulderPetType;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 public class KiemScreen extends Screen {
 
@@ -36,10 +46,24 @@ public class KiemScreen extends Screen {
             Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_aura_gargoyle.png");
 
     private enum CosmeticsSub {
-        CAPES,
-        PETS,
-        TRAILS
+        CAPES("cosmetics.sub.capes"),
+        WINGS("cosmetics.sub.wings"),
+        HATS("cosmetics.sub.hats"),
+        NECK("cosmetics.sub.neck"),
+        HAND("cosmetics.sub.hand"),
+        WAIST("cosmetics.sub.waist"),
+        FOOT("cosmetics.sub.foot"),
+        PETS("cosmetics.sub.pets"),
+        TRAILS("cosmetics.sub.trails");
+
+        final String langKey;
+
+        CosmeticsSub(String langKey) {
+            this.langKey = langKey;
+        }
     }
+
+    private record CosmeticItemDef(String id, String titleKey, String descKey, String tag, int accentColor, Identifier preview) {}
 
     private enum Tab {
         WELCOME("Welcome"),
@@ -77,6 +101,12 @@ public class KiemScreen extends Screen {
     private boolean listeningForMenuKey = false;
     private boolean listeningForShoulderKey = false;
     private int selectedSanaraVersion = 3;
+    private double cosmeticsSlotScroll = 0.0;
+    private double cosmeticsTrailScroll = 0.0;
+    private float cosmeticPreviewYaw = 0.0f;
+    private float cosmeticPreviewPitch = 0.0f;
+    private float cosmeticPreviewScale = 1.0f;
+    private boolean draggingCosmeticPreview = false;
     private boolean showResetConfirmModal = false;
     private boolean showLanguageModal = !KiemConfig.hasSelectedLanguage;
 
@@ -229,11 +259,7 @@ public class KiemScreen extends Screen {
         if (currentTab == Tab.WELCOME) {
             currentSub = KiemLang.get("tab.welcome");
         } else if (currentTab == Tab.COSMETICS) {
-            currentSub = KiemLang.get(switch (currentCosmeticsSub) {
-                case CAPES -> "cosmetics.sub.capes";
-                case PETS -> "cosmetics.sub.pets";
-                case TRAILS -> "cosmetics.sub.trails";
-            });
+            currentSub = KiemLang.get(currentCosmeticsSub.langKey);
         } else {
             if (configSubView == ConfigSubView.MAIN) {
                 currentSub = KiemLang.get("ui.modules");
@@ -285,78 +311,453 @@ public class KiemScreen extends Screen {
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
 
+    private static final int COSMETICS_PREVIEW_W = 122;
+    private static final int COSMETICS_PREVIEW_GAP = 12;
+
+    private int getCosmeticsLeftWidth(int contentW) {
+        return Math.max(240, contentW - COSMETICS_PREVIEW_W - COSMETICS_PREVIEW_GAP);
+    }
+
+    private int getHandFirstPersonToggleWidth() {
+        String onLabel = KiemLang.get("cosmetics.hand.first_person") + ": " + KiemLang.get("ui.on");
+        String offLabel = KiemLang.get("cosmetics.hand.first_person") + ": " + KiemLang.get("ui.off");
+        int textW = Math.max(this.font.width(onLabel), this.font.width(offLabel));
+        return Math.min(180, Math.max(120, textW + 20));
+    }
+
+    private int getWaistDisableCapeToggleWidth() {
+        String onLabel = KiemLang.get("cosmetic.waist.disable_cape.on");
+        String offLabel = KiemLang.get("cosmetic.waist.disable_cape.off");
+        int textW = Math.max(this.font.width(onLabel), this.font.width(offLabel));
+        return Math.min(180, Math.max(120, textW + 20));
+    }
+
     private void renderCosmeticsTab(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
-        // Sub-tabs (Capes / Pets / Auras)
-        int subBtnW = 96;
-        int subBtnH = 18;
+        CosmeticsSub[] subs = CosmeticsSub.values();
+        int cols = 5;
         int subGap = 6;
-        int sub1X = x;
-        int sub2X = sub1X + subBtnW + subGap;
-        int sub3X = sub2X + subBtnW + subGap;
-        int subY = y - 1;
+        int subBtnW = (w - (cols - 1) * subGap) / cols;
+        int subBtnH = 16;
+        int rowGap = 4;
+        int subY0 = y - 2;
 
-        boolean sub1Hover = mouseX >= sub1X && mouseX <= sub1X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH;
-        boolean sub2Hover = mouseX >= sub2X && mouseX <= sub2X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH;
+        for (int i = 0; i < subs.length; i++) {
+            CosmeticsSub sub = subs[i];
+            int col = i % cols;
+            int row = i / cols;
+            int bx = x + col * (subBtnW + subGap);
+            int by = subY0 + row * (subBtnH + rowGap);
+            boolean active = (currentCosmeticsSub == sub);
+            boolean hover = mouseX >= bx && mouseX <= bx + subBtnW && mouseY >= by && mouseY <= by + subBtnH;
+            drawPill(graphics, bx, by, subBtnW, subBtnH,
+                    active ? COLOR_ACCENT_BG : (hover ? 0x2AFFFFFF : 0x18FFFFFF),
+                    active ? COLOR_ACCENT : (hover ? 0x66FFFFFF : COLOR_BORDER));
+            drawBoundedText(graphics, KiemLang.get(sub.langKey),
+                    bx + Math.max(4, (subBtnW - Math.min(subBtnW - 8, this.font.width(KiemLang.get(sub.langKey)))) / 2),
+                    by + 4, subBtnW - 8, active ? COLOR_ACCENT : (hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        }
 
-        boolean isCapes = (currentCosmeticsSub == CosmeticsSub.CAPES);
-        boolean isPets = (currentCosmeticsSub == CosmeticsSub.PETS);
+        int divY = subY0 + 2 * (subBtnH + rowGap) + 1;
+        graphics.fill(x, divY, x + w, divY + 1, COLOR_BORDER);
 
-        drawPill(graphics, sub1X, subY, subBtnW, subBtnH, isCapes ? COLOR_ACCENT_BG : (sub1Hover ? 0x2AFFFFFF : 0x18FFFFFF), isCapes ? COLOR_ACCENT : (sub1Hover ? 0x66FFFFFF : COLOR_BORDER));
-        graphics.centeredText(this.font, KiemLang.get("cosmetics.sub.capes"), sub1X + subBtnW / 2, subY + 5, isCapes ? COLOR_ACCENT : (sub1Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        int subContentY = y + 26;
+        int leftW = getCosmeticsLeftWidth(w);
+        int previewX = x + leftW + COSMETICS_PREVIEW_GAP;
+        int previewY = subContentY + 18;
+        int previewH = 290;
 
-        drawPill(graphics, sub2X, subY, subBtnW, subBtnH, isPets ? COLOR_ACCENT_BG : (sub2Hover ? 0x2AFFFFFF : 0x18FFFFFF), isPets ? COLOR_ACCENT : (sub2Hover ? 0x66FFFFFF : COLOR_BORDER));
-        graphics.centeredText(this.font, KiemLang.get("cosmetics.sub.pets"), sub2X + subBtnW / 2, subY + 5, isPets ? COLOR_ACCENT : (sub2Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        renderCosmeticsPlayerPreview(graphics, previewX, previewY, COSMETICS_PREVIEW_W, previewH, mouseX, mouseY);
 
-        boolean isTrails = currentCosmeticsSub == CosmeticsSub.TRAILS;
-        boolean sub3Hover = mouseX >= sub3X && mouseX <= sub3X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH;
-        drawPill(graphics, sub3X, subY, subBtnW, subBtnH, isTrails ? COLOR_ACCENT_BG : (sub3Hover ? 0x2AFFFFFF : 0x18FFFFFF), isTrails ? COLOR_ACCENT : (sub3Hover ? 0x66FFFFFF : COLOR_BORDER));
-        graphics.centeredText(this.font, KiemLang.get("cosmetics.sub.trails"), sub3X + subBtnW / 2, subY + 5, isTrails ? COLOR_ACCENT : (sub3Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
-
-        int dividerX = sub3X + subBtnW + 12;
-        graphics.fill(dividerX, y + 8, x + w, y + 9, COLOR_BORDER);
-
-        if (isCapes) {
-            renderCapesSubView(graphics, x, y, w, mouseX, mouseY);
-        } else if (isPets) {
-            renderPetsSubView(graphics, x, y, w, mouseX, mouseY);
+        if (currentCosmeticsSub == CosmeticsSub.CAPES) {
+            renderCapesSubView(graphics, x, subContentY, leftW, mouseX, mouseY);
+        } else if (currentCosmeticsSub == CosmeticsSub.PETS) {
+            renderPetsSubView(graphics, x, subContentY, leftW, mouseX, mouseY);
+        } else if (currentCosmeticsSub == CosmeticsSub.TRAILS) {
+            renderTrailsSubView(graphics, x, subContentY, leftW, mouseX, mouseY);
         } else {
-            renderTrailsSubView(graphics, x, y, w, mouseX, mouseY);
+            renderCosmeticSlotSubView(graphics, x, subContentY, leftW, mouseX, mouseY);
         }
     }
 
+    private void renderCosmeticsPlayerPreview(GuiGraphicsExtractor graphics, int px, int py, int pw, int ph, int mouseX, int mouseY) {
+        drawRoundedRect(graphics, px, py, pw, ph, 0xFF141620, COLOR_BORDER);
+        int x0 = px + 4;
+        int y0 = py + 22;
+        int x1 = px + pw - 4;
+        int y1 = py + ph - 40;
+
+        if (this.minecraft != null && this.minecraft.player != null) {
+            String playerName = this.minecraft.player.getName().getString();
+            int nameW = Math.min(pw - 16, this.font.width(playerName));
+            drawBoundedText(graphics, playerName, px + Math.max(8, (pw - nameW) / 2), py + 8, pw - 16, COLOR_TEXT_MUTED);
+
+            var renderer = this.minecraft.getEntityRenderDispatcher().getRenderer(this.minecraft.player);
+            var fresh = renderer.createRenderState(this.minecraft.player, 1.0f);
+            if (fresh instanceof AvatarRenderState avatar) {
+                avatar.x = avatar.y = avatar.z = 0;
+                avatar.passengerOffset = null;
+                avatar.shadowPieces.clear();
+                avatar.outlineColor = 0;
+                avatar.bodyRot = 180;
+                avatar.yRot = 0;
+                avatar.xRot = 0;
+
+                float pitchRadians = (float) Math.toRadians(cosmeticPreviewPitch);
+                float yawRadians = (float) Math.toRadians(cosmeticPreviewYaw);
+                Quaternionf view = new Quaternionf().rotationX(pitchRadians).rotateY(yawRadians);
+                Quaternionf rotation = new Quaternionf().rotationZ((float) Math.PI).mul(view);
+                Vector3f translation = rotation.transform(new Vector3f(0.0F, -avatar.boundingBoxHeight * 0.5F, 0.0F));
+                int baseScale = Math.max(30, Math.min(50, (y1 - y0 - 16) / 4));
+                float scale = baseScale * cosmeticPreviewScale;
+                graphics.entity(avatar, scale, translation, rotation, view, x0, y0, x1, y1);
+            }
+        } else {
+            graphics.centeredText(this.font, "3D", px + pw / 2, py + ph / 2 - 4, COLOR_TEXT_DIM);
+        }
+
+        String dragHint = this.font.plainSubstrByWidth(KiemLang.get("auras.custom.drag_hint"), pw - 10);
+        graphics.centeredText(this.font, dragHint, px + pw / 2, py + ph - 36, COLOR_TEXT_DIM);
+
+        int btnX = px + 8;
+        int btnY = py + ph - 24;
+        int btnW = pw - 16;
+        int btnH = 18;
+        boolean resetHover = mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= btnY && mouseY <= btnY + btnH;
+        drawPill(graphics, btnX, btnY, btnW, btnH,
+                resetHover ? 0x2EFFFFFF : 0x18FFFFFF,
+                resetHover ? COLOR_ACCENT : COLOR_BORDER);
+        String resetLabel = this.font.plainSubstrByWidth(KiemLang.get("auras.custom.reset_view"), btnW - 8);
+        graphics.centeredText(this.font, resetLabel, btnX + btnW / 2, btnY + 5,
+                resetHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+    }
+
+    private static Identifier guiTex(String path) {
+        return Identifier.fromNamespaceAndPath("modid", "textures/gui/" + path);
+    }
+
+    private CosmeticItemDef[] getSlotItems(CosmeticsSub sub) {
+        return switch (sub) {
+            case WINGS -> new CosmeticItemDef[] {
+                    new CosmeticItemDef(WingType.SERAPHIM.id, "cosmetic.wing.seraphim.title", "cosmetic.wing.seraphim.desc", "WING", 0xFFF3C669, guiTex("preview_cosmetic_wing_seraphim.png")),
+                    new CosmeticItemDef(WingType.DEMON_DRAGON.id, "cosmetic.wing.demon_dragon.title", "cosmetic.wing.demon_dragon.desc", "WING", 0xFFE05252, guiTex("preview_cosmetic_wing_demon.png")),
+                    new CosmeticItemDef(WingType.ARCANE_BUTTERFLY.id, "cosmetic.wing.arcane_butterfly.title", "cosmetic.wing.arcane_butterfly.desc", "WING", 0xFFB078FF, guiTex("preview_cosmetic_wing_butterfly.png")),
+                    new CosmeticItemDef(WingType.FALLEN_ANGEL.id, "cosmetic.wing.fallen_angel.title", "cosmetic.wing.fallen_angel.desc", "WING", 0xFF9C72E8, guiTex("preview_cosmetic_wing_fallen_angel.png")),
+                    new CosmeticItemDef(WingType.VAMPIRE_BAT.id, "cosmetic.wing.vampire_bat.title", "cosmetic.wing.vampire_bat.desc", "WING", 0xFFC83C4C, guiTex("preview_cosmetic_wing_vampire_bat.png")),
+                    new CosmeticItemDef(WingType.ENDER_DRAGON.id, "cosmetic.wing.ender_dragon.title", "cosmetic.wing.ender_dragon.desc", "WING", 0xFFC058FF, guiTex("preview_cosmetic_wing_ender_dragon.png"))
+            };
+            case HATS -> new CosmeticItemDef[] {
+                    new CosmeticItemDef(HatType.RONIN.id, "cosmetic.hat.ronin.title", "cosmetic.hat.ronin.desc", "HAT", 0xFFD9A66C, guiTex("preview_cosmetic_hat_ronin.png")),
+                    new CosmeticItemDef(HatType.SHINOBI_HEADBAND.id, "cosmetic.hat.shinobi_headband.title", "cosmetic.hat.shinobi_headband.desc", "HAT", 0xFF6FA8DC, guiTex("preview_cosmetic_hat_shinobi.png")),
+                    new CosmeticItemDef(HatType.WITCH.id, "cosmetic.hat.witch.title", "cosmetic.hat.witch.desc", "HAT", 0xFFA66CE0, guiTex("preview_cosmetic_hat_witch.png")),
+                    new CosmeticItemDef(HatType.KITSUNE_EARS.id, "cosmetic.hat.kitsune_ears.title", "cosmetic.hat.kitsune_ears.desc", "HAT", 0xFFFF8C69, guiTex("preview_cosmetic_hat_kitsune.png")),
+                    new CosmeticItemDef(HatType.CELESTIAL_HALO.id, "cosmetic.hat.celestial_halo.title", "cosmetic.hat.celestial_halo.desc", "HAT", 0xFFF7D468, guiTex("preview_cosmetic_hat_celestial_halo.png")),
+                    new CosmeticItemDef(HatType.ONI_HORNS.id, "cosmetic.hat.oni_horns.title", "cosmetic.hat.oni_horns.desc", "HAT", 0xFFD94A4A, guiTex("preview_cosmetic_hat_oni_horns.png")),
+                    new CosmeticItemDef(HatType.KITSUNE_MASK.id, "cosmetic.hat.kitsune_mask.title", "cosmetic.hat.kitsune_mask.desc", "HAT", 0xFFF08C64, guiTex("preview_cosmetic_hat_kitsune_mask.png")),
+                    new CosmeticItemDef(HatType.BROKEN_HALO.id, "cosmetic.hat.broken_halo.title", "cosmetic.hat.broken_halo.desc", "HAT", 0xFFB090D8, guiTex("preview_cosmetic_hat_broken_halo.png")),
+                    new CosmeticItemDef(HatType.ROYAL_CROWN.id, "cosmetic.hat.royal_crown.title", "cosmetic.hat.royal_crown.desc", "HAT", 0xFFF5C94C, guiTex("preview_cosmetic_hat_royal_crown.png")),
+                    new CosmeticItemDef(HatType.NEKO_HEADPHONES.id, "cosmetic.hat.neko_headphones.title", "cosmetic.hat.neko_headphones.desc", "HAT", 0xFFFF6EA8, guiTex("preview_cosmetic_hat_neko_headphones.png")),
+                    new CosmeticItemDef(HatType.STRAW_PIRATE.id, "cosmetic.hat.straw_pirate.title", "cosmetic.hat.straw_pirate.desc", "HAT", 0xFFE8B858, guiTex("preview_cosmetic_hat_straw_pirate.png")),
+                    new CosmeticItemDef(HatType.USHANKA_FUR.id, "cosmetic.hat.ushanka_fur.title", "cosmetic.hat.ushanka_fur.desc", "HAT", 0xFF9EB0C8, guiTex("preview_cosmetic_hat_ushanka_fur.png")),
+                    new CosmeticItemDef(HatType.TRICORN_CAPTAIN.id, "cosmetic.hat.tricorn_captain.title", "cosmetic.hat.tricorn_captain.desc", "HAT", 0xFFC89B54, guiTex("preview_cosmetic_hat_tricorn_captain.png")),
+                    new CosmeticItemDef(HatType.EGIRL_HEADPHONES.id, "cosmetic.hat.egirl_headphones.title", "cosmetic.hat.egirl_headphones.desc", "HAT", 0xFFFF88CC, guiTex("preview_cosmetic_hat_egirl_headphones.png"))
+            };
+            case NECK -> new CosmeticItemDef[] {
+                    new CosmeticItemDef(NeckType.CRIMSON_SCARF.id, "cosmetic.neck.crimson_scarf.title", "cosmetic.neck.crimson_scarf.desc", "NECK", 0xFFE04848, guiTex("preview_cosmetic_neck_scarf.png")),
+                    new CosmeticItemDef(NeckType.ARCANE_PENDANT.id, "cosmetic.neck.arcane_pendant.title", "cosmetic.neck.arcane_pendant.desc", "NECK", 0xFF70C8FF, guiTex("preview_cosmetic_neck_pendant.png")),
+                    new CosmeticItemDef(NeckType.GOLD_CHAIN.id, "cosmetic.neck.gold_chain.title", "cosmetic.neck.gold_chain.desc", "NECK", 0xFFF2C94C, guiTex("preview_cosmetic_neck_chain.png")),
+                    new CosmeticItemDef(NeckType.SHADOW_NINJA_MASK.id, "cosmetic.neck.shadow_ninja_mask.title", "cosmetic.neck.shadow_ninja_mask.desc", "NECK", 0xFF6B7796, guiTex("preview_cosmetic_neck_shadow_ninja_mask.png")),
+                    new CosmeticItemDef(NeckType.ONI_MENPO.id, "cosmetic.neck.oni_menpo.title", "cosmetic.neck.oni_menpo.desc", "NECK", 0xFFD94A4A, guiTex("preview_cosmetic_neck_oni_menpo.png")),
+                    new CosmeticItemDef(NeckType.COOL_SUNGLASSES.id, "cosmetic.neck.cool_sunglasses.title", "cosmetic.neck.cool_sunglasses.desc", "NECK", 0xFF64B5F6, guiTex("preview_cosmetic_neck_cool_sunglasses.png")),
+                    new CosmeticItemDef(NeckType.SNOW_SCARF.id, "cosmetic.neck.snow_scarf.title", "cosmetic.neck.snow_scarf.desc", "NECK", 0xFFB8E2FF, guiTex("preview_cosmetic_neck_snow_scarf.png")),
+                    new CosmeticItemDef(NeckType.SKULL_BANDANA.id, "cosmetic.neck.skull_bandana.title", "cosmetic.neck.skull_bandana.desc", "NECK", 0xFFC8CCD6, guiTex("preview_cosmetic_neck_skull_bandana.png")),
+                    new CosmeticItemDef(NeckType.ROYAL_BROOCH.id, "cosmetic.neck.royal_brooch.title", "cosmetic.neck.royal_brooch.desc", "NECK", 0xFF5C9CFF, guiTex("preview_cosmetic_neck_royal_brooch.png")),
+                    new CosmeticItemDef(NeckType.RUBY_CHOKER.id, "cosmetic.neck.ruby_choker.title", "cosmetic.neck.ruby_choker.desc", "NECK", 0xFFE63E62, guiTex("preview_cosmetic_neck_ruby_choker.png")),
+                    new CosmeticItemDef(NeckType.SILVER_FANG.id, "cosmetic.neck.silver_fang.title", "cosmetic.neck.silver_fang.desc", "NECK", 0xFFC0D0E2, guiTex("preview_cosmetic_neck_silver_fang.png"))
+            };
+            case HAND -> new CosmeticItemDef[] {
+                    new CosmeticItemDef(HandType.FIGHTER_WRAPS.id, "cosmetic.hand.fighter_wraps.title", "cosmetic.hand.fighter_wraps.desc", "HAND", 0xFFDADDE8, guiTex("preview_cosmetic_hand_wraps.png")),
+                    new CosmeticItemDef(HandType.SYLAS_CHAINS.id, "cosmetic.hand.sylas_chains.title", "cosmetic.hand.sylas_chains.desc", "HAND", 0xFF79A6D2, guiTex("preview_cosmetic_hand_chains.png")),
+                    new CosmeticItemDef(HandType.COMBAT_GLOVES.id, "cosmetic.hand.combat_gloves.title", "cosmetic.hand.combat_gloves.desc", "HAND", 0xFFD27A64, guiTex("preview_cosmetic_hand_combat_gloves.png"))
+            };
+            case WAIST -> new CosmeticItemDef[] {
+                    new CosmeticItemDef(WaistType.KATANA_SASH.id, "cosmetic.waist.katana_sash.title", "cosmetic.waist.katana_sash.desc", "WAIST", 0xFFD46A6A, guiTex("preview_cosmetic_waist_katana.png")),
+                    new CosmeticItemDef(WaistType.KITSUNE_TAIL.id, "cosmetic.waist.kitsune_tail.title", "cosmetic.waist.kitsune_tail.desc", "WAIST", 0xFFFF9A62, guiTex("preview_cosmetic_waist_tail.png")),
+                    new CosmeticItemDef(WaistType.DEMON_TAIL.id, "cosmetic.waist.demon_tail.title", "cosmetic.waist.demon_tail.desc", "WAIST", 0xFFE04C5A, guiTex("preview_cosmetic_waist_demon_tail.png")),
+                    new CosmeticItemDef(WaistType.TWIN_DAGGERS.id, "cosmetic.waist.twin_daggers.title", "cosmetic.waist.twin_daggers.desc", "WAIST", 0xFF8FB8DE, guiTex("preview_cosmetic_waist_twin_daggers.png")),
+                    new CosmeticItemDef(WaistType.NEKOMATA_TAILS.id, "cosmetic.waist.nekomata_tails.title", "cosmetic.waist.nekomata_tails.desc", "WAIST", 0xFFB87CFF, guiTex("preview_cosmetic_waist_nekomata_tails.png")),
+                    new CosmeticItemDef(WaistType.WOLF_TAIL.id, "cosmetic.waist.wolf_tail.title", "cosmetic.waist.wolf_tail.desc", "WAIST", 0xFFA2AAB8, guiTex("preview_cosmetic_waist_wolf_tail.png"))
+            };
+            case FOOT -> new CosmeticItemDef[] {
+                    new CosmeticItemDef(FootType.HERMES_BOOTS.id, "cosmetic.foot.hermes_boots.title", "cosmetic.foot.hermes_boots.desc", "FOOT", 0xFFF5C96B, guiTex("preview_cosmetic_foot_hermes.png")),
+                    new CosmeticItemDef(FootType.SHINOBI_WRAPS.id, "cosmetic.foot.shinobi_wraps.title", "cosmetic.foot.shinobi_wraps.desc", "FOOT", 0xFF6B7B99, guiTex("preview_cosmetic_foot_shinobi.png")),
+                    new CosmeticItemDef(FootType.FIGHTER_LEG_WRAPS.id, "cosmetic.foot.fighter_leg_wraps.title", "cosmetic.foot.fighter_leg_wraps.desc", "FOOT", 0xFFD0B89E, guiTex("preview_cosmetic_foot_fighter_leg_wraps.png"))
+            };
+            default -> new CosmeticItemDef[0];
+        };
+    }
+
+    private CosmeticItemDef[] getTrailItems() {
+        return new CosmeticItemDef[] {
+                new CosmeticItemDef(TrailEffectType.JUMP_MAGIC_CIRCLE.id, "cosmetic.trail.jump_magic_circle.title", "cosmetic.trail.jump_magic_circle.desc", "TRAIL", 0xFF64D2FF, guiTex("preview_trail_jump_magic_circle.png")),
+                new CosmeticItemDef(TrailEffectType.SHADOW_SMOKE.id, "cosmetic.trail.shadow_smoke.title", "cosmetic.trail.shadow_smoke.desc", "TRAIL", 0xFF9C64E8, guiTex("preview_trail_shadow_smoke.png")),
+                new CosmeticItemDef(TrailEffectType.SNOWFLAKE_AURA.id, "cosmetic.trail.snowflake_aura.title", "cosmetic.trail.snowflake_aura.desc", "TRAIL", 0xFFAEE8FF, guiTex("preview_trail_snowflake_aura.png")),
+                new CosmeticItemDef(TrailEffectType.CRIMSON_PETALS.id, "cosmetic.trail.crimson_petals.title", "cosmetic.trail.crimson_petals.desc", "TRAIL", 0xFFF04868, guiTex("preview_trail_crimson_petals.png"))
+        };
+    }
+
+    private String getEquippedSlotId(CosmeticsSub sub) {
+        return switch (sub) {
+            case WINGS -> KiemConfig.cosmeticWing;
+            case HATS -> KiemConfig.cosmeticHat;
+            case NECK -> KiemConfig.cosmeticNeck;
+            case HAND -> KiemConfig.cosmeticHand;
+            case WAIST -> KiemConfig.cosmeticWaist;
+            case FOOT -> KiemConfig.cosmeticFoot;
+            default -> "OFF";
+        };
+    }
+
+    private void setEquippedSlotId(CosmeticsSub sub, String id) {
+        switch (sub) {
+            case WINGS -> KiemConfig.cosmeticWing = id;
+            case HATS -> KiemConfig.cosmeticHat = id;
+            case NECK -> KiemConfig.cosmeticNeck = id;
+            case HAND -> KiemConfig.cosmeticHand = id;
+            case WAIST -> KiemConfig.cosmeticWaist = id;
+            case FOOT -> KiemConfig.cosmeticFoot = id;
+            default -> { }
+        }
+        KiemConfig.save();
+    }
+
+    private static final int COSMETIC_COLS = 2;
+    private static final int COSMETIC_COL_GAP = 12;
+    private static final int COSMETIC_ROW_GAP = 10;
+    private static final int COSMETIC_CARD_H = 92;
+    private static final int COSMETIC_SCROLLBAR_W = 8;
+    private static final int COSMETIC_PREVIEW_H = 290;
+    private static final int COSMETIC_SLOT_BOTTOM_H = 42;
+    private static final int COSMETIC_SLOT_VIEWPORT_H = COSMETIC_PREVIEW_H - COSMETIC_SLOT_BOTTOM_H - 10; // 238
+    private static final int COSMETIC_TRAIL_SAKURA_H = 80;
+    private static final int COSMETIC_TRAIL_FOOTER_H = 26;
+    private static final int COSMETIC_TRAIL_VIEWPORT_H = COSMETIC_PREVIEW_H - COSMETIC_TRAIL_FOOTER_H - 4; // 260
+
+    private int getSlotMaxScroll(int itemCount) {
+        int totalRows = (itemCount + COSMETIC_COLS - 1) / COSMETIC_COLS;
+        int contentH = totalRows * COSMETIC_CARD_H + Math.max(0, totalRows - 1) * COSMETIC_ROW_GAP;
+        return Math.max(0, contentH - COSMETIC_SLOT_VIEWPORT_H);
+    }
+
+    private int getTrailMaxScroll(int trailCount) {
+        int totalRows = (trailCount + COSMETIC_COLS - 1) / COSMETIC_COLS;
+        int gridH = totalRows * COSMETIC_CARD_H + Math.max(0, totalRows - 1) * COSMETIC_ROW_GAP;
+        int contentH = COSMETIC_TRAIL_SAKURA_H + COSMETIC_ROW_GAP + gridH;
+        return Math.max(0, contentH - COSMETIC_TRAIL_VIEWPORT_H);
+    }
+
+    private void drawVerticalScrollbar(GuiGraphicsExtractor graphics, int x, int top, int height, double scroll, int maxScroll) {
+        if (maxScroll <= 0) return;
+        int trackX = x - 4;
+        graphics.fill(trackX, top, trackX + 3, top + height, 0x22FFFFFF);
+        int contentH = height + maxScroll;
+        int thumbH = Math.max(22, (int) ((height / (float) contentH) * height));
+        int thumbY = top + (int) Math.round((scroll / maxScroll) * (height - thumbH));
+        graphics.fill(trackX, thumbY, trackX + 3, thumbY + thumbH, COLOR_ACCENT);
+    }
+
+    private void drawCosmeticCard(GuiGraphicsExtractor graphics, int cx, int cy, int cardW, int cardH,
+                                  CosmeticItemDef item, boolean equipped, int mouseX, int mouseY) {
+        boolean cardHover = mouseX >= cx && mouseX <= cx + cardW && mouseY >= cy && mouseY <= cy + cardH;
+
+        int cardBg = equipped ? COLOR_CARD_ACTIVE : (cardHover ? COLOR_CARD_HOVER : COLOR_CARD_BG);
+        int cardBorder = equipped ? COLOR_ACTIVE_BORDER : (cardHover ? 0xFF4A526A : COLOR_BORDER);
+        drawRoundedRect(graphics, cx, cy, cardW, cardH, cardBg, cardBorder);
+
+        int badgeSize = 56;
+        int bx = cx + 10;
+        int by = cy + (cardH - badgeSize) / 2;
+        int badgeBg = equipped ? 0x33E05688 : 0xFF12131A;
+        int badgeBorder = equipped ? COLOR_ACCENT : item.accentColor;
+        drawRoundedRect(graphics, bx - 1, by - 1, badgeSize + 2, badgeSize + 2, badgeBg, badgeBorder);
+        graphics.blit(item.preview, bx, by, bx + badgeSize, by + badgeSize, 0.0f, 1.0f, 0.0f, 1.0f);
+
+        int rx = bx + badgeSize + 10;
+        int rw = cardW - badgeSize - 30;
+        drawBoundedText(graphics, KiemLang.get(item.titleKey), rx, cy + 12, rw, COLOR_TEXT_WHITE);
+        drawBoundedText(graphics, KiemLang.get(item.descKey), rx, cy + 28, rw, COLOR_TEXT_MUTED);
+
+        int btnW = Math.min(110, rw);
+        int btnH = 20;
+        int btnY = cy + cardH - btnH - 12;
+        boolean btnHover = mouseX >= rx && mouseX <= rx + btnW && mouseY >= btnY && mouseY <= btnY + btnH;
+        if (equipped) {
+            drawPill(graphics, rx, btnY, btnW, btnH, COLOR_ACCENT_BG, COLOR_ACCENT);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.equipped"), rx + btnW / 2, btnY + 6, COLOR_ACCENT);
+        } else {
+            drawPill(graphics, rx, btnY, btnW, btnH, btnHover ? 0x2EFFFFFF : 0x18FFFFFF, btnHover ? 0xFF4A526A : COLOR_BORDER);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.equip"), rx + btnW / 2, btnY + 6, btnHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        }
+    }
+
+    private void renderCosmeticSlotSubView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
+        CosmeticItemDef[] items = getSlotItems(currentCosmeticsSub);
+        String activeId = getEquippedSlotId(currentCosmeticsSub);
+
+        int gridW = w - COSMETIC_SCROLLBAR_W;
+        int cardW = (gridW - COSMETIC_COL_GAP) / COSMETIC_COLS;
+        int viewportTop = y + 18;
+        int viewportBottom = viewportTop + COSMETIC_SLOT_VIEWPORT_H;
+
+        int maxScroll = getSlotMaxScroll(items.length);
+        cosmeticsSlotScroll = Math.max(0.0, Math.min(cosmeticsSlotScroll, maxScroll));
+        int scrollPx = (int) Math.round(cosmeticsSlotScroll);
+
+        boolean inViewport = mouseX >= x && mouseX <= x + gridW && mouseY >= viewportTop && mouseY <= viewportBottom;
+        int hoverX = inViewport ? mouseX : -9999;
+        int hoverY = inViewport ? mouseY : -9999;
+
+        String activeTitle = KiemLang.get("cosmetics.slot.none");
+        for (CosmeticItemDef item : items) {
+            if (item.id.equalsIgnoreCase(activeId)) {
+                activeTitle = KiemLang.get(item.titleKey);
+                break;
+            }
+        }
+
+        graphics.enableScissor(x, viewportTop, x + gridW, viewportBottom);
+        for (int i = 0; i < items.length; i++) {
+            CosmeticItemDef item = items[i];
+            boolean equipped = item.id.equalsIgnoreCase(activeId);
+            int col = i % COSMETIC_COLS;
+            int row = i / COSMETIC_COLS;
+            int cx = x + col * (cardW + COSMETIC_COL_GAP);
+            int cy = viewportTop + row * (COSMETIC_CARD_H + COSMETIC_ROW_GAP) - scrollPx;
+            if (cy + COSMETIC_CARD_H < viewportTop || cy > viewportBottom) continue;
+            drawCosmeticCard(graphics, cx, cy, cardW, COSMETIC_CARD_H, item, equipped, hoverX, hoverY);
+        }
+        graphics.disableScissor();
+
+        drawVerticalScrollbar(graphics, x + w, viewportTop, COSMETIC_SLOT_VIEWPORT_H, cosmeticsSlotScroll, maxScroll);
+
+        int infoY = viewportBottom + 10;
+        drawRoundedRect(graphics, x, infoY, w, COSMETIC_SLOT_BOTTOM_H, 0xFF1A1C26, COLOR_BORDER);
+
+        int textMaxW = w - 28;
+        if (currentCosmeticsSub == CosmeticsSub.HAND) {
+            int toggleW = getHandFirstPersonToggleWidth();
+            int toggleH = 22;
+            int toggleX = x + w - toggleW - 10;
+            int toggleY = infoY + 10;
+            textMaxW = w - toggleW - 28;
+
+            boolean fpOn = KiemConfig.cosmeticHandFirstPerson;
+            boolean toggleHover = mouseX >= toggleX && mouseX <= toggleX + toggleW && mouseY >= toggleY && mouseY <= toggleY + toggleH;
+            String label = KiemLang.get("cosmetics.hand.first_person") + ": " + KiemLang.get(fpOn ? "ui.on" : "ui.off");
+            drawPill(graphics, toggleX, toggleY, toggleW, toggleH,
+                    fpOn ? COLOR_ACCENT_BG : (toggleHover ? 0x2EFFFFFF : 0x18FFFFFF),
+                    fpOn ? COLOR_ACCENT : (toggleHover ? 0xFF4A526A : COLOR_BORDER));
+            drawBoundedText(graphics, label,
+                    toggleX + Math.max(6, (toggleW - Math.min(toggleW - 12, this.font.width(label))) / 2),
+                    toggleY + 7, toggleW - 12,
+                    fpOn ? COLOR_ACCENT : (toggleHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        } else if (currentCosmeticsSub == CosmeticsSub.WAIST) {
+            int toggleW = getWaistDisableCapeToggleWidth();
+            int toggleH = 22;
+            int toggleX = x + w - toggleW - 10;
+            int toggleY = infoY + 10;
+            textMaxW = w - toggleW - 28;
+
+            boolean hideCape = KiemConfig.cosmeticWaistHideCape;
+            boolean toggleHover = mouseX >= toggleX && mouseX <= toggleX + toggleW && mouseY >= toggleY && mouseY <= toggleY + toggleH;
+            String label = KiemLang.get(hideCape ? "cosmetic.waist.disable_cape.on" : "cosmetic.waist.disable_cape.off");
+            drawPill(graphics, toggleX, toggleY, toggleW, toggleH,
+                    hideCape ? COLOR_ACCENT_BG : (toggleHover ? 0x2EFFFFFF : 0x18FFFFFF),
+                    hideCape ? COLOR_ACCENT : (toggleHover ? 0xFF4A526A : COLOR_BORDER));
+            drawBoundedText(graphics, label,
+                    toggleX + Math.max(6, (toggleW - Math.min(toggleW - 12, this.font.width(label))) / 2),
+                    toggleY + 7, toggleW - 12,
+                    hideCape ? COLOR_ACCENT : (toggleHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        }
+
+        drawBoundedText(graphics, KiemLang.get("cosmetics.slot.active") + ": " + activeTitle, x + 14, infoY + 9, textMaxW, COLOR_TEXT_WHITE);
+        drawBoundedText(graphics, KiemLang.get("cosmetics.slot.hint"), x + 14, infoY + 23, textMaxW, COLOR_TEXT_MUTED);
+    }
+
     private void renderTrailsSubView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
-        int cardW = 180;
-        int cardH = 236;
-        int card1X = x;
-        int card1Y = y + 18;
+        CosmeticItemDef[] trailItems = getTrailItems();
+        String activeTrailId = KiemConfig.cosmeticTrailEffect;
 
-        // --- CARD 1: SAKURA BLOOM TRAIL ---
-        boolean active1 = KiemConfig.sakuraAuraEnabled;
-        drawRoundedRect(graphics, card1X, card1Y, cardW, cardH, active1 ? COLOR_CARD_ACTIVE : COLOR_CARD_BG, active1 ? COLOR_ACTIVE_BORDER : COLOR_BORDER);
-        graphics.text(this.font, KiemLang.get("trails.sakura.title"), card1X + 12, card1Y + 11, COLOR_TEXT_WHITE, false);
-        int img1X = card1X + 8;
-        int img1Y = card1Y + 26;
-        int img1W = cardW - 16;
-        drawRoundedRect(graphics, img1X - 1, img1Y - 1, img1W + 2, 147, 0xFF12131A, COLOR_BORDER);
-        graphics.blit(SAKURA_AURA_PREVIEW, img1X, img1Y, img1X + img1W, img1Y + 145, 0.0f, 1.0f, 0.0f, 1.0f);
-        int btn1Y = card1Y + 179;
-        boolean hover1 = mouseX >= img1X && mouseX <= img1X + img1W && mouseY >= btn1Y && mouseY <= btn1Y + 22;
-        drawPill(graphics, img1X, btn1Y, img1W, 22, active1 ? COLOR_ACCENT_BG : (hover1 ? 0x2EFFFFFF : 0x18FFFFFF), active1 ? COLOR_ACCENT : COLOR_BORDER);
-        graphics.centeredText(this.font, KiemLang.get(active1 ? "auras.disable" : "auras.enable"), card1X + cardW / 2, btn1Y + 7, active1 ? COLOR_ACCENT : COLOR_TEXT_WHITE);
-        int cust1Y = btn1Y + 27;
-        boolean custHover1 = mouseX >= img1X && mouseX <= img1X + img1W && mouseY >= cust1Y && mouseY <= cust1Y + 22;
-        drawPill(graphics, img1X, cust1Y, img1W, 22, custHover1 ? 0x44E05688 : 0x18FFFFFF, custHover1 ? COLOR_ACCENT : COLOR_BORDER);
-        graphics.centeredText(this.font, KiemLang.get("ui.customize"), card1X + cardW / 2, cust1Y + 7, custHover1 ? COLOR_ACCENT : COLOR_TEXT_WHITE);
+        int gridW = w - COSMETIC_SCROLLBAR_W;
+        int viewportTop = y + 18;
+        int viewportBottom = viewportTop + COSMETIC_TRAIL_VIEWPORT_H;
 
-        int infoY = card1Y + cardH + 8;
-        graphics.text(this.font, KiemLang.get("auras.local"), x, infoY, COLOR_TEXT_MUTED, false);
-        graphics.text(this.font, KiemLang.get("auras.compatible"), x, infoY + 12, COLOR_TEXT_MUTED, false);
+        int maxScroll = getTrailMaxScroll(trailItems.length);
+        cosmeticsTrailScroll = Math.max(0.0, Math.min(cosmeticsTrailScroll, maxScroll));
+        int scrollPx = (int) Math.round(cosmeticsTrailScroll);
+
+        boolean inViewport = mouseX >= x && mouseX <= x + gridW && mouseY >= viewportTop && mouseY <= viewportBottom;
+        int hoverX = inViewport ? mouseX : -9999;
+        int hoverY = inViewport ? mouseY : -9999;
+
+        graphics.enableScissor(x, viewportTop, x + gridW, viewportBottom);
+
+        // --- CARD 1: SAKURA BLOOM TRAIL (featured horizontal banner) ---
+        int sakuraY = viewportTop - scrollPx;
+        if (sakuraY + COSMETIC_TRAIL_SAKURA_H >= viewportTop && sakuraY <= viewportBottom) {
+            boolean active1 = KiemConfig.sakuraAuraEnabled;
+            drawRoundedRect(graphics, x, sakuraY, gridW, COSMETIC_TRAIL_SAKURA_H, active1 ? COLOR_CARD_ACTIVE : COLOR_CARD_BG, active1 ? COLOR_ACTIVE_BORDER : COLOR_BORDER);
+
+            int thumbSize = 60;
+            int imgX = x + 10;
+            int imgY = sakuraY + (COSMETIC_TRAIL_SAKURA_H - thumbSize) / 2;
+            drawRoundedRect(graphics, imgX - 1, imgY - 1, thumbSize + 2, thumbSize + 2, 0xFF12131A, active1 ? COLOR_ACCENT : COLOR_BORDER);
+            graphics.blit(SAKURA_AURA_PREVIEW, imgX, imgY, imgX + thumbSize, imgY + thumbSize, 0.0f, 1.0f, 0.0f, 1.0f);
+
+            int rightX = imgX + thumbSize + 12;
+            int rightW = gridW - thumbSize - 32;
+            drawBoundedText(graphics, KiemLang.get("trails.sakura.title"), rightX, sakuraY + 12, rightW, COLOR_TEXT_WHITE);
+
+            int btnW = Math.max(96, (rightW - 8) / 2);
+            int btnH = 22;
+            int btnY = sakuraY + COSMETIC_TRAIL_SAKURA_H - btnH - 12;
+            int custX = rightX + btnW + 8;
+
+            boolean hover1 = hoverX >= rightX && hoverX <= rightX + btnW && hoverY >= btnY && hoverY <= btnY + btnH;
+            drawPill(graphics, rightX, btnY, btnW, btnH, active1 ? COLOR_ACCENT_BG : (hover1 ? 0x2EFFFFFF : 0x18FFFFFF), active1 ? COLOR_ACCENT : COLOR_BORDER);
+            graphics.centeredText(this.font, KiemLang.get(active1 ? "auras.disable" : "auras.enable"), rightX + btnW / 2, btnY + 7, active1 ? COLOR_ACCENT : COLOR_TEXT_WHITE);
+
+            boolean custHover1 = hoverX >= custX && hoverX <= custX + btnW && hoverY >= btnY && hoverY <= btnY + btnH;
+            drawPill(graphics, custX, btnY, btnW, btnH, custHover1 ? 0x44E05688 : 0x18FFFFFF, custHover1 ? COLOR_ACCENT : COLOR_BORDER);
+            graphics.centeredText(this.font, KiemLang.get("ui.customize"), custX + btnW / 2, btnY + 7, custHover1 ? COLOR_ACCENT : COLOR_TEXT_WHITE);
+        }
+
+        // --- 10 TRAIL EFFECT CARDS ---
+        int cardW = (gridW - COSMETIC_COL_GAP) / COSMETIC_COLS;
+        int gridStartY = sakuraY + COSMETIC_TRAIL_SAKURA_H + COSMETIC_ROW_GAP;
+        for (int i = 0; i < trailItems.length; i++) {
+            CosmeticItemDef item = trailItems[i];
+            boolean equipped = item.id.equalsIgnoreCase(activeTrailId);
+            int col = i % COSMETIC_COLS;
+            int row = i / COSMETIC_COLS;
+            int cx = x + col * (cardW + COSMETIC_COL_GAP);
+            int cy = gridStartY + row * (COSMETIC_CARD_H + COSMETIC_ROW_GAP);
+            if (cy + COSMETIC_CARD_H < viewportTop || cy > viewportBottom) continue;
+            drawCosmeticCard(graphics, cx, cy, cardW, COSMETIC_CARD_H, item, equipped, hoverX, hoverY);
+        }
+
+        graphics.disableScissor();
+
+        drawVerticalScrollbar(graphics, x + w, viewportTop, COSMETIC_TRAIL_VIEWPORT_H, cosmeticsTrailScroll, maxScroll);
+
+        int infoY = viewportBottom + 6;
+        drawBoundedText(graphics, KiemLang.get("auras.local"), x, infoY, w, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("auras.compatible"), x, infoY + 11, w, COLOR_TEXT_MUTED);
     }
 
     private void renderCapesSubView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
-        int cardW = 176;
+        int cardGap = 8;
+        int cardW = (w - 2 * cardGap) / 3;
         int cardH = 236;
-        int cardGap = 12;
 
         int card1X = x;
         int card1Y = y + 18;
@@ -386,13 +787,13 @@ public class KiemScreen extends Screen {
         drawRoundedRect(graphics, card1X, card1Y, cardW, cardH, card1Bg, card1Border);
 
         // Header: "SANARA" + [ V1 ] [ V2 ] [ V3 ]
-        graphics.text(this.font, "SANARA", card1X + 14, card1Y + 11, COLOR_TEXT_WHITE, false);
+        graphics.text(this.font, "SANARA", card1X + 10, card1Y + 11, COLOR_TEXT_WHITE, false);
 
-        int pillW = 20;
+        int pillW = 18;
         int pillH = 13;
-        int pillGap = 4;
-        int pillsTotalW = 3 * pillW + 2 * pillGap; // 68
-        int p1X = card1X + cardW - 12 - pillsTotalW;
+        int pillGap = 2;
+        int pillsTotalW = 3 * pillW + 2 * pillGap; // 58
+        int p1X = card1X + cardW - 8 - pillsTotalW;
         int p2X = p1X + pillW + pillGap;
         int p3X = p2X + pillW + pillGap;
         int pillY = card1Y + 9;
@@ -423,9 +824,9 @@ public class KiemScreen extends Screen {
         graphics.centeredText(this.font, "V3", p3X + pillW / 2, pillY + 3, p3Txt);
 
         // Preview image
-        int imgW = cardW - 24; // 152
+        int imgW = cardW - 16;
         int imgH = 145;
-        int img1X = card1X + 12;
+        int img1X = card1X + 8;
         int img1Y = card1Y + 26;
         drawRoundedRect(graphics, img1X - 1, img1Y - 1, imgW + 2, imgH + 2, 0xFF12131A, 0xFF2A2E40);
 
@@ -442,10 +843,10 @@ public class KiemScreen extends Screen {
 
         // Standard / Animated buttons
         int btnY = img1Y + imgH + 8;
-        int btnW = (imgW - 6) / 2;
+        int btnW = (imgW - 4) / 2;
         int btnH = 22;
         int btn1X = img1X;
-        int btn2X = img1X + btnW + 6;
+        int btn2X = img1X + btnW + 4;
 
         boolean b1Hover = mouseX >= btn1X && mouseX <= btn1X + btnW && mouseY >= btnY && mouseY <= btnY + btnH;
         boolean b2Hover = mouseX >= btn2X && mouseX <= btn2X + btnW && mouseY >= btnY && mouseY <= btnY + btnH;
@@ -488,11 +889,11 @@ public class KiemScreen extends Screen {
         int card2Border = rikkaActive ? COLOR_ACTIVE_BORDER : COLOR_BORDER;
         drawRoundedRect(graphics, card2X, card2Y, cardW, cardH, card2Bg, card2Border);
 
-        graphics.text(this.font, "RIKKA", card2X + 14, card2Y + 11, COLOR_TEXT_WHITE, false);
-        drawPill(graphics, card2X + cardW - 36, card2Y + 9, 24, 13, 0x33FFB03A, 0xFFFFB03A);
-        graphics.centeredText(this.font, "NEW", card2X + cardW - 24, card2Y + 12, 0xFFFFB03A);
+        graphics.text(this.font, "RIKKA", card2X + 10, card2Y + 11, COLOR_TEXT_WHITE, false);
+        drawPill(graphics, card2X + cardW - 32, card2Y + 9, 24, 13, 0x33FFB03A, 0xFFFFB03A);
+        graphics.centeredText(this.font, "NEW", card2X + cardW - 20, card2Y + 12, 0xFFFFB03A);
 
-        int img2X = card2X + 12;
+        int img2X = card2X + 8;
         int img2Y = card2Y + 26;
         drawRoundedRect(graphics, img2X - 1, img2Y - 1, imgW + 2, imgH + 2, 0xFF12131A, 0xFF2A2E40);
         graphics.blit(RIKKA_PREVIEW, img2X, img2Y, img2X + imgW, img2Y + imgH, 0.0f, 1.0f, 0.0f, 1.0f);
@@ -502,7 +903,7 @@ public class KiemScreen extends Screen {
         graphics.centeredText(this.font, "V1", img2X + imgW - verTagW / 2 - 4, img2Y + imgH - verTagH + 3, COLOR_TEXT_WHITE);
 
         int btn2_1X = img2X;
-        int btn2_2X = img2X + btnW + 6;
+        int btn2_2X = img2X + btnW + 4;
 
         boolean b2_1Hover = mouseX >= btn2_1X && mouseX <= btn2_1X + btnW && mouseY >= btnY && mouseY <= btnY + btnH;
         boolean b2_2Hover = mouseX >= btn2_2X && mouseX <= btn2_2X + btnW && mouseY >= btnY && mouseY <= btnY + btnH;
@@ -543,15 +944,14 @@ public class KiemScreen extends Screen {
             int card3Border = isCustomActive ? COLOR_ACTIVE_BORDER : COLOR_BORDER;
             drawRoundedRect(graphics, card3X, card1Y, cardW, cardH, card3Bg, card3Border);
 
-            // Header: "ÖZEL PELERİN" on left, [ 📂 Klasör ] and [ 🔄 ] pills on right
-            graphics.text(this.font, KiemLang.get("cosmetics.custom_title"), card3X + 12, card1Y + 11, COLOR_TEXT_WHITE, false);
-
             pillH = 13;
             int refreshPillW = 16;
-            int folderPillW = 46;
-            int refreshPillX = card3X + cardW - 12 - refreshPillW;
-            int folderPillX = refreshPillX - folderPillW - 4;
+            int folderPillW = 38;
+            int refreshPillX = card3X + cardW - 8 - refreshPillW;
+            int folderPillX = refreshPillX - folderPillW - 3;
             int customPillY = card1Y + 9;
+
+            drawBoundedText(graphics, KiemLang.get("cosmetics.custom_title"), card3X + 8, card1Y + 11, folderPillX - (card3X + 10), COLOR_TEXT_WHITE);
 
             boolean folderHover = mouseX >= folderPillX && mouseX <= folderPillX + folderPillW && mouseY >= customPillY && mouseY <= customPillY + pillH;
             boolean refreshHover = mouseX >= refreshPillX && mouseX <= refreshPillX + refreshPillW && mouseY >= customPillY && mouseY <= customPillY + pillH;
@@ -563,7 +963,7 @@ public class KiemScreen extends Screen {
             graphics.centeredText(this.font, "🔄", refreshPillX + refreshPillW / 2, customPillY + 3, refreshHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
 
             // Preview Area (Image Preview or Empty Folder notice)
-            int img3X = card3X + 12;
+            int img3X = card3X + 8;
             int img3Y = card1Y + 26;
             drawRoundedRect(graphics, img3X - 1, img3Y - 1, imgW + 2, imgH + 2, 0xFF12131A, 0xFF2A2E40);
 
@@ -660,14 +1060,15 @@ public class KiemScreen extends Screen {
         } else {
             currentName = current.getTitle();
         }
-        graphics.text(this.font, KiemLang.get("cosmetics.active_selection") + ": " + currentName, x + 14, infoY + 9, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("cosmetics.info_desc"), x + 14, infoY + 22, COLOR_TEXT_MUTED, false);
+        int toggleW = 114;
+        int toggleH = 22;
+        int toggleX = x + w - toggleW - 10;
+        int toggleY = infoY + 11;
+        int infoTextMaxW = w - toggleW - 28;
+        drawBoundedText(graphics, KiemLang.get("cosmetics.active_selection") + ": " + currentName, x + 12, infoY + 9, infoTextMaxW, COLOR_TEXT_WHITE);
+        drawBoundedText(graphics, KiemLang.get("cosmetics.info_desc"), x + 12, infoY + 22, infoTextMaxW, COLOR_TEXT_MUTED);
 
         // True Color Toggle Button
-        int toggleW = 126;
-        int toggleH = 22;
-        int toggleX = x + w - toggleW - 12;
-        int toggleY = infoY + 11;
         boolean toggleHover = mouseX >= toggleX && mouseX <= toggleX + toggleW && mouseY >= toggleY && mouseY <= toggleY + toggleH;
         if (KiemConfig.capeTrueColor) {
             drawPill(graphics, toggleX, toggleY, toggleW, toggleH, COLOR_ACCENT_BG, COLOR_ACCENT);
@@ -684,22 +1085,20 @@ public class KiemScreen extends Screen {
                 ShoulderPetType.HAMSTER_HD,
                 ShoulderPetType.OCTOPUS,
                 ShoulderPetType.DRAGON,
-                ShoulderPetType.INVENTORY_CURSE,
-                ShoulderPetType.VOID_GARGOYLE
+                ShoulderPetType.INVENTORY_CURSE
         };
         Identifier[] petPreviews = {
                 HAMSTER_PREVIEW,
                 HAMSTER_HD_PREVIEW,
                 OCTOPUS_PREVIEW,
                 DRAGON_PREVIEW,
-                INVENTORY_CURSE_PREVIEW,
-                GARGOYLE_AURA_PREVIEW
+                INVENTORY_CURSE_PREVIEW
         };
-        int cols = 3;
+        int cols = 2;
         int colGap = 10;
         int rowGap = 8;
         int cardW = (w - ((cols - 1) * colGap)) / cols;
-        int cardH = 114;
+        int cardH = 74;
         int startY = y + 18;
 
         for (int i = 0; i < petTypes.length; i++) {
@@ -712,57 +1111,15 @@ public class KiemScreen extends Screen {
         }
 
         // Bottom Info Card & Controls
-        int infoY = startY + (cardH * 2 + rowGap) + 14;
-        int bottomCardH = 44;
+        int infoY = startY + (cardH * 3 + rowGap * 2) + 8;
+        int bottomCardH = 42;
         drawRoundedRect(graphics, x, infoY, w, bottomCardH, 0xFF1A1C26, COLOR_BORDER);
 
         ShoulderPetType sel = ShoulderPetManager.getSelectedPet();
         String currentName = sel == ShoulderPetType.OFF ? KiemLang.get("pets.none") : KiemLang.get(sel.titleKey);
-        graphics.text(this.font, KiemLang.get("pets.active_selection") + ": " + currentName, x + 14, infoY + 9, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("pets.info_desc"), x + 14, infoY + 22, COLOR_TEXT_MUTED, false);
-
-        // Shoulder Side Selection Pills [ Sağ Omuz ] [ Sol Omuz ] + Sword Customize Pill
-        boolean isLeft = ShoulderPetManager.isLeftShoulder();
-        int sideBtnW = 88;
-        int sideBtnH = 22;
-        int sideBtnGap = 6;
-        int side1X = x + w - (sideBtnW * 2 + sideBtnGap) - 12;
-        int side2X = side1X + sideBtnW + sideBtnGap;
-        int sideBtnY = infoY + 11;
-
-        int swordBtnW = 104;
-        int swordBtnX = side1X - swordBtnW - 6;
-
-        if (sel == ShoulderPetType.INVENTORY_CURSE) {
-            boolean swordHover = mouseX >= swordBtnX && mouseX <= swordBtnX + swordBtnW && mouseY >= sideBtnY && mouseY <= sideBtnY + sideBtnH;
-            String swordLabel = KiemConfig.inventoryCurseWithSword ? KiemLang.get("pets.worm.sword_on") : KiemLang.get("pets.worm.sword_off");
-            if (KiemConfig.inventoryCurseWithSword) {
-                drawPill(graphics, swordBtnX, sideBtnY, swordBtnW, sideBtnH, COLOR_ACCENT_BG, COLOR_ACCENT);
-                graphics.centeredText(this.font, swordLabel, swordBtnX + swordBtnW / 2, sideBtnY + 7, COLOR_ACCENT);
-            } else {
-                drawPill(graphics, swordBtnX, sideBtnY, swordBtnW, sideBtnH, swordHover ? 0x2EFFFFFF : 0x18FFFFFF, swordHover ? 0xFF4A526A : COLOR_BORDER);
-                graphics.centeredText(this.font, swordLabel, swordBtnX + swordBtnW / 2, sideBtnY + 7, swordHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
-            }
-        }
-
-        boolean s1Hover = mouseX >= side1X && mouseX <= side1X + sideBtnW && mouseY >= sideBtnY && mouseY <= sideBtnY + sideBtnH;
-        boolean s2Hover = mouseX >= side2X && mouseX <= side2X + sideBtnW && mouseY >= sideBtnY && mouseY <= sideBtnY + sideBtnH;
-
-        if (!isLeft) {
-            drawPill(graphics, side1X, sideBtnY, sideBtnW, sideBtnH, COLOR_ACCENT_BG, COLOR_ACCENT);
-            graphics.centeredText(this.font, KiemLang.get("pets.side.right"), side1X + sideBtnW / 2, sideBtnY + 7, COLOR_ACCENT);
-        } else {
-            drawPill(graphics, side1X, sideBtnY, sideBtnW, sideBtnH, s1Hover ? 0x2EFFFFFF : 0x18FFFFFF, s1Hover ? 0xFF4A526A : COLOR_BORDER);
-            graphics.centeredText(this.font, KiemLang.get("pets.side.right"), side1X + sideBtnW / 2, sideBtnY + 7, s1Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
-        }
-
-        if (isLeft) {
-            drawPill(graphics, side2X, sideBtnY, sideBtnW, sideBtnH, COLOR_ACCENT_BG, COLOR_ACCENT);
-            graphics.centeredText(this.font, KiemLang.get("pets.side.left"), side2X + sideBtnW / 2, sideBtnY + 7, COLOR_ACCENT);
-        } else {
-            drawPill(graphics, side2X, sideBtnY, sideBtnW, sideBtnH, s2Hover ? 0x2EFFFFFF : 0x18FFFFFF, s2Hover ? 0xFF4A526A : COLOR_BORDER);
-            graphics.centeredText(this.font, KiemLang.get("pets.side.left"), side2X + sideBtnW / 2, sideBtnY + 7, s2Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
-        }
+        String sideLabel = ShoulderPetManager.isLeftShoulder() ? KiemLang.get("pets.side.left") : KiemLang.get("pets.side.right");
+        drawBoundedText(graphics, KiemLang.get("pets.active_selection") + ": " + currentName + "  (" + sideLabel + ")", x + 12, infoY + 8, w - 24, COLOR_TEXT_WHITE);
+        drawBoundedText(graphics, KiemLang.get("pets.info_desc"), x + 12, infoY + 22, w - 24, COLOR_TEXT_MUTED);
     }
 
     private void renderPetCard(GuiGraphicsExtractor graphics, int cardX, int cardY, int cardW, int cardH,
@@ -775,37 +1132,41 @@ public class KiemScreen extends Screen {
         drawRoundedRect(graphics, cardX, cardY, cardW, cardH, cardBg, cardBorder);
 
         // Left square preview box
-        int imgSize = cardH - 20;
-        int imgX = cardX + 10;
-        int imgY = cardY + 10;
+        int imgSize = cardH - 16;
+        int imgX = cardX + 8;
+        int imgY = cardY + 8;
         drawRoundedRect(graphics, imgX - 1, imgY - 1, imgSize + 2, imgSize + 2, 0xFF12131A, 0xFF2A2E40);
         graphics.blit(preview, imgX, imgY, imgX + imgSize, imgY + imgSize, 0.0f, 1.0f, 0.0f, 1.0f);
 
-        // Right column: Title + Equip Button + Footer status
+        // Right column: Title + Equip + Customize + Unequip/Status
         int rightX = imgX + imgSize + 10;
-        int rightW = cardW - imgSize - 28;
-        drawBoundedText(graphics, title, rightX, cardY + 14, rightW, COLOR_TEXT_WHITE);
+        int rightW = cardW - imgSize - 26;
+        drawBoundedText(graphics, title, rightX, cardY + 7, rightW, COLOR_TEXT_WHITE);
 
-        int btnY = cardY + 44;
-        int btnH = 22;
+        int btnY = cardY + 20;
+        int btnH = 18;
         boolean btnHover = mouseX >= rightX && mouseX <= rightX + rightW && mouseY >= btnY && mouseY <= btnY + btnH;
 
         if (equipped) {
             drawPill(graphics, rightX, btnY, rightW, btnH, COLOR_ACCENT_BG, COLOR_ACCENT);
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.equipped"), rightX + rightW / 2, btnY + 7, COLOR_ACCENT);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.equipped"), rightX + rightW / 2, btnY + 5, COLOR_ACCENT);
         } else {
             drawPill(graphics, rightX, btnY, rightW, btnH, btnHover ? 0x2EFFFFFF : 0x18FFFFFF, btnHover ? 0xFF4A526A : COLOR_BORDER);
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.equip"), rightX + rightW / 2, btnY + 7, btnHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.equip"), rightX + rightW / 2, btnY + 5, btnHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
         }
 
-        int footerY = btnY + btnH + 10;
+        int custY = cardY + 41;
+        int custH = 18;
+        boolean custHover = mouseX >= rightX && mouseX <= rightX + rightW && mouseY >= custY && mouseY <= custY + custH;
+        drawPill(graphics, rightX, custY, rightW, custH, custHover ? 0x2EFFFFFF : 0x18FFFFFF, custHover ? COLOR_ACCENT : COLOR_BORDER);
+        graphics.centeredText(this.font, KiemLang.get("pets.custom.btn"), rightX + rightW / 2, custY + 5, custHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+
+        int footerY = cardY + 61;
         if (equipped) {
-            boolean unequipHover = mouseX >= rightX && mouseX <= rightX + rightW && mouseY >= footerY && mouseY <= footerY + 14;
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.unequip"), rightX + rightW / 2, footerY + 2, unequipHover ? 0xFFFF6666 : COLOR_TEXT_DIM);
-        } else if (anyEquipped) {
-            drawBoundedText(graphics, KiemLang.get("cosmetics.inactive"), rightX, footerY + 2, rightW, 0xFF70768C);
+            boolean unequipHover = mouseX >= rightX && mouseX <= rightX + rightW && mouseY >= footerY && mouseY <= footerY + 12;
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.unequip"), rightX + rightW / 2, footerY + 1, unequipHover ? 0xFFFF6666 : COLOR_TEXT_DIM);
         } else {
-            drawBoundedText(graphics, KiemLang.get("cosmetics.inactive"), rightX, footerY + 2, rightW, COLOR_TEXT_DIM);
+            drawBoundedText(graphics, KiemLang.get("cosmetics.inactive"), rightX, footerY + 1, rightW, anyEquipped ? 0xFF70768C : COLOR_TEXT_DIM);
         }
     }
 
@@ -2288,63 +2649,114 @@ public class KiemScreen extends Screen {
             if (currentTab == Tab.COSMETICS) {
                 int contentX = modalX + sidebarW + 20;
                 int contentY = modalY + 40 + 20;
+                int contentW = modalW - sidebarW - 40;
 
-                // Sub-tabs (Capes / Pets / Auras) click
-                int subBtnW = 96;
-                int subBtnH = 18;
+                // Sub-tabs (2 rows of 5) click
+                CosmeticsSub[] subs = CosmeticsSub.values();
+                int subCols = 5;
                 int subGap = 6;
-                int sub1X = contentX;
-                int sub2X = sub1X + subBtnW + subGap;
-                int sub3X = sub2X + subBtnW + subGap;
-                int subY = contentY - 1;
+                int subBtnW = (contentW - (subCols - 1) * subGap) / subCols;
+                int subBtnH = 16;
+                int subRowGap = 4;
+                int subY0 = contentY - 2;
 
-                if (mouseX >= sub1X && mouseX <= sub1X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH) {
-                    currentCosmeticsSub = CosmeticsSub.CAPES;
-                    return true;
-                }
-                if (mouseX >= sub2X && mouseX <= sub2X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH) {
-                    currentCosmeticsSub = CosmeticsSub.PETS;
-                    return true;
-                }
-                if (mouseX >= sub3X && mouseX <= sub3X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH) {
-                    currentCosmeticsSub = CosmeticsSub.TRAILS;
-                    return true;
-                }
-                if (currentCosmeticsSub == CosmeticsSub.TRAILS) {
-                    int cardW = 180;
-                    int card1X = contentX;
-                    int cardY = contentY + 18;
-                    int btnY = cardY + 179;
-                    int custY = btnY + 27;
-
-                    // Card 1: Sakura Bloom Trail
-                    int btn1X = card1X + 8;
-                    int img1W = cardW - 16;
-                    if (mouseX >= btn1X && mouseX <= btn1X + img1W && mouseY >= btnY && mouseY <= btnY + 22) {
-                        boolean active1 = KiemConfig.sakuraAuraEnabled;
-                        KiemConfig.setActiveAura(active1 ? "NONE" : "SAKURA_LOP");
-                        KiemConfig.save();
+                for (int i = 0; i < subs.length; i++) {
+                    int col = i % subCols;
+                    int row = i / subCols;
+                    int bx = contentX + col * (subBtnW + subGap);
+                    int by = subY0 + row * (subBtnH + subRowGap);
+                    if (mouseX >= bx && mouseX <= bx + subBtnW && mouseY >= by && mouseY <= by + subBtnH) {
+                        currentCosmeticsSub = subs[i];
+                        cosmeticsSlotScroll = 0.0;
+                        cosmeticsTrailScroll = 0.0;
                         return true;
                     }
-                    if (mouseX >= btn1X && mouseX <= btn1X + img1W && mouseY >= custY && mouseY <= custY + 22) {
-                        KiemCompat.setScreen(this.minecraft, new SakuraAuraScreen(this));
+                }
+
+                int subContentY = contentY + 26;
+                int leftW = getCosmeticsLeftWidth(contentW);
+                int previewX = contentX + leftW + COSMETICS_PREVIEW_GAP;
+                int previewY = subContentY + 18;
+                int previewH = COSMETIC_PREVIEW_H;
+                if (event.button() == 0) {
+                    int vpX0 = previewX + 4;
+                    int vpY0 = previewY + 22;
+                    int vpX1 = previewX + COSMETICS_PREVIEW_W - 4;
+                    int vpY1 = previewY + previewH - 40;
+                    if (mouseX >= vpX0 && mouseX < vpX1 && mouseY >= vpY0 && mouseY < vpY1) {
+                        draggingCosmeticPreview = true;
                         return true;
+                    }
+                    int resetBtnX = previewX + 8;
+                    int resetBtnY = previewY + previewH - 24;
+                    int resetBtnW = COSMETICS_PREVIEW_W - 16;
+                    int resetBtnH = 18;
+                    if (mouseX >= resetBtnX && mouseX <= resetBtnX + resetBtnW && mouseY >= resetBtnY && mouseY <= resetBtnY + resetBtnH) {
+                        cosmeticPreviewYaw = 0.0f;
+                        cosmeticPreviewPitch = 0.0f;
+                        cosmeticPreviewScale = 1.0f;
+                        return true;
+                    }
+                }
+                if (currentCosmeticsSub == CosmeticsSub.TRAILS) {
+                    int gridW = leftW - COSMETIC_SCROLLBAR_W;
+                    int viewportTop = subContentY + 18;
+                    int viewportBottom = viewportTop + COSMETIC_TRAIL_VIEWPORT_H;
+                    if (mouseX >= contentX && mouseX <= contentX + gridW && mouseY >= viewportTop && mouseY <= viewportBottom) {
+                        int scrollPx = (int) Math.round(cosmeticsTrailScroll);
+                        int sakuraY = viewportTop - scrollPx;
+
+                        int thumbSize = 60;
+                        int rightX = contentX + 10 + thumbSize + 12;
+                        int rightW = gridW - thumbSize - 32;
+                        int btnW = Math.max(96, (rightW - 8) / 2);
+                        int btnH = 22;
+                        int btnY = sakuraY + COSMETIC_TRAIL_SAKURA_H - btnH - 12;
+                        int custX = rightX + btnW + 8;
+
+                        if (mouseX >= rightX && mouseX <= rightX + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
+                            boolean active1 = KiemConfig.sakuraAuraEnabled;
+                            KiemConfig.setActiveAura(active1 ? "NONE" : "SAKURA_LOP");
+                            KiemConfig.save();
+                            return true;
+                        }
+                        if (mouseX >= custX && mouseX <= custX + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
+                            KiemCompat.setScreen(this.minecraft, new SakuraAuraScreen(this));
+                            return true;
+                        }
+
+                        CosmeticItemDef[] trailItems = getTrailItems();
+                        int cardW = (gridW - COSMETIC_COL_GAP) / COSMETIC_COLS;
+                        int gridStartY = sakuraY + COSMETIC_TRAIL_SAKURA_H + COSMETIC_ROW_GAP;
+                        for (int i = 0; i < trailItems.length; i++) {
+                            int col = i % COSMETIC_COLS;
+                            int row = i / COSMETIC_COLS;
+                            int cx = contentX + col * (cardW + COSMETIC_COL_GAP);
+                            int cy = gridStartY + row * (COSMETIC_CARD_H + COSMETIC_ROW_GAP);
+                            if (mouseX >= cx && mouseX <= cx + cardW && mouseY >= cy && mouseY <= cy + COSMETIC_CARD_H) {
+                                CosmeticItemDef item = trailItems[i];
+                                boolean equipped = item.id.equalsIgnoreCase(KiemConfig.cosmeticTrailEffect);
+                                KiemConfig.cosmeticTrailEffect = equipped ? "OFF" : item.id;
+                                KiemConfig.save();
+                                return true;
+                            }
+                        }
                     }
                 }
 
                 if (currentCosmeticsSub == CosmeticsSub.CAPES) {
-                    int cardW = 176;
-                    int cardGap = 12;
+                    int cardGap = 8;
+                    int cardW = (leftW - 2 * cardGap) / 3;
                     int card1X = contentX;
-                    int card1Y = contentY + 18;
+                    int card1Y = subContentY + 18;
                     int card2X = card1X + cardW + cardGap;
 
                 // --- CARD 1 (SANARA) ---
-                int pillW = 20;
+                int pillW = 18;
                 int pillH = 13;
-                int pillGap = 4;
-                int pillsTotalW = 3 * pillW + 2 * pillGap; // 68
-                int p1X = card1X + cardW - 12 - pillsTotalW;
+                int pillGap = 2;
+                int pillsTotalW = 3 * pillW + 2 * pillGap; // 58
+                int p1X = card1X + cardW - 8 - pillsTotalW;
                 int p2X = p1X + pillW + pillGap;
                 int p3X = p2X + pillW + pillGap;
                 int pillY = card1Y + 9;
@@ -2363,14 +2775,14 @@ public class KiemScreen extends Screen {
                     return true;
                 }
 
-                int imgW = cardW - 24;
+                int imgW = cardW - 16;
                 int imgH = 145;
-                int img1X = card1X + 12;
+                int img1X = card1X + 8;
                 int btnY = card1Y + 26 + imgH + 8;
-                int btnW = (imgW - 6) / 2;
+                int btnW = (imgW - 4) / 2;
                 int btnH = 22;
                 int btn1X = img1X;
-                int btn2X = img1X + btnW + 6;
+                int btn2X = img1X + btnW + 4;
                 int footerY = btnY + btnH + 6;
 
                 // Sanara Standard Button Click
@@ -2409,8 +2821,8 @@ public class KiemScreen extends Screen {
                 }
 
                 // --- CARD 2 (RIKKA) ---
-                int btn2_1X = card2X + 12;
-                int btn2_2X = btn2_1X + btnW + 6;
+                int btn2_1X = card2X + 8;
+                int btn2_2X = btn2_1X + btnW + 4;
 
                 // Rikka Standard Button Click
                 if (mouseX >= btn2_1X && mouseX <= btn2_1X + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
@@ -2444,9 +2856,9 @@ public class KiemScreen extends Screen {
                 int card3X = card2X + cardW + cardGap;
                 int customPillY = card1Y + 9;
                 int refreshPillW = 16;
-                int folderPillW = 46;
-                int refreshPillX = card3X + cardW - 12 - refreshPillW;
-                int folderPillX = refreshPillX - folderPillW - 4;
+                int folderPillW = 38;
+                int refreshPillX = card3X + cardW - 8 - refreshPillW;
+                int folderPillX = refreshPillX - folderPillW - 3;
                 pillH = 13;
 
                 // Folder Pill Click (open explorer)
@@ -2461,7 +2873,7 @@ public class KiemScreen extends Screen {
                     return true;
                 }
 
-                int img3X = card3X + 12;
+                int img3X = card3X + 8;
                 int img3Y = card1Y + 26;
                 java.util.List<CustomCapeManager.CustomCapeEntry> capes = CustomCapeManager.getLoadedCapes();
 
@@ -2528,9 +2940,9 @@ public class KiemScreen extends Screen {
                 int infoY = card1Y + cardH + 14;
 
                 // True Color Toggle
-                int toggleW = 126;
+                int toggleW = 114;
                 int toggleH = 22;
-                int toggleX = contentX + (modalW - sidebarW - 40) - toggleW - 12;
+                int toggleX = contentX + leftW - toggleW - 10;
                 int toggleY = infoY + 11;
                 if (mouseX >= toggleX && mouseX <= toggleX + toggleW && mouseY >= toggleY && mouseY <= toggleY + toggleH) {
                     KiemConfig.capeTrueColor = !KiemConfig.capeTrueColor;
@@ -2543,71 +2955,90 @@ public class KiemScreen extends Screen {
                         ShoulderPetType.HAMSTER_HD,
                         ShoulderPetType.OCTOPUS,
                         ShoulderPetType.DRAGON,
-                        ShoulderPetType.INVENTORY_CURSE,
-                        ShoulderPetType.VOID_GARGOYLE
+                        ShoulderPetType.INVENTORY_CURSE
                 };
-                int contentW = modalW - sidebarW - 40;
-                int cols = 3;
+                int cols = 2;
                 int colGap = 10;
                 int rowGap = 8;
-                int cardW = (contentW - ((cols - 1) * colGap)) / cols;
-                int cardH = 114;
-                int startY = contentY + 18;
+                int cardW = (leftW - ((cols - 1) * colGap)) / cols;
+                int cardH = 74;
+                int startY = subContentY + 18;
 
-                int imgSize = cardH - 20;
-                int btnH = 22;
+                int imgSize = cardH - 16;
+                int btnH = 18;
 
                 for (int i = 0; i < petTypes.length; i++) {
                     int col = i % cols;
                     int row = i / cols;
                     int cx = contentX + col * (cardW + colGap);
                     int cy = startY + row * (cardH + rowGap);
-                    int rightX = cx + 10 + imgSize + 10;
-                    int rightW = cardW - imgSize - 28;
-                    int btnY = cy + 44;
-                    int footerY = btnY + btnH + 10;
+                    int rightX = cx + 8 + imgSize + 10;
+                    int rightW = cardW - imgSize - 26;
+                    int btnY = cy + 20;
+                    int custY = cy + 41;
+                    int footerY = cy + 61;
 
                     if (mouseX >= rightX && mouseX <= rightX + rightW && mouseY >= btnY && mouseY <= btnY + btnH) {
                         ShoulderPetManager.togglePet(petTypes[i]);
                         return true;
                     }
-                    if (mouseX >= rightX && mouseX <= rightX + rightW && mouseY >= footerY && mouseY <= footerY + 14) {
+                    if (mouseX >= rightX && mouseX <= rightX + rightW && mouseY >= custY && mouseY <= custY + btnH) {
+                        KiemCompat.setScreen(this.minecraft, new PetCustomizeScreen(this, petTypes[i]));
+                        return true;
+                    }
+                    if (mouseX >= rightX && mouseX <= rightX + rightW && mouseY >= footerY && mouseY <= footerY + 12) {
                         if (ShoulderPetManager.isEquipped(petTypes[i])) {
                             ShoulderPetManager.setSelectedPet(ShoulderPetType.OFF);
                             return true;
                         }
                     }
                 }
+            } else if (currentCosmeticsSub != CosmeticsSub.TRAILS) {
+                CosmeticItemDef[] items = getSlotItems(currentCosmeticsSub);
+                String activeId = getEquippedSlotId(currentCosmeticsSub);
+                int gridW = leftW - COSMETIC_SCROLLBAR_W;
+                int cardW = (gridW - COSMETIC_COL_GAP) / COSMETIC_COLS;
+                int viewportTop = subContentY + 18;
+                int viewportBottom = viewportTop + COSMETIC_SLOT_VIEWPORT_H;
+                int scrollPx = (int) Math.round(cosmeticsSlotScroll);
 
-                // Bottom Controls - Shoulder Side selection & Sword Customize Toggle
-                int infoY = startY + (cardH * 2 + rowGap) + 14;
-                int sideBtnW = 88;
-                int sideBtnH = 22;
-                int sideBtnGap = 6;
-                int side1X = contentX + contentW - (sideBtnW * 2 + sideBtnGap) - 12;
-                int side2X = side1X + sideBtnW + sideBtnGap;
-                int sideBtnY = infoY + 11;
-                ShoulderPetType sel = ShoulderPetManager.getSelectedPet();
-
-                if (sel == ShoulderPetType.INVENTORY_CURSE) {
-                    int swordBtnW = 104;
-                    int swordBtnX = side1X - swordBtnW - 6;
-                    if (mouseX >= swordBtnX && mouseX <= swordBtnX + swordBtnW && mouseY >= sideBtnY && mouseY <= sideBtnY + sideBtnH) {
-                        KiemConfig.inventoryCurseWithSword = !KiemConfig.inventoryCurseWithSword;
-                        KiemConfig.save();
-                        return true;
+                if (mouseX >= contentX && mouseX <= contentX + gridW && mouseY >= viewportTop && mouseY <= viewportBottom) {
+                    for (int i = 0; i < items.length; i++) {
+                        int col = i % COSMETIC_COLS;
+                        int row = i / COSMETIC_COLS;
+                        int cx = contentX + col * (cardW + COSMETIC_COL_GAP);
+                        int cy = viewportTop + row * (COSMETIC_CARD_H + COSMETIC_ROW_GAP) - scrollPx;
+                        if (mouseX >= cx && mouseX <= cx + cardW && mouseY >= cy && mouseY <= cy + COSMETIC_CARD_H) {
+                            CosmeticItemDef item = items[i];
+                            boolean equipped = item.id.equalsIgnoreCase(activeId);
+                            setEquippedSlotId(currentCosmeticsSub, equipped ? "OFF" : item.id);
+                            return true;
+                        }
                     }
                 }
 
-                // Right shoulder button click
-                if (mouseX >= side1X && mouseX <= side1X + sideBtnW && mouseY >= sideBtnY && mouseY <= sideBtnY + sideBtnH) {
-                    ShoulderPetManager.setLeftShoulder(false);
-                    return true;
-                }
-                // Left shoulder button click
-                if (mouseX >= side2X && mouseX <= side2X + sideBtnW && mouseY >= sideBtnY && mouseY <= sideBtnY + sideBtnH) {
-                    ShoulderPetManager.setLeftShoulder(true);
-                    return true;
+                if (currentCosmeticsSub == CosmeticsSub.HAND) {
+                    int infoY = viewportBottom + 10;
+                    int toggleW = getHandFirstPersonToggleWidth();
+                    int toggleH = 22;
+                    int toggleX = contentX + leftW - toggleW - 10;
+                    int toggleY = infoY + 10;
+                    if (mouseX >= toggleX && mouseX <= toggleX + toggleW && mouseY >= toggleY && mouseY <= toggleY + toggleH) {
+                        KiemConfig.cosmeticHandFirstPerson = !KiemConfig.cosmeticHandFirstPerson;
+                        KiemConfig.save();
+                        return true;
+                    }
+                } else if (currentCosmeticsSub == CosmeticsSub.WAIST) {
+                    int infoY = viewportBottom + 10;
+                    int toggleW = getWaistDisableCapeToggleWidth();
+                    int toggleH = 22;
+                    int toggleX = contentX + leftW - toggleW - 10;
+                    int toggleY = infoY + 10;
+                    if (mouseX >= toggleX && mouseX <= toggleX + toggleW && mouseY >= toggleY && mouseY <= toggleY + toggleH) {
+                        KiemConfig.cosmeticWaistHideCape = !KiemConfig.cosmeticWaistHideCape;
+                        KiemConfig.save();
+                        return true;
+                    }
                 }
             }
         }
@@ -3354,7 +3785,56 @@ public class KiemScreen extends Screen {
     }
 
     @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (!showResetConfirmModal && !showLanguageModal && currentTab == Tab.COSMETICS) {
+            int modalW = Math.min(740, this.width - 20);
+            int modalH = Math.min(430, this.height - 20);
+            int modalX = (this.width - modalW) / 2;
+            int modalY = (this.height - modalH) / 2;
+            int sidebarW = 140;
+            int contentX = modalX + sidebarW + 20;
+            int contentY = modalY + 40 + 20;
+            int contentW = modalW - sidebarW - 40;
+            int leftW = getCosmeticsLeftWidth(contentW);
+            int subContentY = contentY + 26;
+            int viewportTop = subContentY + 18;
+            int previewX = contentX + leftW + COSMETICS_PREVIEW_GAP;
+            int previewY = subContentY + 18;
+
+            if (mouseX >= previewX + 4 && mouseX < previewX + COSMETICS_PREVIEW_W - 4
+                    && mouseY >= previewY + 22 && mouseY < previewY + COSMETIC_PREVIEW_H - 40) {
+                cosmeticPreviewScale = net.minecraft.util.Mth.clamp(cosmeticPreviewScale + (float) scrollY * 0.1f, 0.5f, 2.2f);
+                return true;
+            }
+
+            if (mouseX >= contentX && mouseX <= contentX + leftW) {
+                if (currentCosmeticsSub == CosmeticsSub.TRAILS) {
+                    int viewportBottom = viewportTop + COSMETIC_TRAIL_VIEWPORT_H;
+                    if (mouseY >= viewportTop && mouseY <= viewportBottom) {
+                        int maxScroll = getTrailMaxScroll(getTrailItems().length);
+                        cosmeticsTrailScroll = Math.max(0.0, Math.min(cosmeticsTrailScroll - scrollY * 24.0, maxScroll));
+                        return true;
+                    }
+                } else if (currentCosmeticsSub != CosmeticsSub.CAPES && currentCosmeticsSub != CosmeticsSub.PETS) {
+                    int viewportBottom = viewportTop + COSMETIC_SLOT_VIEWPORT_H;
+                    if (mouseY >= viewportTop && mouseY <= viewportBottom) {
+                        int maxScroll = getSlotMaxScroll(getSlotItems(currentCosmeticsSub).length);
+                        cosmeticsSlotScroll = Math.max(0.0, Math.min(cosmeticsSlotScroll - scrollY * 24.0, maxScroll));
+                        return true;
+                    }
+                }
+            }
+        }
+        return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+    }
+
+    @Override
     public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
+        if (draggingCosmeticPreview && event.button() == 0) {
+            cosmeticPreviewYaw = (cosmeticPreviewYaw + (float) deltaX * 0.65f) % 360f;
+            cosmeticPreviewPitch = net.minecraft.util.Mth.clamp(cosmeticPreviewPitch + (float) deltaY * 0.45f, -45f, 45f);
+            return true;
+        }
         if (draggingSlider != null && sliderTrackW > 0) {
             float pct = (float) ((event.x() - sliderTrackX) / (double) sliderTrackW);
             pct = net.minecraft.util.Mth.clamp(pct, 0.0f, 1.0f);
@@ -3367,6 +3847,10 @@ public class KiemScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        if (draggingCosmeticPreview && event.button() == 0) {
+            draggingCosmeticPreview = false;
+            return true;
+        }
         if (draggingSlider != null) {
             draggingSlider = null;
             KiemConfig.save();

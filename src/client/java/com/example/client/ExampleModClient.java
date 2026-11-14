@@ -65,6 +65,8 @@ public class ExampleModClient implements ClientModInitializer {
             }
             AntiAfk.tick(client);
             com.example.client.aura.SakuraAuraManager.tick(client);
+            com.example.client.cosmetic.CosmeticTrailManager.tick(client);
+            com.example.client.pet.GroundPetManager.tick(client);
             AfkCinematicsManager.clientTick(client);
         });
     }

@@ -27,6 +27,11 @@ public abstract class AbstractClientPlayerMixin {
             PlayerSkin original = cir.getReturnValue();
             if (original != null) {
                 ClientAsset.ResourceTexture capeAsset = com.example.client.CapeManager.getCurrentCapeAsset();
+                if (!"OFF".equalsIgnoreCase(com.example.client.KiemConfig.cosmeticWing)
+                        || (com.example.client.KiemConfig.cosmeticWaistHideCape
+                        && !com.example.client.cosmetic.CosmeticCatalog.WaistType.fromName(com.example.client.KiemConfig.cosmeticWaist).isOff())) {
+                    capeAsset = null;
+                }
                 PlayerSkin modified = new PlayerSkin(
                         original.body(),
                         capeAsset,

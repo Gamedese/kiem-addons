@@ -1,6 +1,7 @@
 package com.example.client.mixin;
 
 import com.example.client.KiemConfig;
+import com.example.client.cosmetic.GeneralCosmeticsLayer;
 import com.example.client.pet.ShoulderPetLayer;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.Minecraft;
@@ -23,6 +24,9 @@ public abstract class AvatarRendererMixin {
     private void kiem$addShoulderPetLayer(EntityRendererProvider.Context context, boolean useSlimModel, CallbackInfo ci) {
         ((LivingEntityRendererAccessor) this).kiem$callAddLayer(
                 new ShoulderPetLayer((RenderLayerParent<AvatarRenderState, PlayerModel>) (Object) this)
+        );
+        ((LivingEntityRendererAccessor) this).kiem$callAddLayer(
+                new GeneralCosmeticsLayer((RenderLayerParent<AvatarRenderState, PlayerModel>) (Object) this)
         );
     }
 

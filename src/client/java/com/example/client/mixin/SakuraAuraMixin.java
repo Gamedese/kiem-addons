@@ -4,6 +4,7 @@ import com.example.client.KiemConfig;
 import com.example.client.aura.SakuraAuraRenderer;
 import com.example.client.aura.SakuraPreviewState;
 import com.example.client.aura.VoidGargoyleRenderer;
+import com.example.client.pet.ShoulderPetType;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderer;
@@ -43,12 +44,20 @@ public abstract class SakuraAuraMixin {
                 return;
             }
 
-            // In-world rendering: check active trail selection (Sakura Bloom Trail)
-            if (KiemConfig.sakuraAuraEnabled) {
+            // In-world rendering: check active trail selection (Sakura Bloom Trail) and roaming ground pets
+            boolean drawTrail = KiemConfig.sakuraAuraEnabled;
+            ShoulderPetType activePet = ShoulderPetType.fromName(KiemConfig.shoulderPetType);
+            boolean drawGroundPet = com.example.client.pet.GroundPetManager.isUsingWorldRenderer(activePet);
+            if (drawTrail || drawGroundPet) {
                 var offset = ((EntityRenderer) (Object) this).getRenderOffset(state);
                 poses.pushPose();
                 poses.translate(-offset.x, -offset.y, -offset.z);
-                SakuraAuraRenderer.submit(avatar, poses, collector, camera);
+                if (drawTrail) {
+                    SakuraAuraRenderer.submit(avatar, poses, collector, camera);
+                }
+                if (drawGroundPet) {
+                    com.example.client.pet.GroundPetRenderer.submit(avatar, poses, collector, camera);
+                }
                 poses.popPose();
             }
         }

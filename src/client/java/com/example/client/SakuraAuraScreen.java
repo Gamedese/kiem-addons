@@ -16,18 +16,15 @@ import java.util.function.DoubleSupplier;
 /** Live cosmetic editor. Retains the original menu instance and selected tab. */
 public final class SakuraAuraScreen extends Screen {
     private static final int PINK = 0xFFE77BA7, TEXT = 0xFFF4EEF5, MUTED = 0xFF9296AC, BORDER = 0xFF343547;
-    private static final float[] DEFAULT_HEIGHTS = {0.63f, 0.954f, 1.278f};
-    private static final float[] DEFAULT_RADII = {0.74f, 0.84f, 0.79f};
     private final Screen parent;
     private final SakuraAuraPreview preview = new SakuraAuraPreview();
     private int panelX, panelY, panelW, panelH, leftX, leftW, bodyY, bodyH, viewX, viewW;
     private int viewportX0, viewportY0, viewportX1, viewportY1;
     private boolean wide, draggingPreview;
-    private int page;
     private float previewYaw = 25f, previewPitch = -8f;
 
     public SakuraAuraScreen(Screen parent) {
-        super(Component.literal(KiemLang.get("auras.custom.title")));
+        super(Component.literal(KiemLang.get("trails.sakura.title") + " • " + KiemLang.get("pets.custom.btn")));
         this.parent = parent;
     }
 
@@ -47,22 +44,9 @@ public final class SakuraAuraScreen extends Screen {
         bodyY = panelY + (wide ? 64 : 60);
         bodyH = panelH - (wide ? 112 : 100);
         if (wide) {
-            addGeneralControls(leftX + 12, bodyY + 23, leftW - 24, true);
-            for (int i = 0; i < 3; i++) addBunnyControls(i, leftX + 12, bodyY + 144 + i * 56, leftW - 24, true);
+            addGeneralControls(leftX + 12, bodyY + 28, leftW - 24, true);
         } else {
-            int gap = 4, tabW = (innerW - gap * 3) / 4;
-            for (int i = 0; i < 4; i++) {
-                final int selected = i;
-                String label = i == 0 ? KiemLang.get("auras.custom.general") : KiemLang.get("auras.custom.bunny") + " " + i;
-                PinkButton tab = new PinkButton(leftX + i * (tabW + gap), panelY + 34, tabW, 20, label, () -> {
-                    page = selected;
-                    rebuildWidgets();
-                });
-                tab.selected = page == i;
-                addRenderableWidget(tab);
-            }
-            if (page == 0) addGeneralControls(leftX + 8, bodyY + 12, leftW - 16, false);
-            else addBunnyControls(page - 1, leftX + 8, bodyY + 30, leftW - 16, false);
+            addGeneralControls(leftX + 8, bodyY + 26, leftW - 16, false);
         }
         int footerY = panelY + panelH - 34;
         int footerW = Math.min(164, (innerW - 10) / 2);
@@ -173,17 +157,6 @@ public final class SakuraAuraScreen extends Screen {
         }
     }
 
-    private void addBunnyControls(int index, int x, int y, int w, boolean columns) {
-        int cellW = columns ? (w - 12) / 2 : w;
-        int secondX = columns ? x + cellW + 12 : x;
-        int secondY = columns ? y : y + Math.min(54, (bodyH - 35) / 2);
-        int widgetH = columns ? 26 : Math.min(36, (bodyH - 40) / 2);
-        setting(x, y, cellW, widgetH, "auras.custom.height", "blocks", .15, 2.2,
-                () -> KiemConfig.sakuraAuraHeights[index], v -> KiemConfig.sakuraAuraHeights[index] = (float)v, DEFAULT_HEIGHTS[index]);
-        setting(secondX, secondY, cellW, widgetH, "auras.custom.radius", "blocks", .4, 1.5,
-                () -> KiemConfig.sakuraAuraRadii[index], v -> KiemConfig.sakuraAuraRadii[index] = (float)v, DEFAULT_RADII[index]);
-    }
-
     private void setting(int x, int y, int w, int h, String label, String unit, double min, double max,
                          DoubleSupplier getter, DoubleConsumer setter, double defaultValue) {
         SettingSlider slider = new SettingSlider(x, y, w - 25, h, label, unit, min, max, getter, setter);
@@ -217,16 +190,11 @@ public final class SakuraAuraScreen extends Screen {
         graphics.text(font, font.plainSubstrByWidth(title.getString(), panelW - 56), panelX + 30, panelY + 13, TEXT, false);
         if (wide) graphics.text(font, KiemLang.get("auras.custom.hint"), panelX + 30, panelY + 30, MUTED, false);
         if (wide) {
-            card(graphics, leftX, bodyY, leftW, 118, 0xFF1E212D, BORDER);
-            section(graphics, KiemLang.get("auras.custom.general"), leftX + 12, bodyY + 8, leftW - 24);
-            for (int i = 0; i < 3; i++) {
-                int y = bodyY + 124 + i * 56;
-                card(graphics, leftX, y, leftW, 52, 0xFF1E212D, BORDER);
-                section(graphics, KiemLang.get("auras.custom.bunny") + " " + (i + 1), leftX + 12, y + 6, leftW - 24);
-            }
+            card(graphics, leftX, bodyY, leftW, bodyH, 0xFF1E212D, BORDER);
+            section(graphics, KiemLang.get("auras.custom.general"), leftX + 12, bodyY + 10, leftW - 24);
         } else {
             card(graphics, leftX, bodyY, leftW, bodyH, 0xFF1E212D, BORDER);
-            if (page > 0) section(graphics, KiemLang.get("auras.custom.bunny") + " " + page, leftX + 8, bodyY + 10, leftW - 16);
+            section(graphics, KiemLang.get("auras.custom.general"), leftX + 8, bodyY + 10, leftW - 16);
         }
         card(graphics, viewX, bodyY, viewW, bodyH, 0xFF131722, 0xFF423149);
         graphics.text(font, font.plainSubstrByWidth(KiemLang.get("auras.custom.preview"), viewW - 18), viewX + 9, bodyY + 10, TEXT, false);

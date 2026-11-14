@@ -284,6 +284,11 @@ public class DragonPetModel extends PetModel {
         final float eat = clamp01(s.eatAmount) * awake;
         final float hurt = hurtEnvelope(s);
         final float swing = s.attackSwing > 0.001f ? sin(clamp01(s.attackSwing) * PI) * awake * (1f - hurt) : 0f;
+        final float fly = clamp01(s.flyAmount) * awake;
+        final float lsq = clamp01(s.landSquash) * awake;
+        final float shake = clamp01(s.dryShake) * awake;
+        final float fallSpread = (!s.onGround && s.yVel < -0.10f && fly < 0.1f)
+                ? clamp01((-s.yVel - 0.10f) * 1.1f) * 0.25f * awake : 0f;
         final float ws = clamp01(s.walkSpeed) * awake;
         final float stride = s.walkPos * 0.6662f;
 
@@ -374,6 +379,34 @@ public class DragonPetModel extends PetModel {
         raiseOuter += swing * 0.20f;
         raiseInner += swing * 0.10f;
         head.xRot -= swing * 0.05f;
+
+        // 6b. Ucus (Elytra / Creative) kanat cirpisi, Inis esnemesi & Sudan cikinca silkinme
+        if (fly > 0.001f) {
+            float flap = sin(t * 0.48f);
+            raiseOuter += fly * (0.28f + flap * 0.34f);
+            raiseInner += fly * (0.22f + flap * 0.28f);
+            sweepOuter += fly * 0.22f;
+            sweepInner += fly * 0.15f;
+            body.xRot += fly * 0.20f;
+            head.xRot -= fly * 0.14f;
+        }
+        if (fallSpread > 0.001f) {
+            raiseOuter += fallSpread;
+            raiseInner += fallSpread * 0.7f;
+        }
+        if (lsq > 0.001f) {
+            body.yScale -= lsq * 0.10f;
+            body.xScale += lsq * 0.06f;
+            body.zScale += lsq * 0.06f;
+            body.y += lsq * 0.35f;
+            raiseOuter += lsq * 0.18f;
+        }
+        if (shake > 0.001f) {
+            float sh = sin(t * 2.6f) * shake;
+            body.zRot += sh * 0.20f;
+            rollOut += sin(t * 2.6f + 0.5f) * shake * 0.26f;
+            raiseOuter += shake * 0.15f;
+        }
 
         // 7. Derin Uyku (isSleeping)
         body.y += sleep * 0.45f;

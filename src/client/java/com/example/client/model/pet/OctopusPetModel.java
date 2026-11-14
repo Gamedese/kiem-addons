@@ -84,6 +84,13 @@ public class OctopusPetModel extends PetModel {
 
         float p = s.flip;
         boolean flipping = p >= 0f && p <= 1f;
+        float fly = s.flyAmount;
+        float sleep = s.sleepProgress;
+        float hurt = Math.min(1.0f, Math.max(0.0f, s.hurtTime / 10.0f));
+        float swing = s.attackSwing > 0f ? sin(s.attackSwing * pi) : 0f;
+        float lsq = s.landSquash;
+        float parachute = (!s.onGround && s.yVel < -0.14f && !s.isSwimming && fly < 0.1f)
+                ? Math.min(0.28f, (-s.yVel - 0.14f) * 0.70f) : 0f;
 
         // --- 1. Havada 360 Derece Sifir Yercekimi Taklasi ---
         float jump = 0f, spin = 0f, spread = 0f;
@@ -91,89 +98,123 @@ public class OctopusPetModel extends PetModel {
             float ease = p * p * (3f - 2f * p);
             jump = 7f * sin(p * pi);
             spin = -2f * pi * ease;
-            spread = 0.85f * sin(p * pi) * sin(p * pi); // Tepe noktasinda semsiye gibi havaya acilir
+            spread = 0.85f * sin(p * pi) * sin(p * pi);
         }
-        flip.y = CENTER_Y - jump;
-        flip.xRot = spin;
 
-        // --- 2. Su ve Yagmur Tepkisi (Denizanasi / Kalamar Itisi) ---
+        // --- 1b. Idle Mini Sov (Pirouette / El Sallama) ---
+        float idleSpin = 0f;
+        float idleJump = 0f;
+        float waveArm = 0f;
+        boolean canIdleShow = !flipping && !s.angry && !s.isSwimming && fly < 0.05f
+                && sleep < 0.1f && s.walkSpeed < 0.05f && !s.inWaterOrRain && hurt < 0.05f;
+        if (canIdleShow) {
+            float cyc = t % 280f;
+            int turn = (int) (t / 280f);
+            if (cyc < 26f) {
+                float ip = cyc / 26f;
+                float iease = ip * ip * (3f - 2f * ip);
+                if ((turn & 1) == 0) {
+                    idleSpin = 2f * pi * iease;
+                    idleJump = 2.2f * sin(ip * pi);
+                } else {
+                    waveArm = sin(ip * pi);
+                }
+            }
+        }
+
+        flip.y = CENTER_Y - jump - idleJump + sleep * 2.8f + lsq * 1.5f;
+        flip.z = hurt * 1.8f - swing * 2.4f;
+        flip.xRot = spin + fly * 0.45f;
+        flip.yRot = idleSpin + (s.isSwimming ? t * 0.20f : 0f) + (fly * t * 0.42f);
+
+        // --- 2. Su (Kraken Yuzusu) ve Yagmur Tepkisi ---
         float swimPulse = 0f;
         float swimStroke = 0f;
-        if (s.inWaterOrRain) {
-            float swimCycle = sin(t * 0.28f);
+        float krakenOpen = 0f;
+        if (s.inWaterOrRain || s.isSwimming) {
+            float spd = s.isSwimming ? 0.24f : 0.28f;
+            float swimCycle = sin(t * spd);
             swimPulse = swimCycle;
-            // Itis aninda kollar arkaya dogru toplanir, geri cekilmede yayvanlasir
-            swimStroke = swimCycle > 0f ? swimCycle * 0.40f : swimCycle * 0.12f;
-            if (!s.isSwimming) {
-                flip.xRot += 0.15f * (1f - (flipping ? sin(p * pi) : 0f)); // Yagmurda hafif tatli egim
+            if (s.isSwimming) {
+                // Kraken itisi: kollar genisce acilip guclu sekilde geriye toplanir
+                swimStroke = swimCycle > 0f ? swimCycle * 0.55f : swimCycle * 0.25f;
+                krakenOpen = swimCycle < 0f ? -swimCycle * 0.35f : 0f;
+            } else {
+                swimStroke = swimCycle > 0f ? swimCycle * 0.40f : swimCycle * 0.12f;
+                flip.xRot += 0.15f * (1f - (flipping ? sin(p * pi) : 0f));
             }
         }
 
         // --- 3. Sprint & Kosu Ruzgar Savrulmasi ---
         float runFactor = Math.min(1.0f, s.walkSpeed * (s.isSprinting ? 1.4f : 1.0f));
-        if (!s.inWaterOrRain && !flipping) {
-            flip.xRot -= 0.16f * runFactor; // Depar atarken ruzgar direnciyle geriye hafif yatis
+        if (!s.inWaterOrRain && !flipping && fly < 0.1f) {
+            flip.xRot -= 0.16f * runFactor;
         }
 
         // --- 4. Kubbe Squash & Stretch ve Nefes ---
-        float breath = sin(t * 0.10f);
-        float mantleY = 1.0f + 0.05f * breath;
-        float mantleXZ = 1.0f - 0.025f * breath;
+        float breathRate = sleep > 0.2f ? 0.05f : 0.10f;
+        float breath = sin(t * breathRate);
+        float mantleY = 1.0f + 0.05f * breath - sleep * 0.12f - lsq * 0.18f;
+        float mantleXZ = 1.0f - 0.025f * breath + sleep * 0.08f + lsq * 0.14f;
 
         if (flipping) {
             mantleY += 0.15f * sin(p * pi * 2f);
-        } else if (s.inWaterOrRain) {
-            mantleY += 0.10f * swimPulse;
-            mantleXZ -= 0.05f * swimPulse;
+        } else if (s.inWaterOrRain || s.isSwimming) {
+            mantleY += 0.12f * swimPulse;
+            mantleXZ -= 0.06f * swimPulse;
         }
 
-        mantle.yScale = mantleY;
-        mantle.xScale = mantleXZ;
-        mantle.zScale = mantleXZ;
+        mantle.yScale = Math.max(0.75f, mantleY);
+        mantle.xScale = Math.max(0.80f, mantleXZ);
+        mantle.zScale = Math.max(0.80f, mantleXZ);
 
         // --- 5. Kafa Hareketleri, Titreme ve Sevimli Sağa Sola Bakış / Yatış ---
         if (s.angry) {
-            mantle.zRot = sin(t * 1.85f) * 0.045f;      // Kizgin ofke titremesi
-            mantle.xRot = cos(t * 2.10f) * 0.030f;
-            mantle.yScale -= 0.04f;                     // Kizginken basik pufuduk
+            mantle.zRot = sin(t * 1.85f) * 0.045f;
+            mantle.xRot = cos(t * 2.10f) * 0.030f - swing * 0.28f;
+            mantle.yScale -= 0.04f;
             mantle.xScale += 0.03f;
             mantle.zScale += 0.03f;
             mantle.yRot = sin(t * 0.12f) * 0.12f;
         } else if (s.isSwimming) {
-            mantle.xRot = -0.40f;
+            mantle.xRot = -0.42f;
             mantle.yRot = sin(t * 0.06f) * 0.08f;
             mantle.zRot = sin(t * 0.06f) * 0.05f;
         } else if (!flipping) {
-            // Sevimli merakli etrafa bakinma ve basini hafifce saga/sola yatirma
+            float awake = 1f - sleep * 0.85f;
             float lookWave = sin(t * 0.045f);
-            // Sağa sola tatlica bakma (Yaw) ~14 derece
-            mantle.yRot = lookWave * 0.24f;
-            // Sağa sola bakarken basini merakla hafifce yatirma (Roll tilt) ~11 derece
-            mantle.zRot = sin(t * 0.045f - 0.35f) * 0.20f;
-            // Havada suzulurken minik merakli burun kalkisi
-            mantle.xRot = sin(t * 0.09f) * 0.04f;
+            mantle.yRot = lookWave * 0.24f * awake;
+            mantle.zRot = sin(t * 0.045f - 0.35f) * 0.20f * awake + hurt * 0.12f;
+            mantle.xRot = sin(t * 0.09f) * 0.04f * awake + sleep * 0.14f - swing * 0.25f;
         }
 
         // --- 6. 8 Kolun Dinamik Fizik Dalgasi ---
-        float waveSpeed = s.angry ? 0.22f : (s.inWaterOrRain ? 0.28f : 0.13f);
+        float waveSpeed = s.angry ? 0.22f : (fly > 0.1f ? 0.38f : (s.inWaterOrRain ? 0.28f : 0.13f));
         float tremble = s.angry ? sin(t * 2.5f) * 0.05f : 0f;
 
         for (int i = 0; i < LEGS; i++) {
             float ph = t * waveSpeed + (i * pi / 4.0f);
-            float baseWave = 0.14f * sin(ph);
-            float tipWave = 0.26f * sin(ph - 0.70f);
+            float baseWave = 0.14f * sin(ph) * (1f - sleep * 0.7f);
+            float tipWave = 0.26f * sin(ph - 0.70f) * (1f - sleep * 0.7f);
 
-            // Kosarken ruzgarda arkaya savrulma
             float windDrift = (runFactor > 0f) ? sin(t * 0.35f + i * 0.75f) * 0.18f * runFactor : 0f;
-
-            // Kizginken kollari hafifce iceri cekme (tuck-in)
             float angryTuck = s.angry ? 0.08f : 0f;
+            float flyCurl = fly * (0.42f + 0.14f * sin(ph));
+            float sleepDroop = -sleep * 0.42f;
+            float hurtFlare = hurt * 0.55f;
+            float swingKick = swing * sin(t * 1.4f + i) * 0.35f;
 
             legs[i].xRot = (float) Math.toRadians(10f) + baseWave + spread + tremble
-                    - swimStroke + windDrift + angryTuck;
+                    - swimStroke + krakenOpen + windDrift + angryTuck
+                    + flyCurl + sleepDroop + hurtFlare + parachute + swingKick + (lsq * 0.12f);
 
             tips[i].xRot = (float) Math.toRadians(-22f) + tipWave + (spread * 0.75f)
-                    - (swimStroke * 0.75f) + (windDrift * 1.2f);
+                    - (swimStroke * 0.75f) + (windDrift * 1.2f) + (fly * 0.30f) - (sleep * 0.20f);
+
+            if (i == 1 && waveArm > 0.01f) {
+                legs[i].xRot += waveArm * 0.85f;
+                legs[i].zRot = waveArm * sin(t * 0.85f) * 0.35f;
+            }
         }
     }
 }
