@@ -265,9 +265,8 @@ public final class VoidGargoyleScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, width, height, 0xB80B0A11);
-        card(graphics, panelX, panelY, panelW, panelH, 0xFB16141D, 0xFF3D2D36);
-        graphics.fillGradient(panelX + 2, panelY + 2, panelX + panelW - 2, panelY + (wide ? 51 : 30), 0xFF2A1C22, 0xFF19151C);
+        BoutiqueDraw.drawBackdrop(graphics, this.width, this.height, System.currentTimeMillis());
+        BoutiqueDraw.drawGlassPanel(graphics, panelX, panelY, panelW, panelH);
         graphics.fill(panelX + 18, panelY + 13, panelX + 21, panelY + (wide ? 41 : 23), ACCENT);
         graphics.text(font, font.plainSubstrByWidth(title.getString(), panelW - 56), panelX + 30, panelY + 13, TEXT, false);
         if (wide) {
@@ -275,21 +274,21 @@ public final class VoidGargoyleScreen extends Screen {
         }
 
         if (wide) {
-            card(graphics, leftX, bodyY, leftW, 118, 0xFF1B1822, BORDER);
+            BoutiqueDraw.drawGlassCard(graphics, leftX, bodyY, leftW, 118, false, false);
             section(graphics, KiemLang.get("auras.custom.general"), leftX + 12, bodyY + 8, leftW - 24);
             for (int i = 0; i < 3; i++) {
                 int y = bodyY + 124 + i * 56;
-                card(graphics, leftX, y, leftW, 52, 0xFF1B1822, BORDER);
+                BoutiqueDraw.drawGlassCard(graphics, leftX, y, leftW, 52, false, false);
                 section(graphics, KiemLang.get("auras.gargoyle.whelp") + " " + (i + 1), leftX + 12, y + 6, leftW - 24);
             }
         } else {
-            card(graphics, leftX, bodyY, leftW, bodyH, 0xFF1B1822, BORDER);
+            BoutiqueDraw.drawGlassCard(graphics, leftX, bodyY, leftW, bodyH, false, false);
             if (page > 0) {
                 section(graphics, KiemLang.get("auras.gargoyle.whelp") + " " + page, leftX + 8, bodyY + 10, leftW - 16);
             }
         }
 
-        card(graphics, viewX, bodyY, viewW, bodyH, 0xFF121017, 0xFF452D36);
+        BoutiqueDraw.drawGlassCard(graphics, viewX, bodyY, viewW, bodyH, false, false);
         graphics.text(font, font.plainSubstrByWidth(KiemLang.get("auras.custom.preview"), viewW - 18), viewX + 9, bodyY + 10, TEXT, false);
         if (viewW > 170) {
             graphics.fill(viewX + viewW - 47, bodyY + 9, viewX + viewW - 42, bodyY + 14, ACCENT);
@@ -310,15 +309,6 @@ public final class VoidGargoyleScreen extends Screen {
         if (start < x + w) {
             graphics.fill(start, y + 4, x + w, y + 5, BORDER);
         }
-    }
-
-    private void card(GuiGraphicsExtractor graphics, int x, int y, int w, int h, int fill, int border) {
-        graphics.fill(x + 2, y, x + w - 2, y + h, fill);
-        graphics.fill(x, y + 2, x + w, y + h - 2, fill);
-        graphics.fill(x + 2, y, x + w - 2, y + 1, border);
-        graphics.fill(x + 2, y + h - 1, x + w - 2, y + h, border);
-        graphics.fill(x, y + 2, x + 1, y + h - 2, border);
-        graphics.fill(x + w - 1, y + 2, x + w, y + h - 2, border);
     }
 
     private boolean inViewport(double x, double y) {
@@ -380,13 +370,10 @@ public final class VoidGargoyleScreen extends Screen {
 
         @Override
         protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-            boolean highlight = selected || isHoveredOrFocused();
-            card(graphics, getX(), getY(), getWidth(), getHeight(),
-                    highlight ? 0xFF351F26 : 0xFF241C26,
-                    highlight ? ACCENT : BORDER);
+            BoutiqueDraw.drawPill(graphics, getX(), getY(), getWidth(), getHeight(), selected, isHoveredOrFocused());
             String label = font.plainSubstrByWidth(getMessage().getString(), getWidth() - 8);
             graphics.centeredText(font, label, getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2,
-                    highlight ? 0xFFFFB388 : TEXT);
+                    selected ? 0xFF211728 : 0xFFF3ECEF);
         }
     }
 
@@ -437,7 +424,7 @@ public final class VoidGargoyleScreen extends Screen {
             int x = getX(), y = getY(), w = getWidth(), h = getHeight();
             boolean highlight = isHoveredOrFocused();
             if (highlight) {
-                card(graphics, x, y, w, h, 0xFF291E28, 0xFF5C333D);
+                BoutiqueDraw.drawGlassCard(graphics, x, y, w, h, false, true);
             }
             String current = valueLabel();
             int valueW = font.width(current);

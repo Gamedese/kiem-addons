@@ -183,20 +183,19 @@ public final class SakuraAuraScreen extends Screen {
     }
 
     @Override public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-        graphics.fill(0, 0, width, height, 0xB80D0F17);
-        card(graphics, panelX, panelY, panelW, panelH, 0xFB171923, 0xFF3A3043);
-        graphics.fillGradient(panelX + 2, panelY + 2, panelX + panelW - 2, panelY + (wide ? 51 : 30), 0xFF292131, 0xFF191B26);
+        BoutiqueDraw.drawBackdrop(graphics, this.width, this.height, System.currentTimeMillis());
+        BoutiqueDraw.drawGlassPanel(graphics, panelX, panelY, panelW, panelH);
         graphics.fill(panelX + 18, panelY + 13, panelX + 21, panelY + (wide ? 41 : 23), PINK);
         graphics.text(font, font.plainSubstrByWidth(title.getString(), panelW - 56), panelX + 30, panelY + 13, TEXT, false);
         if (wide) graphics.text(font, KiemLang.get("auras.custom.hint"), panelX + 30, panelY + 30, MUTED, false);
         if (wide) {
-            card(graphics, leftX, bodyY, leftW, bodyH, 0xFF1E212D, BORDER);
+            BoutiqueDraw.drawGlassCard(graphics, leftX, bodyY, leftW, bodyH, false, false);
             section(graphics, KiemLang.get("auras.custom.general"), leftX + 12, bodyY + 10, leftW - 24);
         } else {
-            card(graphics, leftX, bodyY, leftW, bodyH, 0xFF1E212D, BORDER);
+            BoutiqueDraw.drawGlassCard(graphics, leftX, bodyY, leftW, bodyH, false, false);
             section(graphics, KiemLang.get("auras.custom.general"), leftX + 8, bodyY + 10, leftW - 16);
         }
-        card(graphics, viewX, bodyY, viewW, bodyH, 0xFF131722, 0xFF423149);
+        BoutiqueDraw.drawGlassCard(graphics, viewX, bodyY, viewW, bodyH, false, false);
         graphics.text(font, font.plainSubstrByWidth(KiemLang.get("auras.custom.preview"), viewW - 18), viewX + 9, bodyY + 10, TEXT, false);
         if (viewW > 170) {
             graphics.fill(viewX + viewW - 47, bodyY + 9, viewX + viewW - 42, bodyY + 14, PINK);
@@ -212,15 +211,6 @@ public final class SakuraAuraScreen extends Screen {
         graphics.text(font, label, x, y, PINK, false);
         int start = x + font.width(label) + 10;
         if (start < x + w) graphics.fill(start, y + 4, x + w, y + 5, BORDER);
-    }
-
-    private void card(GuiGraphicsExtractor graphics, int x, int y, int w, int h, int fill, int border) {
-        graphics.fill(x + 2, y, x + w - 2, y + h, fill);
-        graphics.fill(x, y + 2, x + w, y + h - 2, fill);
-        graphics.fill(x + 2, y, x + w - 2, y + 1, border);
-        graphics.fill(x + 2, y + h - 1, x + w - 2, y + h, border);
-        graphics.fill(x, y + 2, x + 1, y + h - 2, border);
-        graphics.fill(x + w - 1, y + 2, x + w, y + h - 2, border);
     }
 
     private boolean inViewport(double x, double y) {
@@ -271,10 +261,9 @@ public final class SakuraAuraScreen extends Screen {
             super(x, y, w, h, Component.literal(label), button -> action.run(), DEFAULT_NARRATION);
         }
         @Override protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
-            boolean highlight = selected || isHoveredOrFocused();
-            card(graphics, getX(), getY(), getWidth(), getHeight(), highlight ? 0xFF3A283D : 0xFF292C3B, highlight ? PINK : BORDER);
+            BoutiqueDraw.drawPill(graphics, getX(), getY(), getWidth(), getHeight(), selected, isHoveredOrFocused());
             String label = font.plainSubstrByWidth(getMessage().getString(), getWidth() - 8);
-            graphics.centeredText(font, label, getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2, highlight ? 0xFFFFC0D8 : TEXT);
+            graphics.centeredText(font, label, getX() + getWidth() / 2, getY() + (getHeight() - 8) / 2, selected ? 0xFF211728 : 0xFFF3ECEF);
         }
     }
 
@@ -310,7 +299,7 @@ public final class SakuraAuraScreen extends Screen {
         @Override public void extractWidgetRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
             int x = getX(), y = getY(), w = getWidth(), h = getHeight();
             boolean highlight = isHoveredOrFocused();
-            if (highlight) card(graphics, x, y, w, h, 0xFF292A3A, 0xFF5C3C57);
+            if (highlight) BoutiqueDraw.drawGlassCard(graphics, x, y, w, h, false, true);
             String current = valueLabel();
             int valueW = font.width(current);
             String name = font.plainSubstrByWidth(KiemLang.get(label), Math.max(12, w - valueW - 14));

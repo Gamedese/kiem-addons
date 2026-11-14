@@ -266,25 +266,22 @@ public final class PetCustomizeScreen extends Screen {
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         // Panel background MUST be drawn before super.extractRenderState so widgets stay visible on top!
-        graphics.fill(panelX, panelY, panelX + panelW, panelY + panelH, 0xEE13141C);
-        graphics.fill(panelX, panelY, panelX + panelW, panelY + 1, BORDER);
-        graphics.fill(panelX, panelY + panelH - 1, panelX + panelW, panelY + panelH, BORDER);
-        graphics.fill(panelX, panelY, panelX + 1, panelY + panelH, BORDER);
-        graphics.fill(panelX + panelW - 1, panelY, panelX + panelW, panelY + panelH, BORDER);
+        BoutiqueDraw.drawBackdrop(graphics, this.width, this.height, System.currentTimeMillis());
+        BoutiqueDraw.drawGlassPanel(graphics, panelX, panelY, panelW, panelH);
 
         String petTitle = targetPet == ShoulderPetType.OFF ? KiemLang.get("pets.none") : KiemLang.get(targetPet.titleKey);
         graphics.text(this.font, KiemLang.get("pets.custom.title") + " — " + petTitle, leftX, panelY + 16, TEXT, false);
         graphics.text(this.font, KiemLang.get("pets.custom.roam_note"), leftX, panelY + 30, MUTED, false);
 
         // Left & Right card frames
-        graphics.fill(leftX, bodyY, leftX + leftW, bodyY + bodyH, 0xFF1A1C26);
-        graphics.fill(viewX, bodyY, viewX + viewW, bodyY + bodyH, 0xFF1A1C26);
+        BoutiqueDraw.drawGlassCard(graphics, leftX, bodyY, leftW, bodyH, false, false);
+        BoutiqueDraw.drawGlassCard(graphics, viewX, bodyY, viewW, bodyH, false, false);
 
         // Preview image in right panel
         int imgSize = Math.min(viewW - 36, bodyH - 80);
         int imgX = viewX + (viewW - imgSize) / 2;
         int imgY = bodyY + 22;
-        graphics.fill(imgX - 6, imgY - 6, imgX + imgSize + 6, imgY + imgSize + 6, 0xFF12131A);
+        BoutiqueDraw.drawGlassCard(graphics, imgX - 6, imgY - 6, imgSize + 12, imgSize + 12, false, false);
         graphics.blit(previewFor(targetPet), imgX, imgY, imgX + imgSize, imgY + imgSize, 0f, 1f, 0f, 1f);
 
         boolean roaming = GroundPetManager.isUsingWorldRenderer(targetPet);
@@ -317,13 +314,9 @@ public final class PetCustomizeScreen extends Screen {
         @Override
         protected void extractContents(GuiGraphicsExtractor g, int mx, int my, float pt) {
             boolean act = activeFn.getAsBoolean();
-            int bg = act ? ACCENT_BG : (this.isHoveredOrFocused() ? 0x2EFFFFFF : 0x18FFFFFF);
-            int br = act ? ACCENT : (this.isHoveredOrFocused() ? 0xFF565E76 : BORDER);
-            g.fill(getX(), getY(), getX() + width, getY() + height, bg);
-            g.fill(getX(), getY(), getX() + width, getY() + 1, br);
-            g.fill(getX(), getY() + height - 1, getX() + width, getY() + height, br);
+            BoutiqueDraw.drawPill(g, getX(), getY(), width, height, act, this.isHoveredOrFocused());
             g.centeredText(net.minecraft.client.Minecraft.getInstance().font, labelFn.get(),
-                    getX() + width / 2, getY() + (height - 8) / 2, act ? ACCENT : TEXT);
+                    getX() + width / 2, getY() + (height - 8) / 2, act ? 0xFF211728 : 0xFFF3ECEF);
         }
     }
 
@@ -337,13 +330,9 @@ public final class PetCustomizeScreen extends Screen {
 
         @Override
         protected void extractContents(GuiGraphicsExtractor g, int mx, int my, float pt) {
-            int bg = this.isHoveredOrFocused() ? 0x2EFFFFFF : 0x18FFFFFF;
-            int br = this.isHoveredOrFocused() ? 0xFF565E76 : BORDER;
-            g.fill(getX(), getY(), getX() + width, getY() + height, bg);
-            g.fill(getX(), getY(), getX() + width, getY() + 1, br);
-            g.fill(getX(), getY() + height - 1, getX() + width, getY() + height, br);
+            BoutiqueDraw.drawPill(g, getX(), getY(), width, height, false, this.isHoveredOrFocused());
             g.centeredText(net.minecraft.client.Minecraft.getInstance().font, text,
-                    getX() + width / 2, getY() + (height - 8) / 2, TEXT);
+                    getX() + width / 2, getY() + (height - 8) / 2, 0xFFF3ECEF);
         }
     }
 
