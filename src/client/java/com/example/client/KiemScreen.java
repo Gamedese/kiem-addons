@@ -1809,28 +1809,6 @@ public class KiemScreen extends Screen {
         int bR4Y = r4Y + (cardH - badgeH) / 2;
         drawPill(graphics, bR4X, bR4Y, badgeW, badgeH, r4Hover ? 0x55E05688 : 0x33E05688, COLOR_ACCENT);
         graphics.centeredText(this.font, KiemLang.get("ui.customize"), bR4X + badgeW / 2, bR4Y + 6, COLOR_ACCENT);
-
-        // Full-width General Setting Bar: Update Checker
-        int updY = startY + 4 * cardH + 3 * cardGap + 10;
-        int updH = 36;
-        boolean updHover = mouseX >= x && mouseX <= x + w && mouseY >= updY && mouseY <= updY + updH;
-        drawRoundedRect(graphics, x, updY, w, updH, updHover ? COLOR_CARD_HOVER : COLOR_CARD_BG, updHover ? COLOR_ACCENT : COLOR_BORDER);
-
-        int toggleW = 64;
-        int toggleH = 20;
-        int toggleX = x + w - toggleW - 12;
-        int toggleY = updY + (updH - toggleH) / 2;
-        int maxUpdTextW = toggleX - (x + 12) - 8;
-
-        drawBoundedText(graphics, "🔄 " + KiemLang.get("features.update_checker.title"), x + 12, updY + 7, maxUpdTextW, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("features.update_checker.desc"), x + 12, updY + 20, maxUpdTextW, COLOR_TEXT_MUTED);
-
-        boolean updOn = KiemConfig.updateCheckerEnabled;
-        int pillBg = updOn ? (updHover ? 0x883CC878 : 0x443CC878) : (updHover ? 0x33FFFFFF : 0x1AFFFFFF);
-        int pillBdr = updOn ? 0xFF3CC878 : COLOR_BORDER;
-        int pillTxt = updOn ? 0xFF66EE99 : COLOR_TEXT_MUTED;
-        drawPill(graphics, toggleX, toggleY, toggleW, toggleH, pillBg, pillBdr);
-        graphics.centeredText(this.font, KiemLang.get(updOn ? "ui.on" : "ui.off"), toggleX + toggleW / 2, toggleY + 6, pillTxt);
     }
 
     private void renderBetterThirdPersonView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
@@ -3168,17 +3146,6 @@ public class KiemScreen extends Screen {
                     int r4Y = r3Y + cardH + cardGap;
                     if (mouseX >= rightColX && mouseX <= rightColX + colW && mouseY >= r4Y && mouseY <= r4Y + cardH) {
                         configSubView = ConfigSubView.ANTI_AFK;
-                        return true;
-                    }
-                    // Update Checker Toggle Bar
-                    int updY = startY + 4 * cardH + 3 * cardGap + 10;
-                    int updH = 36;
-                    if (mouseX >= contentX && mouseX <= contentX + contentW && mouseY >= updY && mouseY <= updY + updH) {
-                        KiemConfig.updateCheckerEnabled = !KiemConfig.updateCheckerEnabled;
-                        KiemConfig.save();
-                        if (KiemConfig.updateCheckerEnabled && !UpdateChecker.hasChecked()) {
-                            UpdateChecker.checkAsync();
-                        }
                         return true;
                     }
                 } else if (configSubView == ConfigSubView.MINI_MODELS) {
