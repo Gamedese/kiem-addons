@@ -23,7 +23,7 @@ public final class VoidGargoyleScreen extends Screen {
     private static final int MUTED = 0xFF9E9298;
     private static final int BORDER = 0xFF42333B;
     private static final float[] DEFAULT_HEIGHTS = {0.70f, 1.05f, 1.40f};
-    private static final float[] DEFAULT_RADII = {0.80f, 0.90f, 0.85f};
+    private static final float[] DEFAULT_RADII = {1.12f, 1.25f, 1.18f};
 
     private final Screen parent;
     private final VoidGargoylePreview preview = new VoidGargoylePreview();
@@ -228,7 +228,7 @@ public final class VoidGargoyleScreen extends Screen {
                 v -> KiemConfig.voidGargoyleHeights[index] = (float) v,
                 DEFAULT_HEIGHTS[index]);
 
-        setting(secondX, secondY, cellW, widgetH, "auras.custom.radius", "blocks", 0.4, 1.5,
+        setting(secondX, secondY, cellW, widgetH, "auras.custom.radius", "blocks", 0.4, 2.2,
                 () -> KiemConfig.voidGargoyleRadii[index],
                 v -> KiemConfig.voidGargoyleRadii[index] = (float) v,
                 DEFAULT_RADII[index]);

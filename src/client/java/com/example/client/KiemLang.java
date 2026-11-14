@@ -420,6 +420,10 @@ public class KiemLang {
         en("cosmetics.sub.capes", "Capes");
         tr("cosmetics.sub.auras", "Auralar");
         en("cosmetics.sub.auras", "Auras");
+        tr("cosmetics.sub.trails", "İzler (Trails)");
+        en("cosmetics.sub.trails", "Trails");
+        tr("trails.sakura.title", "Sakura Bloom İzi");
+        en("trails.sakura.title", "Sakura Bloom Trail");
         tr("auras.sakura.title", "Sakura Lop");
         en("auras.sakura.title", "Sakura Lop");
         tr("auras.sakura.subtitle", "Küçük bir bahar yörüngesi");
@@ -622,6 +626,10 @@ public class KiemLang {
         en("pets.dragon.title", "Baby Ender Dragon");
         tr("pets.dragon.desc", "Mor parlayan gözleri, minik kanatları ve kıvrık kuyruğu olan bebek ejderha.");
         en("pets.dragon.desc", "Cute baby dragon with glowing purple eyes, flapping wings and tail.");
+        tr("pets.void_gargoyle.title", "Obsidyen Gargoyle");
+        en("pets.void_gargoyle.title", "Obsidian Gargoyle");
+        tr("pets.void_gargoyle.desc", "Omuzda tüneyen, akkor lav boğazlı ve parlayan kızıl gözlü minik obsidyen ejderha.");
+        en("pets.void_gargoyle.desc", "Shoulder-perched obsidian dragon with glowing red eyes and molten gullet.");
         tr("pets.dragon.variant_ender", "Ejderha: Ender");
         en("pets.dragon.variant_ender", "Dragon: Ender");
         tr("pets.dragon.variant_toothless", "Ejderha: Dişsiz (Toothless)");

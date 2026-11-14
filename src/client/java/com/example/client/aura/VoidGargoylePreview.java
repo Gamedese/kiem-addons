@@ -11,10 +11,11 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.List;
 
-/** A GUI-owned clock and local trail for Void Gargoyles. Never advances the real player's manager. */
+/** A GUI-owned clock and local trail/cubes for Void Gargoyles. Never advances the real player's manager. */
 public final class VoidGargoylePreview {
     public static final int EMBER_LIFETIME = 24;
-    private static final int MAX_EMBERS = 50;
+    private static final int MAX_EMBERS = 64;
+    private static final int TRAIL_SAMPLES = 24;
 
     private final long started = System.nanoTime();
     private final SakuraOrbitClock clock = new SakuraOrbitClock();
@@ -26,12 +27,13 @@ public final class VoidGargoylePreview {
     };
     private int lastTick = -1;
 
-    public record PreviewEmber(Vec3 position, int born, int seed, boolean isSmoke) { }
+    public record PreviewEmber(Vec3 position, int born, int seed, boolean isObsidian) { }
 
     private static final class PreviewGargoyleState {
         int snarlTick = -1;
         int cooldown;
         float jaw = 0.0f;
+        float recoil = 0.0f;
 
         PreviewGargoyleState(int initialCooldown) {
             this.cooldown = initialCooldown;
@@ -58,12 +60,14 @@ public final class VoidGargoylePreview {
         }
     }
 
-    public record Frame(float age, float time, Settings settings, float[] jawAngles, float[] wingFlaps,
-                        List<PreviewEmber> embers) {
+    public record Frame(float age, float time, Settings settings, float[] jawAngles, float[] wingPhases,
+                        float[] recoils, List<PreviewEmber> embers, List<List<Vec3>> trails) {
         public Frame {
             jawAngles = jawAngles.clone();
-            wingFlaps = wingFlaps.clone();
+            wingPhases = wingPhases.clone();
+            recoils = recoils.clone();
             embers = List.copyOf(embers);
+            trails = List.copyOf(trails);
         }
     }
 
@@ -78,7 +82,6 @@ public final class VoidGargoylePreview {
             embers.clear();
         }
 
-        // Advance simulation ticks
         int first = Math.max(lastTick + 1, tick - EMBER_LIFETIME + 1);
         for (int t = first; t <= tick; t++) {
             advanceTick(t, settings);
@@ -89,38 +92,60 @@ public final class VoidGargoylePreview {
         }
 
         float[] jawAngles = new float[VoidGargoyleOrbit.COUNT];
-        float[] wingFlaps = new float[VoidGargoyleOrbit.COUNT];
+        float[] wingPhases = new float[VoidGargoyleOrbit.COUNT];
+        float[] recoils = new float[VoidGargoyleOrbit.COUNT];
+        List<List<Vec3>> trails = new ArrayList<>(VoidGargoyleOrbit.COUNT);
         for (int i = 0; i < VoidGargoyleOrbit.COUNT; i++) {
             jawAngles[i] = states[i].jaw;
-            wingFlaps[i] = (float) Math.sin(age * 0.45f + i * 2.094f) * 0.38f;
+            wingPhases[i] = age * 0.36f + i * 2.094f;
+            recoils[i] = states[i].recoil;
+
+            List<Vec3> trail = new ArrayList<>(TRAIL_SAMPLES);
+            if (settings.embers() > 0) {
+                for (int k = 0; k < TRAIL_SAMPLES; k++) {
+                    float tSample = time - k * 0.85f * settings.speed();
+                    var orb = settings.sample(tSample, i);
+                    float yaw = orb.yaw();
+                    trail.add(new Vec3(
+                            orb.x() + Math.sin(yaw) * 0.22,
+                            orb.y(),
+                            orb.z() - Math.cos(yaw) * 0.22));
+                }
+            }
+            trails.add(List.copyOf(trail));
         }
 
-        return new Frame(age, time, settings, jawAngles, wingFlaps, embers);
+        return new Frame(age, time, settings, jawAngles, wingPhases, recoils, embers, trails);
     }
 
     private void advanceTick(int t, Settings settings) {
         float time = clock.sample(t);
-        // Snarl state machine
         for (int i = 0; i < VoidGargoyleOrbit.COUNT; i++) {
             PreviewGargoyleState s = states[i];
             if (s.snarlTick >= 0) {
                 s.snarlTick++;
-                if (s.snarlTick <= 12) {
-                    s.jaw = (s.snarlTick / 12.0f) * 0.65f;
+                if (s.snarlTick <= 10) {
+                    s.jaw = (s.snarlTick / 10.0f) * 0.45f;
+                    s.recoil = -(s.snarlTick / 10.0f) * 0.85f;
+                } else if (s.snarlTick <= 12) {
+                    s.jaw = 0.78f;
+                    s.recoil = 1.0f;
                     if (s.snarlTick == 12 && settings.embers() > 0) {
-                        // Mouth spark burst in preview
                         var orbit = settings.sample(time, i);
-                        double mx = orbit.x() - Math.sin(orbit.yaw()) * 0.22;
-                        double my = orbit.y() - 0.04;
-                        double mz = orbit.z() + Math.cos(orbit.yaw()) * 0.22;
+                        double mx = orbit.x() - Math.sin(orbit.yaw()) * 0.26;
+                        double my = orbit.y() - 0.02;
+                        double mz = orbit.z() + Math.cos(orbit.yaw()) * 0.26;
                         embers.add(new PreviewEmber(new Vec3(mx, my, mz), t, t * 11 + i, false));
                     }
                 } else if (s.snarlTick <= 16) {
-                    s.jaw = 0.65f;
-                } else if (s.snarlTick <= 18) {
-                    s.jaw = (19 - s.snarlTick) * 0.15f;
+                    s.jaw = 0.78f;
+                    s.recoil = 0.55f;
+                } else if (s.snarlTick <= 19) {
+                    s.jaw = (20 - s.snarlTick) * 0.18f;
+                    s.recoil = 0.0f;
                 } else {
                     s.jaw = 0.0f;
+                    s.recoil = 0.0f;
                     s.snarlTick = -1;
                     s.cooldown = switch (settings.jawRate()) {
                         case 0 -> 110 + (Math.abs(t * 31 + i * 47) % 60);
@@ -130,7 +155,8 @@ public final class VoidGargoylePreview {
                 }
             } else {
                 float idleCycle = (float) Math.sin((t + i * 19) * 0.08f);
-                s.jaw = idleCycle > 0.65f ? (idleCycle - 0.65f) * 0.35f : 0.0f;
+                s.jaw = idleCycle > 0.65f ? (idleCycle - 0.65f) * 0.42f : 0.0f;
+                s.recoil = 0.0f;
                 s.cooldown--;
                 if (s.cooldown <= 0) {
                     s.snarlTick = 0;
@@ -138,26 +164,27 @@ public final class VoidGargoylePreview {
             }
         }
 
-        // Aerial embers behind gargoyles
         int emberDensity = settings.embers();
         int interval = emberDensity == 1 ? 4 : emberDensity == 2 ? 2 : 1;
         if (emberDensity > 0 && t % interval == 0) {
             for (int i = 0; i < VoidGargoyleOrbit.COUNT; i++) {
                 var orbit = settings.sample(time, i);
-                double tx = orbit.x() + Math.sin(orbit.yaw()) * 0.18;
-                double ty = orbit.y() + 0.06;
-                double tz = orbit.z() - Math.cos(orbit.yaw()) * 0.18;
-                embers.add(new PreviewEmber(new Vec3(tx, ty, tz), t, t * 7 + i, false));
+                double spiral = t * 0.55 + i * 2.1;
+                double tx = orbit.x() + Math.sin(orbit.yaw()) * 0.24 + Math.cos(spiral) * 0.08;
+                double ty = orbit.y() + Math.sin(spiral) * 0.05;
+                double tz = orbit.z() - Math.cos(orbit.yaw()) * 0.24 + Math.sin(spiral) * 0.08;
+                boolean isObsidian = (Math.abs(t * 7 + i * 13) % 5) < 2;
+                embers.add(new PreviewEmber(new Vec3(tx, ty, tz), t, t * 7 + i, isObsidian));
             }
         }
 
-        // Ground smoke preview
         int groundDensity = settings.groundSmoke();
-        int groundInterval = groundDensity == 1 ? 7 : groundDensity == 2 ? 4 : 2;
+        int groundInterval = groundDensity == 1 ? 8 : groundDensity == 2 ? 5 : 3;
         if (groundDensity > 0 && t % groundInterval == 0) {
             double angle = ((t * 67) % 360) * (Math.PI / 180.0);
-            double r = 0.12 + ((Math.abs(t * 29) % 22) / 100.0);
-            embers.add(new PreviewEmber(new Vec3(Math.cos(angle) * r, 0.02, Math.sin(angle) * r), t, t * 13, true));
+            double r = 0.14 + ((Math.abs(t * 29) % 26) / 100.0);
+            boolean isObsidian = (t % 3) == 0;
+            embers.add(new PreviewEmber(new Vec3(Math.cos(angle) * r, 0.04, Math.sin(angle) * r), t, t * 13, isObsidian));
         }
     }
 
@@ -181,19 +208,19 @@ public final class VoidGargoylePreview {
         avatar.yRot = 0;
         avatar.xRot = 0;
 
-        double radius = 0.65;
-        double minY = -0.15, maxY = Math.max(2.1, avatar.boundingBoxHeight + 0.3);
+        double radius = 0.75;
+        double minY = -0.15, maxY = Math.max(2.1, avatar.boundingBoxHeight + 0.35);
         for (int i = 0; i < VoidGargoyleOrbit.COUNT; i++) {
-            double extent = settings.bob() * 0.12 + settings.scale() * 0.3;
-            radius = Math.max(radius, settings.radii().get(i) + settings.scale() * 0.3 + 0.2);
+            double extent = settings.bob() * 0.14 + settings.scale() * 0.52;
+            radius = Math.max(radius, settings.radii().get(i) + settings.scale() * 0.55 + 0.25);
             minY = Math.min(minY, settings.heights().get(i) - extent - 0.25);
             maxY = Math.max(maxY, settings.heights().get(i) + extent);
         }
 
         for (var ember : frame.embers()) {
-            radius = Math.max(radius, Math.hypot(ember.position().x, ember.position().z) + 0.15);
+            radius = Math.max(radius, Math.hypot(ember.position().x, ember.position().z) + 0.18);
             minY = Math.min(minY, ember.position().y - 0.2);
-            maxY = Math.max(maxY, ember.position().y + 0.1);
+            maxY = Math.max(maxY, ember.position().y + 0.15);
         }
 
         float pitchRadians = (float) Math.toRadians(pitch);

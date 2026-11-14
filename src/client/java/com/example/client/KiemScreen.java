@@ -38,7 +38,7 @@ public class KiemScreen extends Screen {
     private enum CosmeticsSub {
         CAPES,
         PETS,
-        AURAS
+        TRAILS
     }
 
     private enum Tab {
@@ -232,7 +232,7 @@ public class KiemScreen extends Screen {
             currentSub = KiemLang.get(switch (currentCosmeticsSub) {
                 case CAPES -> "cosmetics.sub.capes";
                 case PETS -> "cosmetics.sub.pets";
-                case AURAS -> "cosmetics.sub.auras";
+                case TRAILS -> "cosmetics.sub.trails";
             });
         } else {
             if (configSubView == ConfigSubView.MAIN) {
@@ -307,10 +307,10 @@ public class KiemScreen extends Screen {
         drawPill(graphics, sub2X, subY, subBtnW, subBtnH, isPets ? COLOR_ACCENT_BG : (sub2Hover ? 0x2AFFFFFF : 0x18FFFFFF), isPets ? COLOR_ACCENT : (sub2Hover ? 0x66FFFFFF : COLOR_BORDER));
         graphics.centeredText(this.font, KiemLang.get("cosmetics.sub.pets"), sub2X + subBtnW / 2, subY + 5, isPets ? COLOR_ACCENT : (sub2Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
 
-        boolean isAuras = currentCosmeticsSub == CosmeticsSub.AURAS;
+        boolean isTrails = currentCosmeticsSub == CosmeticsSub.TRAILS;
         boolean sub3Hover = mouseX >= sub3X && mouseX <= sub3X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH;
-        drawPill(graphics, sub3X, subY, subBtnW, subBtnH, isAuras ? COLOR_ACCENT_BG : (sub3Hover ? 0x2AFFFFFF : 0x18FFFFFF), isAuras ? COLOR_ACCENT : (sub3Hover ? 0x66FFFFFF : COLOR_BORDER));
-        graphics.centeredText(this.font, KiemLang.get("cosmetics.sub.auras"), sub3X + subBtnW / 2, subY + 5, isAuras ? COLOR_ACCENT : (sub3Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        drawPill(graphics, sub3X, subY, subBtnW, subBtnH, isTrails ? COLOR_ACCENT_BG : (sub3Hover ? 0x2AFFFFFF : 0x18FFFFFF), isTrails ? COLOR_ACCENT : (sub3Hover ? 0x66FFFFFF : COLOR_BORDER));
+        graphics.centeredText(this.font, KiemLang.get("cosmetics.sub.trails"), sub3X + subBtnW / 2, subY + 5, isTrails ? COLOR_ACCENT : (sub3Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
 
         int dividerX = sub3X + subBtnW + 12;
         graphics.fill(dividerX, y + 8, x + w, y + 9, COLOR_BORDER);
@@ -320,25 +320,20 @@ public class KiemScreen extends Screen {
         } else if (isPets) {
             renderPetsSubView(graphics, x, y, w, mouseX, mouseY);
         } else {
-            renderAurasSubView(graphics, x, y, w, mouseX, mouseY);
+            renderTrailsSubView(graphics, x, y, w, mouseX, mouseY);
         }
     }
 
-    private void renderAurasSubView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
+    private void renderTrailsSubView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
         int cardW = 180;
         int cardH = 236;
-        int cardGap = 12;
-
         int card1X = x;
         int card1Y = y + 18;
 
-        int card2X = card1X + cardW + cardGap;
-        int card2Y = card1Y;
-
-        // --- CARD 1: SAKURA LOP ---
-        boolean active1 = "SAKURA_LOP".equals(KiemConfig.activeAura) || KiemConfig.sakuraAuraEnabled;
+        // --- CARD 1: SAKURA BLOOM TRAIL ---
+        boolean active1 = KiemConfig.sakuraAuraEnabled;
         drawRoundedRect(graphics, card1X, card1Y, cardW, cardH, active1 ? COLOR_CARD_ACTIVE : COLOR_CARD_BG, active1 ? COLOR_ACTIVE_BORDER : COLOR_BORDER);
-        graphics.text(this.font, KiemLang.get("auras.sakura.title"), card1X + 12, card1Y + 11, COLOR_TEXT_WHITE, false);
+        graphics.text(this.font, KiemLang.get("trails.sakura.title"), card1X + 12, card1Y + 11, COLOR_TEXT_WHITE, false);
         int img1X = card1X + 8;
         int img1Y = card1Y + 26;
         int img1W = cardW - 16;
@@ -352,29 +347,6 @@ public class KiemScreen extends Screen {
         boolean custHover1 = mouseX >= img1X && mouseX <= img1X + img1W && mouseY >= cust1Y && mouseY <= cust1Y + 22;
         drawPill(graphics, img1X, cust1Y, img1W, 22, custHover1 ? 0x44E05688 : 0x18FFFFFF, custHover1 ? COLOR_ACCENT : COLOR_BORDER);
         graphics.centeredText(this.font, KiemLang.get("ui.customize"), card1X + cardW / 2, cust1Y + 7, custHover1 ? COLOR_ACCENT : COLOR_TEXT_WHITE);
-
-        // --- CARD 2: OBSIDIAN VOID GARGOYLE ---
-        boolean active2 = "VOID_GARGOYLE".equals(KiemConfig.activeAura) || KiemConfig.voidGargoyleAuraEnabled;
-        int gargoyleAccent = 0xFFFF5522;
-        int gargoyleBorder = active2 ? gargoyleAccent : COLOR_BORDER;
-        int gargoyleCardBg = active2 ? 0x302A1822 : COLOR_CARD_BG;
-        int gargoyleAccentBg = 0x44FF4400;
-
-        drawRoundedRect(graphics, card2X, card2Y, cardW, cardH, gargoyleCardBg, gargoyleBorder);
-        graphics.text(this.font, KiemLang.get("auras.void_gargoyle.title"), card2X + 12, card2Y + 11, COLOR_TEXT_WHITE, false);
-        int img2X = card2X + 8;
-        int img2Y = card2Y + 26;
-        int img2W = cardW - 16;
-        drawRoundedRect(graphics, img2X - 1, img2Y - 1, img2W + 2, 147, 0xFF121017, COLOR_BORDER);
-        graphics.blit(GARGOYLE_AURA_PREVIEW, img2X, img2Y, img2X + img2W, img2Y + 145, 0.0f, 1.0f, 0.0f, 1.0f);
-        int btn2Y = card2Y + 179;
-        boolean hover2 = mouseX >= img2X && mouseX <= img2X + img2W && mouseY >= btn2Y && mouseY <= btn2Y + 22;
-        drawPill(graphics, img2X, btn2Y, img2W, 22, active2 ? gargoyleAccentBg : (hover2 ? 0x2EFFFFFF : 0x18FFFFFF), active2 ? gargoyleAccent : COLOR_BORDER);
-        graphics.centeredText(this.font, KiemLang.get(active2 ? "auras.disable" : "auras.enable"), card2X + cardW / 2, btn2Y + 7, active2 ? gargoyleAccent : COLOR_TEXT_WHITE);
-        int cust2Y = btn2Y + 27;
-        boolean custHover2 = mouseX >= img2X && mouseX <= img2X + img2W && mouseY >= cust2Y && mouseY <= cust2Y + 22;
-        drawPill(graphics, img2X, cust2Y, img2W, 22, custHover2 ? 0x44FF5522 : 0x18FFFFFF, custHover2 ? gargoyleAccent : COLOR_BORDER);
-        graphics.centeredText(this.font, KiemLang.get("ui.customize"), card2X + cardW / 2, cust2Y + 7, custHover2 ? gargoyleAccent : COLOR_TEXT_WHITE);
 
         int infoY = card1Y + cardH + 8;
         graphics.text(this.font, KiemLang.get("auras.local"), x, infoY, COLOR_TEXT_MUTED, false);
@@ -707,31 +679,40 @@ public class KiemScreen extends Screen {
     }
 
     private void renderPetsSubView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
-        int cardGap = 8;
-        int cardW = (w - (4 * cardGap)) / 5;
-        int cardH = 236;
+        ShoulderPetType[] petTypes = {
+                ShoulderPetType.HAMSTER,
+                ShoulderPetType.HAMSTER_HD,
+                ShoulderPetType.OCTOPUS,
+                ShoulderPetType.DRAGON,
+                ShoulderPetType.INVENTORY_CURSE,
+                ShoulderPetType.VOID_GARGOYLE
+        };
+        Identifier[] petPreviews = {
+                HAMSTER_PREVIEW,
+                HAMSTER_HD_PREVIEW,
+                OCTOPUS_PREVIEW,
+                DRAGON_PREVIEW,
+                INVENTORY_CURSE_PREVIEW,
+                GARGOYLE_AURA_PREVIEW
+        };
+        int cols = 3;
+        int colGap = 10;
+        int rowGap = 8;
+        int cardW = (w - ((cols - 1) * colGap)) / cols;
+        int cardH = 114;
+        int startY = y + 18;
 
-        int card1X = x;
-        int card1Y = y + 18;
-        int card2X = card1X + cardW + cardGap;
-        int card3X = card2X + cardW + cardGap;
-        int card4X = card3X + cardW + cardGap;
-        int card5X = card4X + cardW + cardGap;
-
-        // 5 Cards: Klasik Hamster, Pofuduk Hamster, Ahtapot, Bebek Ejderha, Lanet Solucanı
-        renderPetCard(graphics, card1X, card1Y, cardW, cardH, ShoulderPetType.HAMSTER,
-                KiemLang.get("pets.hamster.title"), HAMSTER_PREVIEW, mouseX, mouseY);
-        renderPetCard(graphics, card2X, card1Y, cardW, cardH, ShoulderPetType.HAMSTER_HD,
-                KiemLang.get("pets.hamster_hd.title"), HAMSTER_HD_PREVIEW, mouseX, mouseY);
-        renderPetCard(graphics, card3X, card1Y, cardW, cardH, ShoulderPetType.OCTOPUS,
-                KiemLang.get("pets.octopus.title"), OCTOPUS_PREVIEW, mouseX, mouseY);
-        renderPetCard(graphics, card4X, card1Y, cardW, cardH, ShoulderPetType.DRAGON,
-                KiemLang.get("pets.dragon.title"), DRAGON_PREVIEW, mouseX, mouseY);
-        renderPetCard(graphics, card5X, card1Y, cardW, cardH, ShoulderPetType.INVENTORY_CURSE,
-                KiemLang.get("pets.inventory_curse.title"), INVENTORY_CURSE_PREVIEW, mouseX, mouseY);
+        for (int i = 0; i < petTypes.length; i++) {
+            int col = i % cols;
+            int row = i / cols;
+            int cx = x + col * (cardW + colGap);
+            int cy = startY + row * (cardH + rowGap);
+            renderPetCard(graphics, cx, cy, cardW, cardH, petTypes[i],
+                    KiemLang.get(petTypes[i].titleKey), petPreviews[i], mouseX, mouseY);
+        }
 
         // Bottom Info Card & Controls
-        int infoY = card1Y + cardH + 14;
+        int infoY = startY + (cardH * 2 + rowGap) + 14;
         int bottomCardH = 44;
         drawRoundedRect(graphics, x, infoY, w, bottomCardH, 0xFF1A1C26, COLOR_BORDER);
 
@@ -742,7 +723,7 @@ public class KiemScreen extends Screen {
 
         // Shoulder Side Selection Pills [ Sağ Omuz ] [ Sol Omuz ] + Sword Customize Pill
         boolean isLeft = ShoulderPetManager.isLeftShoulder();
-        int sideBtnW = 74;
+        int sideBtnW = 88;
         int sideBtnH = 22;
         int sideBtnGap = 6;
         int side1X = x + w - (sideBtnW * 2 + sideBtnGap) - 12;
@@ -793,43 +774,38 @@ public class KiemScreen extends Screen {
         int cardBorder = equipped ? COLOR_ACTIVE_BORDER : COLOR_BORDER;
         drawRoundedRect(graphics, cardX, cardY, cardW, cardH, cardBg, cardBorder);
 
-        // Header: title (bounded so 5-column layout stays clean)
-        drawBoundedText(graphics, title, cardX + 8, cardY + 11, cardW - 16, COLOR_TEXT_WHITE);
+        // Left square preview box
+        int imgSize = cardH - 20;
+        int imgX = cardX + 10;
+        int imgY = cardY + 10;
+        drawRoundedRect(graphics, imgX - 1, imgY - 1, imgSize + 2, imgSize + 2, 0xFF12131A, 0xFF2A2E40);
+        graphics.blit(preview, imgX, imgY, imgX + imgSize, imgY + imgSize, 0.0f, 1.0f, 0.0f, 1.0f);
 
-        // Preview box
-        int imgW = cardW - 16;
-        int imgH = 145;
-        int imgX = cardX + 8;
-        int imgY = cardY + 26;
-        drawRoundedRect(graphics, imgX - 1, imgY - 1, imgW + 2, imgH + 2, 0xFF12131A, 0xFF2A2E40);
-        graphics.blit(preview, imgX, imgY, imgX + imgW, imgY + imgH, 0.0f, 1.0f, 0.0f, 1.0f);
+        // Right column: Title + Equip Button + Footer status
+        int rightX = imgX + imgSize + 10;
+        int rightW = cardW - imgSize - 28;
+        drawBoundedText(graphics, title, rightX, cardY + 14, rightW, COLOR_TEXT_WHITE);
 
-
-
-        // Equip / Unequip Button
-        int btnY = imgY + imgH + 8;
-        int btnW = imgW;
+        int btnY = cardY + 44;
         int btnH = 22;
-        int btnX = imgX;
-        boolean btnHover = mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= btnY && mouseY <= btnY + btnH;
+        boolean btnHover = mouseX >= rightX && mouseX <= rightX + rightW && mouseY >= btnY && mouseY <= btnY + btnH;
 
         if (equipped) {
-            drawPill(graphics, btnX, btnY, btnW, btnH, COLOR_ACCENT_BG, COLOR_ACCENT);
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.equipped"), btnX + btnW / 2, btnY + 7, COLOR_ACCENT);
+            drawPill(graphics, rightX, btnY, rightW, btnH, COLOR_ACCENT_BG, COLOR_ACCENT);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.equipped"), rightX + rightW / 2, btnY + 7, COLOR_ACCENT);
         } else {
-            drawPill(graphics, btnX, btnY, btnW, btnH, btnHover ? 0x2EFFFFFF : 0x18FFFFFF, btnHover ? 0xFF4A526A : COLOR_BORDER);
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.equip"), btnX + btnW / 2, btnY + 7, btnHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+            drawPill(graphics, rightX, btnY, rightW, btnH, btnHover ? 0x2EFFFFFF : 0x18FFFFFF, btnHover ? 0xFF4A526A : COLOR_BORDER);
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.equip"), rightX + rightW / 2, btnY + 7, btnHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
         }
 
-        // Footer status text
-        int footerY = btnY + btnH + 6;
+        int footerY = btnY + btnH + 10;
         if (equipped) {
-            boolean unequipHover = mouseX >= cardX + 8 && mouseX <= cardX + cardW - 8 && mouseY >= footerY && mouseY <= footerY + 14;
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.unequip"), cardX + cardW / 2, footerY + 2, unequipHover ? 0xFFFF6666 : COLOR_TEXT_DIM);
+            boolean unequipHover = mouseX >= rightX && mouseX <= rightX + rightW && mouseY >= footerY && mouseY <= footerY + 14;
+            graphics.centeredText(this.font, KiemLang.get("cosmetics.unequip"), rightX + rightW / 2, footerY + 2, unequipHover ? 0xFFFF6666 : COLOR_TEXT_DIM);
         } else if (anyEquipped) {
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.other_active"), cardX + cardW / 2, footerY + 2, 0xFF70768C);
+            drawBoundedText(graphics, KiemLang.get("cosmetics.inactive"), rightX, footerY + 2, rightW, 0xFF70768C);
         } else {
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.inactive"), cardX + cardW / 2, footerY + 2, COLOR_TEXT_DIM);
+            drawBoundedText(graphics, KiemLang.get("cosmetics.inactive"), rightX, footerY + 2, rightW, COLOR_TEXT_DIM);
         }
     }
 
@@ -2331,43 +2307,27 @@ public class KiemScreen extends Screen {
                     return true;
                 }
                 if (mouseX >= sub3X && mouseX <= sub3X + subBtnW && mouseY >= subY && mouseY <= subY + subBtnH) {
-                    currentCosmeticsSub = CosmeticsSub.AURAS;
+                    currentCosmeticsSub = CosmeticsSub.TRAILS;
                     return true;
                 }
-                if (currentCosmeticsSub == CosmeticsSub.AURAS) {
+                if (currentCosmeticsSub == CosmeticsSub.TRAILS) {
                     int cardW = 180;
-                    int cardGap = 12;
                     int card1X = contentX;
-                    int card2X = card1X + cardW + cardGap;
                     int cardY = contentY + 18;
                     int btnY = cardY + 179;
                     int custY = btnY + 27;
 
-                    // Card 1: Sakura Lop
+                    // Card 1: Sakura Bloom Trail
                     int btn1X = card1X + 8;
                     int img1W = cardW - 16;
                     if (mouseX >= btn1X && mouseX <= btn1X + img1W && mouseY >= btnY && mouseY <= btnY + 22) {
-                        boolean active1 = "SAKURA_LOP".equals(KiemConfig.activeAura) || KiemConfig.sakuraAuraEnabled;
+                        boolean active1 = KiemConfig.sakuraAuraEnabled;
                         KiemConfig.setActiveAura(active1 ? "NONE" : "SAKURA_LOP");
                         KiemConfig.save();
                         return true;
                     }
                     if (mouseX >= btn1X && mouseX <= btn1X + img1W && mouseY >= custY && mouseY <= custY + 22) {
                         KiemCompat.setScreen(this.minecraft, new SakuraAuraScreen(this));
-                        return true;
-                    }
-
-                    // Card 2: Obsidian Void Gargoyle
-                    int btn2X = card2X + 8;
-                    int img2W = cardW - 16;
-                    if (mouseX >= btn2X && mouseX <= btn2X + img2W && mouseY >= btnY && mouseY <= btnY + 22) {
-                        boolean active2 = "VOID_GARGOYLE".equals(KiemConfig.activeAura) || KiemConfig.voidGargoyleAuraEnabled;
-                        KiemConfig.setActiveAura(active2 ? "NONE" : "VOID_GARGOYLE");
-                        KiemConfig.save();
-                        return true;
-                    }
-                    if (mouseX >= btn2X && mouseX <= btn2X + img2W && mouseY >= custY && mouseY <= custY + 22) {
-                        KiemCompat.setScreen(this.minecraft, new VoidGargoyleScreen(this));
                         return true;
                     }
                 }
@@ -2578,93 +2538,50 @@ public class KiemScreen extends Screen {
                     return true;
                 }
             } else if (currentCosmeticsSub == CosmeticsSub.PETS) {
+                ShoulderPetType[] petTypes = {
+                        ShoulderPetType.HAMSTER,
+                        ShoulderPetType.HAMSTER_HD,
+                        ShoulderPetType.OCTOPUS,
+                        ShoulderPetType.DRAGON,
+                        ShoulderPetType.INVENTORY_CURSE,
+                        ShoulderPetType.VOID_GARGOYLE
+                };
                 int contentW = modalW - sidebarW - 40;
-                int cardGap = 8;
-                int cardW = (contentW - (4 * cardGap)) / 5;
-                int cardH = 236;
-                int card1X = contentX;
-                int card1Y = contentY + 18;
-                int card2X = card1X + cardW + cardGap;
-                int card3X = card2X + cardW + cardGap;
-                int card4X = card3X + cardW + cardGap;
-                int card5X = card4X + cardW + cardGap;
+                int cols = 3;
+                int colGap = 10;
+                int rowGap = 8;
+                int cardW = (contentW - ((cols - 1) * colGap)) / cols;
+                int cardH = 114;
+                int startY = contentY + 18;
 
-                int imgW = cardW - 16;
-                int imgH = 145;
-                int btnY = card1Y + 26 + imgH + 8;
-                int btnW = imgW;
+                int imgSize = cardH - 20;
                 int btnH = 22;
-                int footerY = btnY + btnH + 6;
 
-                // 1. Klasik Hamster
-                int btn1X = card1X + 8;
-                if (mouseX >= btn1X && mouseX <= btn1X + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
-                    ShoulderPetManager.togglePet(ShoulderPetType.HAMSTER);
-                    return true;
-                }
-                if (mouseX >= card1X + 8 && mouseX <= card1X + cardW - 8 && mouseY >= footerY && mouseY <= footerY + 14) {
-                    if (ShoulderPetManager.isEquipped(ShoulderPetType.HAMSTER)) {
-                        ShoulderPetManager.setSelectedPet(ShoulderPetType.OFF);
+                for (int i = 0; i < petTypes.length; i++) {
+                    int col = i % cols;
+                    int row = i / cols;
+                    int cx = contentX + col * (cardW + colGap);
+                    int cy = startY + row * (cardH + rowGap);
+                    int rightX = cx + 10 + imgSize + 10;
+                    int rightW = cardW - imgSize - 28;
+                    int btnY = cy + 44;
+                    int footerY = btnY + btnH + 10;
+
+                    if (mouseX >= rightX && mouseX <= rightX + rightW && mouseY >= btnY && mouseY <= btnY + btnH) {
+                        ShoulderPetManager.togglePet(petTypes[i]);
                         return true;
                     }
-                }
-
-                // 2. Pofuduk Hamster (HAMSTER_HD)
-                int btn2X = card2X + 8;
-                if (mouseX >= btn2X && mouseX <= btn2X + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
-                    ShoulderPetManager.togglePet(ShoulderPetType.HAMSTER_HD);
-                    return true;
-                }
-                if (mouseX >= card2X + 8 && mouseX <= card2X + cardW - 8 && mouseY >= footerY && mouseY <= footerY + 14) {
-                    if (ShoulderPetManager.isEquipped(ShoulderPetType.HAMSTER_HD)) {
-                        ShoulderPetManager.setSelectedPet(ShoulderPetType.OFF);
-                        return true;
-                    }
-                }
-
-                // 3. Octopus
-                int btn3X = card3X + 8;
-                if (mouseX >= btn3X && mouseX <= btn3X + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
-                    ShoulderPetManager.togglePet(ShoulderPetType.OCTOPUS);
-                    return true;
-                }
-                if (mouseX >= card3X + 8 && mouseX <= card3X + cardW - 8 && mouseY >= footerY && mouseY <= footerY + 14) {
-                    if (ShoulderPetManager.isEquipped(ShoulderPetType.OCTOPUS)) {
-                        ShoulderPetManager.setSelectedPet(ShoulderPetType.OFF);
-                        return true;
-                    }
-                }
-
-                // 4. Dragon
-                int btn4X = card4X + 8;
-                if (mouseX >= btn4X && mouseX <= btn4X + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
-                    ShoulderPetManager.togglePet(ShoulderPetType.DRAGON);
-                    return true;
-                }
-                if (mouseX >= card4X + 8 && mouseX <= card4X + cardW - 8 && mouseY >= footerY && mouseY <= footerY + 14) {
-                    if (ShoulderPetManager.isEquipped(ShoulderPetType.DRAGON)) {
-                        ShoulderPetManager.setSelectedPet(ShoulderPetType.OFF);
-                        return true;
-                    }
-                }
-
-                // 5. Inventory Curse (Lanet Solucanı)
-
-                int btn5X = card5X + 8;
-                if (mouseX >= btn5X && mouseX <= btn5X + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
-                    ShoulderPetManager.togglePet(ShoulderPetType.INVENTORY_CURSE);
-                    return true;
-                }
-                if (mouseX >= card5X + 8 && mouseX <= card5X + cardW - 8 && mouseY >= footerY && mouseY <= footerY + 14) {
-                    if (ShoulderPetManager.isEquipped(ShoulderPetType.INVENTORY_CURSE)) {
-                        ShoulderPetManager.setSelectedPet(ShoulderPetType.OFF);
-                        return true;
+                    if (mouseX >= rightX && mouseX <= rightX + rightW && mouseY >= footerY && mouseY <= footerY + 14) {
+                        if (ShoulderPetManager.isEquipped(petTypes[i])) {
+                            ShoulderPetManager.setSelectedPet(ShoulderPetType.OFF);
+                            return true;
+                        }
                     }
                 }
 
                 // Bottom Controls - Shoulder Side selection & Sword Customize Toggle
-                int infoY = card1Y + cardH + 14;
-                int sideBtnW = 74;
+                int infoY = startY + (cardH * 2 + rowGap) + 14;
+                int sideBtnW = 88;
                 int sideBtnH = 22;
                 int sideBtnGap = 6;
                 int side1X = contentX + contentW - (sideBtnW * 2 + sideBtnGap) - 12;

@@ -10,7 +10,8 @@ public enum ShoulderPetType {
     HAMSTER_HD("pets.hamster_hd.title", "pets.hamster_hd.desc"),
     OCTOPUS("pets.octopus.title", "pets.octopus.desc"),
     DRAGON("pets.dragon.title", "pets.dragon.desc"),
-    INVENTORY_CURSE("pets.inventory_curse.title", "pets.inventory_curse.desc");
+    INVENTORY_CURSE("pets.inventory_curse.title", "pets.inventory_curse.desc"),
+    VOID_GARGOYLE("pets.void_gargoyle.title", "pets.void_gargoyle.desc");
 
     public final String titleKey;
     public final String descKey;

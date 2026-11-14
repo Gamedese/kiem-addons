@@ -43,16 +43,14 @@ public abstract class SakuraAuraMixin {
                 return;
             }
 
-            // In-world rendering: check active aura selection
-            var offset = ((EntityRenderer) (Object) this).getRenderOffset(state);
-            poses.pushPose();
-            poses.translate(-offset.x, -offset.y, -offset.z);
-            if ("VOID_GARGOYLE".equals(KiemConfig.activeAura) || KiemConfig.voidGargoyleAuraEnabled) {
-                VoidGargoyleRenderer.submit(avatar, poses, collector, camera);
-            } else if ("SAKURA_LOP".equals(KiemConfig.activeAura) || KiemConfig.sakuraAuraEnabled) {
+            // In-world rendering: check active trail selection (Sakura Bloom Trail)
+            if (KiemConfig.sakuraAuraEnabled) {
+                var offset = ((EntityRenderer) (Object) this).getRenderOffset(state);
+                poses.pushPose();
+                poses.translate(-offset.x, -offset.y, -offset.z);
                 SakuraAuraRenderer.submit(avatar, poses, collector, camera);
+                poses.popPose();
             }
-            poses.popPose();
         }
     }
 }

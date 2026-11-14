@@ -86,11 +86,11 @@ public final class SakuraAuraManager {
         // Low: every 4 ticks; normal: every 2; high: every tick. Always bounded.
         int interval = density == 1 ? 4 : density == 2 ? 2 : 1;
         if (density > 0 && age % interval == 0) {
-            for (int i = 0; i < SakuraOrbit.COUNT; i++) {
-                var orbit = sample(time, i);
-                petals.add(new Petal(position.add(orbit.x(), orbit.y(), orbit.z()),
-                        age, age * 3 + i));
-            }
+            double angle = (age * 0.45) + (age % 3) * 2.094;
+            double rad = 0.25 + ((age * 17) % 10) * 0.04;
+            double py = 0.35 + ((age * 13) % 12) * 0.08;
+            petals.add(new Petal(position.add(Math.cos(angle) * rad, py, Math.sin(angle) * rad),
+                    age, age * 3));
         }
         if (petals.size() > MAX_PETALS) petals.subList(0, petals.size() - MAX_PETALS).clear();
         snapshot = List.copyOf(petals);

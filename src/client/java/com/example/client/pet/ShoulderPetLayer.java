@@ -7,6 +7,7 @@ import com.example.client.model.pet.HamsterHdPetModel;
 import com.example.client.model.pet.HamsterPetModel;
 import com.example.client.model.pet.InventoryCursePetModel;
 import com.example.client.model.pet.OctopusPetModel;
+import com.example.client.model.pet.VoidGargoylePetModel;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
@@ -35,6 +36,8 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
     private static final Identifier TEX_OCTO_HAPPY = Identifier.fromNamespaceAndPath("modid", "textures/pet/octopus_happy.png");
     private static final Identifier TEX_OCTO_ANGRY = Identifier.fromNamespaceAndPath("modid", "textures/pet/octopus_angry.png");
     private static final Identifier TEX_INVENTORY_CURSE = Identifier.fromNamespaceAndPath("modid", "textures/pet/inventory_curse.png");
+    private static final Identifier TEX_VOID_GARGOYLE = Identifier.fromNamespaceAndPath("modid", "textures/aura/void_gargoyle.png");
+    private static final Identifier TEX_VOID_GARGOYLE_EMISSIVE = Identifier.fromNamespaceAndPath("modid", "textures/aura/void_gargoyle_emissive.png");
 
     /** Ahtapot takla suresi (tick). */
     private static final float FLIP_TICKS = 24f;
@@ -44,6 +47,7 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
     private final OctopusPetModel octopus = new OctopusPetModel(OctopusPetModel.createLayer().bakeRoot());
     private final DragonPetModel dragon = new DragonPetModel(DragonPetModel.createLayer().bakeRoot());
     private final InventoryCursePetModel inventoryCurse = new InventoryCursePetModel(InventoryCursePetModel.createLayer().bakeRoot());
+    private final VoidGargoylePetModel voidGargoyle = new VoidGargoylePetModel(VoidGargoylePetModel.createLayer().bakeRoot());
     private final PetRenderState petState = new PetRenderState();
 
 
@@ -310,6 +314,18 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
                 if (hasChestArmor) y -= 0.02f;
                 if (isCrouching) y += 0.20f;
             }
+            case VOID_GARGOYLE -> {
+                // Obsidian Void Gargoyle: Omuzda tuneyen minik akkor ejderha
+                x = left ? 0.36f : -0.36f;
+                y = -0.10f;
+                z = 0.0f;
+                scale = 0.44f;
+                petFacingAngle = left ? -0.10f : 0.10f;
+
+                if (hasChestArmor) y -= 0.05f;
+                if (hasCape) z -= 0.03f;
+                if (isCrouching) y += 0.20f;
+            }
             default -> { }
         }
 
@@ -337,6 +353,12 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
                         (ModelFeatureRenderer.CrumblingOverlay) null);
             }
             case INVENTORY_CURSE -> render(collector, inventoryCurse, poseStack, TEX_INVENTORY_CURSE, light, state.outlineColor);
+            case VOID_GARGOYLE -> {
+                render(collector, voidGargoyle, poseStack, TEX_VOID_GARGOYLE, light, state.outlineColor);
+                collector.submitModel(voidGargoyle, petState, poseStack, RenderTypes.eyes(TEX_VOID_GARGOYLE_EMISSIVE),
+                        0x00F000F0, OverlayTexture.NO_OVERLAY, state.outlineColor,
+                        (ModelFeatureRenderer.CrumblingOverlay) null);
+            }
             default -> { }
         }
 

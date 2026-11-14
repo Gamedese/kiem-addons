@@ -36,11 +36,8 @@ public final class SakuraAuraRenderer {
                 || state.id != client.player.getId() || state.isInvisible || state.isSpectator
                 || client.player.isSleeping() || client.options.getCameraType().isFirstPerson()
                 || camera == null || !camera.initialized) return;
-        // Inventory/GUI entity previews use a synthetic camera; never draw a world aura there.
+        // Inventory/GUI entity previews use a synthetic camera; never draw a world trail there.
         if (camera.pos == null || camera.pos.distanceToSqr(client.gameRenderer.mainCamera().position()) > 0.01) return;
-        float time = SakuraAuraManager.orbitTime(state.ageInTicks);
-        submitHeads(state, state.ageInTicks, KiemConfig.sakuraAuraScale, state.lightCoords, poses, collector,
-                i -> SakuraAuraManager.sample(time, i));
         if (KiemConfig.sakuraAuraPetals != 0) {
             submitPetals(SakuraAuraManager.petals(), state.ageInTicks, state.x, state.y, state.z,
                     state.lightCoords, camera.orientation, poses, collector);
@@ -54,8 +51,6 @@ public final class SakuraAuraRenderer {
     /** Explicit GUI-only entry; payload and geometry stay inside the native avatar PiP pass. */
     public static void submitPreview(AvatarRenderState state, SakuraAuraPreview.Frame frame,
                                      PoseStack poses, SubmitNodeCollector collector, CameraRenderState camera) {
-        submitHeads(state, frame.age(), frame.settings().scale(), state.lightCoords, poses, collector,
-                i -> frame.settings().sample(frame.time(), i));
         if (frame.settings().density() != 0) {
             submitPetals(frame.petals(), frame.age(), 0, 0, 0, state.lightCoords,
                     camera.orientation, poses, collector);

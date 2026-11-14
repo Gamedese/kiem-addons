@@ -119,7 +119,7 @@ public class KiemConfig {
     public static float voidGargoyleSpeed = 1.0f; // bounds 0.25f .. 2.0f
     public static float voidGargoyleBob = 1.0f; // bounds 0.0f .. 3.0f
     private static final float[] DEFAULT_GARGOYLE_HEIGHTS = {0.70f, 1.05f, 1.40f};
-    private static final float[] DEFAULT_GARGOYLE_RADII = {0.80f, 0.90f, 0.85f};
+    private static final float[] DEFAULT_GARGOYLE_RADII = {1.12f, 1.25f, 1.18f};
     public static float[] voidGargoyleHeights = DEFAULT_GARGOYLE_HEIGHTS.clone();
     public static float[] voidGargoyleRadii = DEFAULT_GARGOYLE_RADII.clone();
     public static int voidGargoyleEmbers = 2; // 0=Off, 1=Low, 2=Normal, 3=High
@@ -405,7 +405,7 @@ public class KiemConfig {
                 voidGargoyleHeights[i] = boundedFloat(props, "aura.void_gargoyle.height." + i,
                         DEFAULT_GARGOYLE_HEIGHTS[i], 0.15f, 2.2f);
                 voidGargoyleRadii[i] = boundedFloat(props, "aura.void_gargoyle.radius." + i,
-                        DEFAULT_GARGOYLE_RADII[i], 0.4f, 1.5f);
+                        DEFAULT_GARGOYLE_RADII[i], 0.4f, 2.2f);
             }
             try {
                 voidGargoyleEmbers = Math.clamp(Integer.parseInt(props.getProperty("aura.void_gargoyle.embers", "2")), 0, 3);
