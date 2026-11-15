@@ -2793,7 +2793,7 @@ public class KiemScreen extends Screen {
 
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean wasHandled) {
-        if (event.button() == 0) {
+        if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
             double mouseX = event.x();
             double mouseY = event.y();
 
@@ -4078,14 +4078,14 @@ public class KiemScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
-        if (draggingMascot && event.button() == 0) {
+        if (draggingMascot && event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
             float maxX = Math.max(1.0f, this.width - MASCOT_SIZE - 8);
             float maxY = Math.max(1.0f, this.height - MASCOT_SIZE - 4);
             KiemConfig.uiMascotX = net.minecraft.util.Mth.clamp((float) (event.x() - mascotDragOffsetX - 4.0) / maxX, 0.0f, 1.0f);
             KiemConfig.uiMascotY = net.minecraft.util.Mth.clamp((float) (event.y() - mascotDragOffsetY - 2.0) / maxY, 0.0f, 1.0f);
             return true;
         }
-        if (draggingCosmeticPreview && event.button() == 0) {
+        if (draggingCosmeticPreview && event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
             cosmeticPreviewYaw = (cosmeticPreviewYaw + (float) deltaX * 0.65f) % 360f;
             cosmeticPreviewPitch = net.minecraft.util.Mth.clamp(cosmeticPreviewPitch + (float) deltaY * 0.45f, -45f, 45f);
             return true;
@@ -4102,12 +4102,12 @@ public class KiemScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        if (draggingMascot && event.button() == 0) {
+        if (draggingMascot && event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
             draggingMascot = false;
             KiemConfig.save();
             return true;
         }
-        if (draggingCosmeticPreview && event.button() == 0) {
+        if (draggingCosmeticPreview && event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
             draggingCosmeticPreview = false;
             return true;
         }

@@ -218,7 +218,7 @@ public final class SakuraAuraScreen extends Screen {
     }
 
     @Override public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-        if (event.button() == 0 && inViewport(event.x(), event.y())) {
+        if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT && inViewport(event.x(), event.y())) {
             draggingPreview = true;
             return true;
         }
@@ -226,7 +226,7 @@ public final class SakuraAuraScreen extends Screen {
     }
 
     @Override public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
-        if (draggingPreview && event.button() == 0) {
+        if (draggingPreview && event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
             previewYaw = (previewYaw + (float)deltaX * .65f) % 360f;
             previewPitch = Math.clamp(previewPitch + (float)deltaY * .45f, -35f, 30f);
             return true;
@@ -235,7 +235,7 @@ public final class SakuraAuraScreen extends Screen {
     }
 
     @Override public boolean mouseReleased(MouseButtonEvent event) {
-        if (draggingPreview && event.button() == 0) {
+        if (draggingPreview && event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT) {
             draggingPreview = false;
             return true;
         }

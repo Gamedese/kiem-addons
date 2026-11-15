@@ -22,7 +22,7 @@ public abstract class ChatScreenMixin extends Screen {
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void kiem$onMouseClicked(MouseButtonEvent event, boolean wasHandled, CallbackInfoReturnable<Boolean> cir) {
-        if (event.button() == 0 && this.minecraft != null && this.minecraft.hasControlDown() && KiemConfig.copyChatEnabled) {
+        if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT && this.minecraft != null && this.minecraft.hasControlDown() && KiemConfig.copyChatEnabled) {
             if (KiemCompat.getChat(this.minecraft) instanceof KiemChatAccessor accessor) {
                 GuiMessage.Line line = accessor.kiem$getLineAt(event.x(), event.y());
                 if (line != null && line.parent() != null && line.parent().content() != null) {
