@@ -1,7 +1,6 @@
 package com.example.client;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.world.InteractionHand;
 
 public class AntiAfk {
     private static int timerTicks = 0;
@@ -49,7 +48,7 @@ public class AntiAfk {
             mc.options.keyJump.setDown(true);
             actionTicksRemaining = 4; // Hold jump for 4 ticks
         } else if ("CLICK".equalsIgnoreCase(currentRunningAction)) {
-            mc.player.swing(InteractionHand.MAIN_HAND);
+            KiemCompat.swingMainHand(mc.player);
             mc.options.keyAttack.setDown(true);
             actionTicksRemaining = 2; // Tap attack for 2 ticks
         }

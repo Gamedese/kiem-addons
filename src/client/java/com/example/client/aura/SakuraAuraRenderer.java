@@ -1,5 +1,6 @@
 package com.example.client.aura;
 
+import com.example.client.KiemCompat;
 import com.example.client.KiemConfig;
 import com.example.client.model.aura.SakuraBloomModel;
 import com.example.client.model.aura.SakuraLopModel;
@@ -107,18 +108,18 @@ public final class SakuraAuraRenderer {
             // Align with player body yaw:
             float bodyRot = (state != null) ? state.bodyRot : (client.player != null ? client.player.yBodyRot : 0.0f);
             float xRot = (state != null) ? state.xRot : (client.player != null ? client.player.getXRot() : 0.0f);
-            poses.mulPose(Axis.YP.rotationDegrees(180.0f - bodyRot));
+            KiemCompat.rotate(poses, Axis.YP.rotationDegrees(180.0f - bodyRot));
             if (elytraFlying) {
                 float pitchAngle = flyScale * (-90.0f - xRot);
-                poses.mulPose(Axis.XP.rotationDegrees(pitchAngle));
+                KiemCompat.rotate(poses, Axis.XP.rotationDegrees(pitchAngle));
                 if (state != null && state.shouldApplyFlyingYRot) {
-                    poses.mulPose(Axis.YP.rotation(state.flyingYRot));
+                    KiemCompat.rotate(poses, Axis.YP.rotation(state.flyingYRot));
                 }
             } else {
                 float target = (state != null && state.isInWater) ? (-90.0f - xRot) : -90.0f;
                 float swimAmount = (state != null) ? state.swimAmount : 1.0f;
                 float pitchAngle = Mth.lerp(swimAmount, 0.0f, target);
-                poses.mulPose(Axis.XP.rotationDegrees(pitchAngle));
+                KiemCompat.rotate(poses, Axis.XP.rotationDegrees(pitchAngle));
             }
 
             for (int i = 0; i < SakuraOrbit.COUNT; i++) {
@@ -126,11 +127,11 @@ public final class SakuraAuraRenderer {
                 float localY = (float) (orbit.y() - 0.9);
                 poses.pushPose();
                 poses.translate(orbit.x(), localY, orbit.z());
-                poses.mulPose(Axis.YP.rotation(orbit.yaw()));
-                poses.mulPose(Axis.ZP.rotation((float) Math.sin(age * 0.12 + i) * 0.10f));
+                KiemCompat.rotate(poses, Axis.YP.rotation(orbit.yaw()));
+                KiemCompat.rotate(poses, Axis.ZP.rotation((float) Math.sin(age * 0.12 + i) * 0.10f));
                 poses.scale(-scale, -scale, scale);
-                collector.submitModel(model, Float.valueOf(age + i * 13), poses,
-                        BUNNY, light, OverlayTexture.NO_OVERLAY, 0, null);
+                KiemCompat.submitModel(collector, model, Float.valueOf(age + i * 13), poses,
+                        BUNNY, light, OverlayTexture.NO_OVERLAY, 0);
                 poses.popPose();
             }
             poses.popPose();
@@ -139,11 +140,11 @@ public final class SakuraAuraRenderer {
                 var orbit = sample.apply(i);
                 poses.pushPose();
                 poses.translate(orbit.x(), orbit.y(), orbit.z());
-                poses.mulPose(Axis.YP.rotation(orbit.yaw()));
-                poses.mulPose(Axis.ZP.rotation((float) Math.sin(age * 0.12 + i) * 0.10f));
+                KiemCompat.rotate(poses, Axis.YP.rotation(orbit.yaw()));
+                KiemCompat.rotate(poses, Axis.ZP.rotation((float) Math.sin(age * 0.12 + i) * 0.10f));
                 poses.scale(-scale, -scale, scale);
-                collector.submitModel(model, Float.valueOf(age + i * 13), poses,
-                        BUNNY, light, OverlayTexture.NO_OVERLAY, 0, null);
+                KiemCompat.submitModel(collector, model, Float.valueOf(age + i * 13), poses,
+                        BUNNY, light, OverlayTexture.NO_OVERLAY, 0);
                 poses.popPose();
             }
         }
@@ -191,11 +192,11 @@ public final class SakuraAuraRenderer {
             poses.translate(flower.position().x - originX,
                     flower.position().y - originY + yOffset,
                     flower.position().z - originZ);
-            poses.mulPose(Axis.YP.rotation(flower.yaw()));
+            KiemCompat.rotate(poses, Axis.YP.rotation(flower.yaw()));
             // Vanilla model coordinates: +Y down. The enclosing pose here is world-up.
             poses.scale(-finalScale, -finalScale, finalScale);
-            collector.submitModel(bloomModel, Float.valueOf(elapsed), poses,
-                    BLOOM, light, OverlayTexture.NO_OVERLAY, 0, null);
+            KiemCompat.submitModel(collector, bloomModel, Float.valueOf(elapsed), poses,
+                    BLOOM, light, OverlayTexture.NO_OVERLAY, 0);
             poses.popPose();
         }
     }
@@ -214,9 +215,9 @@ public final class SakuraAuraRenderer {
             poses.translate(petal.position().x - originX + Math.sin(seed + elapsed * 0.18) * life * 0.12,
                     petal.position().y - originY - elapsed * 0.009,
                     petal.position().z - originZ + Math.cos(seed + elapsed * 0.13) * life * 0.12);
-            poses.mulPose(orientation);
-            poses.mulPose(Axis.ZP.rotation(seed + elapsed * 0.10f));
-            poses.mulPose(Axis.YP.rotation((float) Math.sin(seed + elapsed * 0.16) * 0.8f));
+            KiemCompat.rotate(poses, orientation);
+            KiemCompat.rotate(poses, Axis.ZP.rotation(seed + elapsed * 0.10f));
+            KiemCompat.rotate(poses, Axis.YP.rotation((float) Math.sin(seed + elapsed * 0.16) * 0.8f));
             poses.scale(size, size, size);
             int color = ((int) (alpha * 255) << 24) | 0xFFFFFF;
             collector.submitCustomGeometry(poses, RenderTypes.entityTranslucent(PETAL), (pose, vertices) -> {

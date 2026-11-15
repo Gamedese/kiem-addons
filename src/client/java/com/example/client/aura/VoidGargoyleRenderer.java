@@ -1,5 +1,6 @@
 package com.example.client.aura;
 
+import com.example.client.KiemCompat;
 import com.example.client.KiemConfig;
 import com.example.client.model.aura.VoidGargoyleModel;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -129,18 +130,18 @@ public final class VoidGargoyleRenderer {
             poses.translate(0, 0.9, 0);
             float bodyRot = (state != null) ? state.bodyRot : (client.player != null ? client.player.yBodyRot : 0.0f);
             float xRot = (state != null) ? state.xRot : (client.player != null ? client.player.getXRot() : 0.0f);
-            poses.mulPose(Axis.YP.rotationDegrees(180.0f - bodyRot));
+            KiemCompat.rotate(poses, Axis.YP.rotationDegrees(180.0f - bodyRot));
             if (elytraFlying) {
                 float pitchAngle = flyScale * (-90.0f - xRot);
-                poses.mulPose(Axis.XP.rotationDegrees(pitchAngle));
+                KiemCompat.rotate(poses, Axis.XP.rotationDegrees(pitchAngle));
                 if (state != null && state.shouldApplyFlyingYRot) {
-                    poses.mulPose(Axis.YP.rotation(state.flyingYRot));
+                    KiemCompat.rotate(poses, Axis.YP.rotation(state.flyingYRot));
                 }
             } else {
                 float target = (state != null && state.isInWater) ? (-90.0f - xRot) : -90.0f;
                 float swimAmount = (state != null) ? state.swimAmount : 1.0f;
                 float pitchAngle = Mth.lerp(swimAmount, 0.0f, target);
-                poses.mulPose(Axis.XP.rotationDegrees(pitchAngle));
+                KiemCompat.rotate(poses, Axis.XP.rotationDegrees(pitchAngle));
             }
 
             for (int i = 0; i < VoidGargoyleOrbit.COUNT; i++) {
@@ -148,9 +149,9 @@ public final class VoidGargoyleRenderer {
                 float localY = (float) (orbit.y() - 0.9);
                 poses.pushPose();
                 poses.translate(orbit.x(), localY, orbit.z());
-                poses.mulPose(Axis.YP.rotation(orbit.yaw()));
-                poses.mulPose(Axis.ZP.rotation(orbit.roll()));
-                poses.mulPose(Axis.XP.rotation(orbit.pitch()));
+                KiemCompat.rotate(poses, Axis.YP.rotation(orbit.yaw()));
+                KiemCompat.rotate(poses, Axis.ZP.rotation(orbit.roll()));
+                KiemCompat.rotate(poses, Axis.XP.rotation(orbit.pitch()));
                 poses.scale(-effectiveScale, -effectiveScale, effectiveScale);
                 submitModelPair(age, i, jawSupplier.apply(i), wingPhaseSupplier.apply(i),
                         wingAmpSupplier.apply(i), recoilSupplier.apply(i), orbit.direction(),
@@ -164,9 +165,9 @@ public final class VoidGargoyleRenderer {
                 var orbit = sample.apply(i);
                 poses.pushPose();
                 poses.translate(orbit.x(), orbit.y(), orbit.z());
-                poses.mulPose(Axis.YP.rotation(orbit.yaw()));
-                poses.mulPose(Axis.ZP.rotation(orbit.roll()));
-                poses.mulPose(Axis.XP.rotation(orbit.pitch()));
+                KiemCompat.rotate(poses, Axis.YP.rotation(orbit.yaw()));
+                KiemCompat.rotate(poses, Axis.ZP.rotation(orbit.roll()));
+                KiemCompat.rotate(poses, Axis.XP.rotation(orbit.pitch()));
                 poses.scale(-effectiveScale, -effectiveScale, effectiveScale);
                 submitModelPair(age, i, jawSupplier.apply(i), wingPhaseSupplier.apply(i),
                         wingAmpSupplier.apply(i), recoilSupplier.apply(i), orbit.direction(),
@@ -183,15 +184,15 @@ public final class VoidGargoyleRenderer {
                                         int light, PoseStack poses, SubmitNodeCollector collector) {
         Float modelAge = Float.valueOf(age + index * 13);
         model.setAnimationParams(jawAngle, wingPhase, wingAmp, recoil, direction, lookYaw, lookPitch, sprinting, gliding);
-        collector.submitModel(model, modelAge, poses, GARGOYLE, light, OverlayTexture.NO_OVERLAY, 0, null);
+        KiemCompat.submitModel(collector, model, modelAge, poses, GARGOYLE, light, OverlayTexture.NO_OVERLAY, 0);
 
         // Fullbright additive emissive layer for red eyes, deep molten gullet, and magma cracks with subtle fire flicker
         float flicker = 0.78f + 0.22f * Mth.sin(age * 0.4f + index * 2.1f);
         int c = (int) (flicker * 255);
         int emissiveColor = (0xFF << 24) | (c << 16) | (c << 8) | c;
         emissiveModel.setAnimationParams(jawAngle, wingPhase, wingAmp, recoil, direction, lookYaw, lookPitch, sprinting, gliding);
-        collector.submitModel(emissiveModel, modelAge, poses, GARGOYLE_EMISSIVE, FULL_BRIGHT,
-                OverlayTexture.NO_OVERLAY, emissiveColor, null);
+        KiemCompat.submitModel(collector, emissiveModel, modelAge, poses, GARGOYLE_EMISSIVE, FULL_BRIGHT,
+                OverlayTexture.NO_OVERLAY, emissiveColor);
     }
 
     private static void submitRibbonTrail(List<Vec3> points, Vec3 origin, Quaternionfc cameraOrientation,
@@ -291,8 +292,8 @@ public final class VoidGargoyleRenderer {
                                            boolean isObsidian, int worldLight, PoseStack poses, SubmitNodeCollector collector) {
         poses.pushPose();
         poses.translate(relPos.x, relPos.y, relPos.z);
-        poses.mulPose(Axis.YP.rotation(rotY));
-        poses.mulPose(Axis.XP.rotation(rotX));
+        KiemCompat.rotate(poses, Axis.YP.rotation(rotY));
+        KiemCompat.rotate(poses, Axis.XP.rotation(rotX));
         poses.scale(halfSize, halfSize, halfSize);
 
         Identifier tex = isObsidian ? OBSIDIAN_TEX : MAGMA_TEX;

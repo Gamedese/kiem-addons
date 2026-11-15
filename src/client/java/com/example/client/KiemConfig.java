@@ -712,7 +712,7 @@ public class KiemConfig {
         if (!chatPeekEnabled) return false;
         Minecraft mc = Minecraft.getInstance();
         if (mc == null || mc.getWindow() == null || KiemCompat.getScreen(mc) != null) return false;
-        return InputConstants.isKeyDown(mc.getWindow(), chatPeekKey);
+        return KiemCompat.isKeyDown(mc.getWindow(), chatPeekKey);
     }
 
     public static void touchModule(String moduleId) {
@@ -882,7 +882,7 @@ public class KiemConfig {
     public static String getKeyName(int keyCode) {
         if (keyCode == InputConstants.UNKNOWN.getValue()) return "Yok";
         try {
-            return InputConstants.Type.KEYSYM.getOrCreate(keyCode).getDisplayName().getString();
+            return KiemCompat.keyboardType().getOrCreate(keyCode).getDisplayName().getString();
         } catch (Exception e) {
             return "Key " + keyCode;
         }

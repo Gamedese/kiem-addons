@@ -1,5 +1,6 @@
 package com.example.client.aura;
 
+import com.example.client.KiemCompat;
 import com.example.client.KiemConfig;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -201,7 +202,7 @@ public final class VoidGargoyleManager {
 
         // State-driven attack hook: when player swings sword/hand, one dragon lunges & roars
         if (attackCooldown > 0) attackCooldown--;
-        if (player.swingTime == 1 && attackCooldown == 0) {
+        if (KiemCompat.isSwingingStart(player) && attackCooldown == 0) {
             GargoyleState attacker = STATES[nextAttacker];
             nextAttacker = (nextAttacker + 1) % VoidGargoyleOrbit.COUNT;
             attacker.lungeTick = 0;

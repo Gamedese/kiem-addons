@@ -22,7 +22,7 @@ public class SmoothZoom {
         if (zoomKeyMapping != null && zoomKeyMapping.isDown()) {
             return true;
         }
-        return InputConstants.isKeyDown(mc.getWindow(), KiemConfig.zoomKey);
+        return KiemCompat.isKeyDown(mc.getWindow(), KiemConfig.zoomKey);
     }
 
     public static boolean isZooming() {

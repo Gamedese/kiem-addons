@@ -8,7 +8,7 @@ import net.minecraft.network.chat.Component;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
-public class KiemCompat {
+public class KiemCompatBase {
     private static Field MC_SCREEN_FIELD;
     private static Method MC_SET_SCREEN;
     private static Method GUI_SET_SCREEN;

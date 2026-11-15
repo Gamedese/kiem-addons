@@ -1,6 +1,7 @@
 package com.example.client.cosmetic;
 
 import com.example.ExampleMod;
+import com.example.client.KiemCompat;
 import com.example.client.KiemConfig;
 import com.example.client.cosmetic.CosmeticCatalog.FootType;
 import com.example.client.cosmetic.CosmeticCatalog.HandType;
@@ -319,7 +320,7 @@ public class GeneralCosmeticsLayer extends RenderLayer<AvatarRenderState, Player
         target.flyAmount = (mc.player.isFallFlying() || mc.player.getAbilities().flying) ? 1.0f : 0.0f;
         target.swimAmount = state.swimAmount;
         target.hurtTime = (float) mc.player.hurtTime;
-        target.attackSwing = mc.player.getAttackAnim(0f);
+        target.attackSwing = KiemCompat.getAttackAnim(mc.player, 0f);
         target.isSlimArms = state.skin != null && state.skin.model() == PlayerModelType.SLIM;
         target.isLeftPart = isLeftPart;
         target.headYRot = (float) Math.toRadians(state.yRot);
@@ -347,8 +348,8 @@ public class GeneralCosmeticsLayer extends RenderLayer<AvatarRenderState, Player
                 poseStack.scale(sc, sc, sc);
             }
         }
-        collector.submitModel(model, renderState, poseStack, renderType,
-                light, OverlayTexture.NO_OVERLAY, outlineColor, (ModelFeatureRenderer.CrumblingOverlay) null);
+        KiemCompat.submitModel(collector, model, renderState, poseStack, renderType,
+                light, OverlayTexture.NO_OVERLAY, outlineColor);
         poseStack.popPose();
     }
 }

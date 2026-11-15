@@ -1,6 +1,7 @@
 package com.example.client.pet;
 
 import com.example.client.CapeManager;
+import com.example.client.KiemCompat;
 import com.example.client.KiemConfig;
 import com.example.client.model.pet.DragonPetModel;
 import com.example.client.model.pet.HamsterHdPetModel;
@@ -142,7 +143,7 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
         boolean playerActive = state.walkAnimationSpeed > 0.05f 
                 || mc.player.isUsingItem() 
                 || mc.player.hurtTime > 0 
-                || mc.player.getAttackAnim(0f) > 0.05f
+                || KiemCompat.getAttackAnim(mc.player, 0f) > 0.05f
                 || Math.abs(yVel) > 0.08f;
         if (playerActive) {
             lastActiveAge = state.ageInTicks;
@@ -205,7 +206,7 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
         petState.isEating = isEating && KiemConfig.petEatSeed;
         petState.isSleeping = isSleeping && KiemConfig.petSleepEnabled;
         petState.sleepProgress = KiemConfig.petSleepEnabled ? sleepProgress : 0f;
-        petState.attackSwing = mc.player.getAttackAnim(0f);
+        petState.attackSwing = KiemCompat.getAttackAnim(mc.player, 0f);
         petState.leftShoulder = left;
         petState.crouchAmount = crouchAmount;
         petState.eatAmount = KiemConfig.petEatSeed ? eatAmount : 0f;
@@ -383,10 +384,10 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
 
         poseStack.translate(x, y, z);
         if (petFacingAngle != 0f) {
-            poseStack.mulPose(Axis.YP.rotation(petFacingAngle));
+            KiemCompat.rotate(poseStack, Axis.YP.rotation(petFacingAngle));
         }
         if (rollAngle != 0f) {
-            poseStack.mulPose(Axis.ZP.rotation(rollAngle));
+            KiemCompat.rotate(poseStack, Axis.ZP.rotation(rollAngle));
         }
         poseStack.scale(scale, scale, scale);
 
@@ -400,16 +401,14 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
             case DRAGON -> {
                 render(collector, dragon, poseStack, TEX_DRAGON, light, state.outlineColor);
                 // Parlayan mor ejderha gozleri
-                collector.submitModel(dragon, petState, poseStack, RenderTypes.eyes(TEX_DRAGON_EYES),
-                        0x00F000F0, OverlayTexture.NO_OVERLAY, state.outlineColor,
-                        (ModelFeatureRenderer.CrumblingOverlay) null);
+                KiemCompat.submitModel(collector, dragon, petState, poseStack, RenderTypes.eyes(TEX_DRAGON_EYES),
+                        0x00F000F0, OverlayTexture.NO_OVERLAY, state.outlineColor);
             }
             case INVENTORY_CURSE -> render(collector, inventoryCurse, poseStack, TEX_INVENTORY_CURSE, light, state.outlineColor);
             case VOID_GARGOYLE -> {
                 render(collector, voidGargoyle, poseStack, TEX_VOID_GARGOYLE, light, state.outlineColor);
-                collector.submitModel(voidGargoyle, petState, poseStack, RenderTypes.eyes(TEX_VOID_GARGOYLE_EMISSIVE),
-                        0x00F000F0, OverlayTexture.NO_OVERLAY, state.outlineColor,
-                        (ModelFeatureRenderer.CrumblingOverlay) null);
+                KiemCompat.submitModel(collector, voidGargoyle, petState, poseStack, RenderTypes.eyes(TEX_VOID_GARGOYLE_EMISSIVE),
+                        0x00F000F0, OverlayTexture.NO_OVERLAY, state.outlineColor);
             }
             default -> { }
         }
@@ -419,7 +418,7 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
 
     private void render(SubmitNodeCollector collector, Model<PetRenderState> model, PoseStack poseStack,
                         Identifier tex, int light, int outline) {
-        collector.submitModel(model, petState, poseStack, tex, light, OverlayTexture.NO_OVERLAY, outline, null);
+        KiemCompat.submitModel(collector, model, petState, poseStack, tex, light, OverlayTexture.NO_OVERLAY, outline);
     }
 
     /**

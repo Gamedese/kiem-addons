@@ -2984,7 +2984,7 @@ public class KiemScreen extends Screen {
             int verPillX = ix + iw - verPillW - 14;
             int verPillY = curBaseY + 9;
             if (mouseX >= verPillX && mouseX <= verPillX + verPillW && mouseY >= verPillY && mouseY <= verPillY + verPillH) {
-                net.minecraft.util.Util.getPlatform().openUri(UpdateChecker.getDownloadUrl());
+                KiemCompat.openUri(UpdateChecker.getDownloadUrl());
                 return true;
             }
         }
@@ -3010,7 +3010,7 @@ public class KiemScreen extends Screen {
         int leftEnd = keyBoxX + labelW + btnW;
         for (HeroLinkRect lr : computeHeroLinkRects(leftEnd, resetBtnX, keyBoxY, keyBoxH)) {
             if (mouseX >= lr.x && mouseX <= lr.x + lr.w && mouseY >= lr.y && mouseY <= lr.y + lr.h) {
-                net.minecraft.util.Util.getPlatform().openUri(lr.url);
+                KiemCompat.openUri(lr.url);
                 return true;
             }
         }
@@ -3850,7 +3850,7 @@ public class KiemScreen extends Screen {
                 KiemConfig.zoomSensitivityScale = false;
                 KiemConfig.zoomSpeed = 16.0;
                 if (SmoothZoom.zoomKeyMapping != null) {
-                    SmoothZoom.zoomKeyMapping.setKey(com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(com.mojang.blaze3d.platform.InputConstants.KEY_C));
+                    SmoothZoom.zoomKeyMapping.setKey(KiemCompat.keyboardType().getOrCreate(com.mojang.blaze3d.platform.InputConstants.KEY_C));
                 }
                 KiemConfig.save();
                 return true;
@@ -4127,7 +4127,7 @@ public class KiemScreen extends Screen {
             } else {
                 KiemConfig.menuKey = event.key();
                 if (ExampleModClient.menuKeyMapping != null) {
-                    ExampleModClient.menuKeyMapping.setKey(com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(event.key()));
+                    ExampleModClient.menuKeyMapping.setKey(KiemCompat.keyboardType().getOrCreate(event.key()));
                 }
                 KiemConfig.save();
                 listeningForMenuKey = false;
@@ -4150,7 +4150,7 @@ public class KiemScreen extends Screen {
             } else {
                 KiemConfig.zoomKey = event.key();
                 if (SmoothZoom.zoomKeyMapping != null) {
-                    SmoothZoom.zoomKeyMapping.setKey(com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(event.key()));
+                    SmoothZoom.zoomKeyMapping.setKey(KiemCompat.keyboardType().getOrCreate(event.key()));
                 }
                 KiemConfig.save();
                 listeningForZoomKey = false;
@@ -4163,7 +4163,7 @@ public class KiemScreen extends Screen {
             } else {
                 KiemConfig.shoulderSwapKey = event.key();
                 if (ExampleModClient.shoulderSwapKeyMapping != null) {
-                    ExampleModClient.shoulderSwapKeyMapping.setKey(com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM.getOrCreate(event.key()));
+                    ExampleModClient.shoulderSwapKeyMapping.setKey(KiemCompat.keyboardType().getOrCreate(event.key()));
                 }
                 KiemConfig.save();
                 listeningForShoulderKey = false;

@@ -1,5 +1,6 @@
 package com.example.client.pet;
 
+import com.example.client.KiemCompat;
 import com.example.client.KiemConfig;
 import com.example.client.model.pet.HamsterHdPetModel;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -68,18 +69,18 @@ public final class GroundPetRenderer {
 
         poses.pushPose();
         poses.translate(dx, dy, dz);
-        poses.mulPose(Axis.YP.rotationDegrees(-petYaw));
+        KiemCompat.rotate(poses, Axis.YP.rotationDegrees(-petYaw));
         poses.scale(s, -s, -s);
 
-        collector.submitModel(
+        KiemCompat.submitModel(
+                collector,
                 hamsterHdModel,
                 STATE,
                 poses,
                 RenderTypes.entityCutout(TEX_HAMSTER_HD),
                 avatar.lightCoords,
                 OverlayTexture.NO_OVERLAY,
-                avatar.outlineColor,
-                null
+                avatar.outlineColor
         );
         poses.popPose();
     }

@@ -22,6 +22,15 @@ loom {
 	}
 }
 
+def isMc26_3 = project.minecraft_version.toString().startsWith("26.3")
+sourceSets {
+	client {
+		java {
+			srcDir(isMc26_3 ? "src/compat_26_3/java" : "src/compat_pre26_3/java")
+		}
+	}
+}
+
 dependencies {
 	// To change the versions see the gradle.properties file
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
@@ -98,8 +107,8 @@ tasks.register("build26_3", Exec) {
 
 tasks.register("buildAll") {
 	group = "build"
-	description = "Builds Kiem's QoL for both 26.1.2 and 26.2"
-	dependsOn "build26_1", "build26_2"
+	description = "Builds Kiem's QoL for 26.1.2, 26.2, and 26.3"
+	dependsOn "build26_1", "build26_2", "build26_3"
 }
 
 // configure the maven publication

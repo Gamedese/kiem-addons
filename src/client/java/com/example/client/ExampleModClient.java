@@ -8,7 +8,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import org.lwjgl.glfw.GLFW;
 
 public class ExampleModClient implements ClientModInitializer {
     public static KeyMapping menuKeyMapping;
@@ -18,22 +17,22 @@ public class ExampleModClient implements ClientModInitializer {
     public void onInitializeClient() {
         SmoothZoom.zoomKeyMapping = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.kiem.zoom",
-                InputConstants.Type.KEYSYM,
-                KiemConfig.zoomKey != 0 ? KiemConfig.zoomKey : GLFW.GLFW_KEY_C,
+                KiemCompat.keyboardType(),
+                KiemConfig.zoomKey != 0 ? KiemConfig.zoomKey : InputConstants.KEY_C,
                 KeyMapping.Category.MISC
         ));
 
         menuKeyMapping = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.kiem.menu",
-                InputConstants.Type.KEYSYM,
-                KiemConfig.menuKey != 0 ? KiemConfig.menuKey : GLFW.GLFW_KEY_F6,
+                KiemCompat.keyboardType(),
+                KiemConfig.menuKey != 0 ? KiemConfig.menuKey : InputConstants.KEY_F6,
                 KeyMapping.Category.MISC
         ));
 
         shoulderSwapKeyMapping = KeyMappingHelper.registerKeyMapping(new KeyMapping(
                 "key.kiem.shoulder_swap",
-                InputConstants.Type.KEYSYM,
-                KiemConfig.shoulderSwapKey != 0 ? KiemConfig.shoulderSwapKey : GLFW.GLFW_KEY_V,
+                KiemCompat.keyboardType(),
+                KiemConfig.shoulderSwapKey != 0 ? KiemConfig.shoulderSwapKey : InputConstants.KEY_V,
                 KeyMapping.Category.MISC
         ));
 

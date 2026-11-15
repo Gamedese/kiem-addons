@@ -1,6 +1,7 @@
 package com.example.client.mixin;
 
 import com.example.client.CapeManager;
+import com.example.client.KiemCompat;
 import com.example.client.KiemConfig;
 import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.model.Model;
@@ -47,6 +48,6 @@ public abstract class CapeLayerMixin {
                 }
             }
         }
-        collector.submitModel((Model) model, state, poseStack, renderType, light, overlay, outlineColor, crumbling);
+        KiemCompat.submitModel(collector, (Model) model, state, poseStack, renderType, light, overlay, outlineColor);
     }
 }
