@@ -26,8 +26,37 @@ public final class SakuraAuraRenderer {
     private static final Identifier BLOOM = Identifier.fromNamespaceAndPath("modid", "textures/aura/sakura_bloom.png");
     private static SakuraLopModel model;
     private static SakuraBloomModel bloomModel;
+    private static final java.lang.reflect.Method MAIN_CAMERA_METHOD = resolveMethod(
+            net.minecraft.client.renderer.GameRenderer.class, "mainCamera", "getMainCamera");
+    private static final java.lang.reflect.Method CAMERA_POS_METHOD = resolveMethod(
+            net.minecraft.client.Camera.class, "position", "getPosition");
 
     private SakuraAuraRenderer() { }
+
+    private static java.lang.reflect.Method resolveMethod(Class<?> owner, String... names) {
+        for (String n : names) {
+            try {
+                var m = owner.getMethod(n);
+                m.setAccessible(true);
+                return m;
+            } catch (NoSuchMethodException ignored) { }
+        }
+        return null;
+    }
+
+    public static boolean isWorldCamera(Minecraft client, CameraRenderState camera) {
+        if (camera == null || !camera.initialized || camera.pos == null || client == null) return false;
+        if (MAIN_CAMERA_METHOD == null || CAMERA_POS_METHOD == null) return true;
+        try {
+            Object cam = MAIN_CAMERA_METHOD.invoke(client.gameRenderer);
+            if (cam == null) return false;
+            Object posObj = CAMERA_POS_METHOD.invoke(cam);
+            if (posObj instanceof net.minecraft.world.phys.Vec3 camPos) {
+                return camera.pos.distanceToSqr(camPos) <= 0.01;
+            }
+        } catch (Throwable ignored) { }
+        return true;
+    }
 
     public static void submit(AvatarRenderState state, PoseStack poses, SubmitNodeCollector collector,
                               CameraRenderState camera) {
@@ -35,9 +64,7 @@ public final class SakuraAuraRenderer {
         if (!KiemConfig.sakuraAuraEnabled || client.player == null || client.level == null
                 || state.id != client.player.getId() || state.isInvisible || state.isSpectator
                 || client.player.isSleeping() || client.options.getCameraType().isFirstPerson()
-                || camera == null || !camera.initialized) return;
-        // Inventory/GUI entity previews use a synthetic camera; never draw a world trail there.
-        if (camera.pos == null || camera.pos.distanceToSqr(client.gameRenderer.mainCamera().position()) > 0.01) return;
+                || !isWorldCamera(client, camera)) return;
         if (KiemConfig.sakuraAuraPetals != 0) {
             submitPetals(SakuraAuraManager.petals(), state.ageInTicks, state.x, state.y, state.z,
                     state.lightCoords, camera.orientation, poses, collector);

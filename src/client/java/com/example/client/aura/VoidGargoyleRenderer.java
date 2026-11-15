@@ -44,9 +44,7 @@ public final class VoidGargoyleRenderer {
         if (!enabled || client.player == null || client.level == null
                 || state.id != client.player.getId() || state.isInvisible || state.isSpectator
                 || client.player.isSleeping() || client.options.getCameraType().isFirstPerson()
-                || camera == null || !camera.initialized) return;
-
-        if (camera.pos == null || camera.pos.distanceToSqr(client.gameRenderer.mainCamera().position()) > 0.01) return;
+                || !SakuraAuraRenderer.isWorldCamera(client, camera)) return;
 
         float time = VoidGargoyleManager.orbitTime(state.ageInTicks);
         float partialTick = state.ageInTicks - (float) Math.floor(state.ageInTicks);
