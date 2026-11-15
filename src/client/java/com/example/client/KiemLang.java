@@ -122,14 +122,26 @@ public class KiemLang {
         en("welcome.links_title", "Community & Links");
         tr("welcome.whats_new", "✨ Yenilikler — v1.1");
         en("welcome.whats_new", "✨ What's New — v1.1");
-        tr("welcome.whats_new.1", "✿ Sakura & Ink Boutique Arayüz, Temalar & Maskot");
-        en("welcome.whats_new.1", "✿ Sakura & Ink Boutique UI, Themes & Mascot");
-        tr("welcome.whats_new.2", "⚔ Yeni Blockbench Şapka, Maske & Bel Kozmetikleri");
-        en("welcome.whats_new.2", "⚔ Redesigned Blockbench Hats, Masks & Waist");
-        tr("welcome.whats_new.3", "⚙ Gardırop Customize (Y/Z/Ölçek) & Gardırop Sıfırlama");
-        en("welcome.whats_new.3", "⚙ Wardrobe Customize (Y/Z/Scale) & Reset");
-        tr("welcome.whats_new.4", "⚡ 256-Renk Pelerin Optimizasyonu & Güncelleme Kontrolü");
-        en("welcome.whats_new.4", "⚡ 256-Color Cape Optimization & Update Checker");
+        tr("welcome.wn.1.title", "✿ Yeni Menü, Temalar & Maskot");
+        en("welcome.wn.1.title", "✿ Menu Overhaul & Themes");
+        tr("welcome.wn.1.desc", "Baştan aşağı yenilenen menümüz; tema, font seçenekleri ve minik Rikka maskotumuzla!");
+        en("welcome.wn.1.desc", "Rebuilt from the ground up with switchable themes, custom fonts & our tiny Rikka mascot!");
+        tr("welcome.wn.1.btn", "🎨 Temalar →");
+        en("welcome.wn.1.btn", "🎨 Themes →");
+
+        tr("welcome.wn.2.title", "✨ Yeni 3D Gardırop");
+        en("welcome.wn.2.title", "✨ Complete 3D Wardrobe");
+        tr("welcome.wn.2.desc", "Kanatlar, maskeler, şapkalar ve daha fazlası; hepsi Y/Z/Ölçek ayarlı (WIP, yenileri yolda!).");
+        en("welcome.wn.2.desc", "A new wardrobe with wings, masks, hats & more — all Y/Z/Scale customizable (WIP, more coming soon!).");
+        tr("welcome.wn.2.btn", "✨ Gardırop →");
+        en("welcome.wn.2.btn", "✨ Wardrobe →");
+
+        tr("welcome.wn.3.title", "🐾 Omuz Yoldaşları, İzler & Auralar");
+        en("welcome.wn.3.title", "🐾 Shoulder Companions, Trails & Auras");
+        tr("welcome.wn.3.desc", "Farklı animasyonlu omuz yoldaşları, izler ve auralar (geliştirme aşamasında, yenileri yolda!).");
+        en("welcome.wn.3.desc", "Different animated shoulder companions, trails & auras — still WIP, more coming soon!");
+        tr("welcome.wn.3.btn", "🐾 Petler →");
+        en("welcome.wn.3.btn", "🐾 Pets →");
         tr("welcome.edit_arrow", "Düzenle →");
         en("welcome.edit_arrow", "Edit →");
         tr("wardrobe.reset_btn", "Gardırop Sıfırla");
