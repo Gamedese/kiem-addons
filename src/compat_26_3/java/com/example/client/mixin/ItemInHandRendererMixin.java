@@ -18,6 +18,7 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.renderer.FirstPersonHandsAndItemsRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
+import net.minecraft.client.renderer.item.ItemStackRenderState;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.client.renderer.state.level.FirstPersonHandsAndItemsRenderState;
 import net.minecraft.client.renderer.state.level.PlayerRenderState;
@@ -125,12 +126,29 @@ public abstract class ItemInHandRendererMixin {
         poseStack.rotateDegrees(Axis.XP, KiemConfig.itemPitch);
         poseStack.rotateDegrees(Axis.YP, KiemConfig.itemYaw * handSign);
         poseStack.rotateDegrees(Axis.ZP, KiemConfig.itemRoll * handSign);
+    }
 
-        if (!stack.isEmpty()) {
+    @Redirect(
+            method = "submitArmWithItem",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/renderer/item/ItemStackRenderState;submit(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/SubmitNodeCollector;III)V"
+            )
+    )
+    private void kiem$scaleItemOnly(
+            ItemStackRenderState instance,
+            PoseStack poseStack,
+            SubmitNodeCollector collector,
+            int light,
+            int overlay,
+            int outlineColor
+    ) {
+        if (KiemConfig.viewmodelEnabled) {
             float scale = 1.0f + KiemConfig.itemSize * 0.5f;
             if (scale < 0.05f) scale = 0.05f;
             poseStack.scale(scale, scale, scale);
         }
+        instance.submit(poseStack, collector, light, overlay, outlineColor);
     }
 
     @Redirect(
