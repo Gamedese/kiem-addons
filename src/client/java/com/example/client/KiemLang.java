@@ -734,8 +734,13 @@ public class KiemLang {
         // Wings
         tr("cosmetic.wing.seraphim.title", "Seraphim Kanatları");
         en("cosmetic.wing.seraphim.title", "Seraphim Wings");
-        tr("cosmetic.wing.seraphim.desc", "Altın işlemeli görkemli melek kanatları.");
-        en("cosmetic.wing.seraphim.desc", "Majestic angel wings with golden filigree.");
+        tr("cosmetic.wing.seraphim.desc", "Çift katmanlı simetrik beyaz melek kanatları.");
+        en("cosmetic.wing.seraphim.desc", "Symmetrical double-tiered white angel wings.");
+
+        tr("cosmetic.wing.valkyrie.title", "Valkür Kanatları");
+        en("cosmetic.wing.valkyrie.title", "Valkyrie Wings");
+        tr("cosmetic.wing.valkyrie.desc", "Altın işlemeli görkemli zırhlı melek kanatları.");
+        en("cosmetic.wing.valkyrie.desc", "Majestic armored angel wings with golden filigree.");
         tr("cosmetic.wing.demon_dragon.title", "İblis Ejderha Kanatları");
         en("cosmetic.wing.demon_dragon.title", "Demon Dragon Wings");
         tr("cosmetic.wing.demon_dragon.desc", "Karanlık zarlı ve sivri pençeli ejderha kanatları.");
@@ -790,8 +795,8 @@ public class KiemLang {
         en("cosmetic.hat.broken_halo.title", "Broken Halo");
         tr("cosmetic.hat.broken_halo.desc", "Çatlamış ve eğilmiş sönük kutsal hale.");
         en("cosmetic.hat.broken_halo.desc", "Shattered and tilted dim sacred halo.");
-        tr("cosmetic.hat.royal_crown.title", "Kraliyet Tacı");
-        en("cosmetic.hat.royal_crown.title", "Royal Crown");
+        tr("cosmetic.hat.royal_crown.title", "Taç");
+        en("cosmetic.hat.royal_crown.title", "Crown");
         tr("cosmetic.hat.royal_crown.desc", "Mücevherlerle bezeli görkemli altın taç.");
         en("cosmetic.hat.royal_crown.desc", "Jeweled regal golden crown.");
         tr("cosmetic.hat.neko_headphones.title", "Neko Kulaklık");
@@ -806,10 +811,14 @@ public class KiemLang {
         en("cosmetic.hat.ushanka_fur.title", "Fur Ushanka");
         tr("cosmetic.hat.ushanka_fur.desc", "Soğuk kış geceleri için kalın kürklü kalpak.");
         en("cosmetic.hat.ushanka_fur.desc", "Thick fur-lined winter earflap cap.");
-        tr("cosmetic.hat.tricorn_captain.title", "Kaptan Üçköşe Şapka");
-        en("cosmetic.hat.tricorn_captain.title", "Captain Tricorn");
-        tr("cosmetic.hat.tricorn_captain.desc", "Altın şeritli denizci kaptan şapkası.");
-        en("cosmetic.hat.tricorn_captain.desc", "Gold-trimmed seafarer captain tricorn.");
+        tr("cosmetic.hat.tricorn_captain.title", "Korsan Şapkası");
+        en("cosmetic.hat.tricorn_captain.title", "Pirate Tricorn");
+        tr("cosmetic.hat.tricorn_captain.desc", "Altın şeritli ve kuru kafalı korsan şapkası.");
+        en("cosmetic.hat.tricorn_captain.desc", "Gold-trimmed pirate tricorn with skull emblem.");
+        tr("cosmetic.hat.napoleon_bicorne.title", "Napolyon Şapkası");
+        en("cosmetic.hat.napoleon_bicorne.title", "Napoleon Bicorne");
+        tr("cosmetic.hat.napoleon_bicorne.desc", "Fransız kokartlı ve altın şeritli iki köşeli şapka.");
+        en("cosmetic.hat.napoleon_bicorne.desc", "Gold-trimmed bicorne hat with tricolor cockade.");
         tr("cosmetic.hat.egirl_headphones.title", "E-Girl Kulaklık");
         en("cosmetic.hat.egirl_headphones.title", "E-Girl Headphones");
         tr("cosmetic.hat.egirl_headphones.desc", "Pastel LED detaylı şık yayıncı kulaklığı.");
@@ -892,10 +901,10 @@ public class KiemLang {
         en("cosmetic.waist.twin_daggers.title", "Twin Daggers");
         tr("cosmetic.waist.twin_daggers.desc", "Belin iki yanında taşınan suikastçı hançerleri.");
         en("cosmetic.waist.twin_daggers.desc", "Dual assassin daggers holstered at the hips.");
-        tr("cosmetic.waist.nekomata_tails.title", "Nekomata Kuyrukları");
-        en("cosmetic.waist.nekomata_tails.title", "Nekomata Tails");
-        tr("cosmetic.waist.nekomata_tails.desc", "Uyum içinde sallanan çift ruh kedisi kuyruğu.");
-        en("cosmetic.waist.nekomata_tails.desc", "Twin spirit-cat tails swaying in unison.");
+        tr("cosmetic.waist.cat_tail.title", "Kedi Kuyruğu");
+        en("cosmetic.waist.cat_tail.title", "Cat Tail");
+        tr("cosmetic.waist.cat_tail.desc", "Kıvrımlı, sevimli sallanan tek kedi kuyruğu.");
+        en("cosmetic.waist.cat_tail.desc", "Curved, lively swaying single cat tail.");
         tr("cosmetic.waist.wolf_tail.title", "Kurt Kuyruğu");
         en("cosmetic.waist.wolf_tail.title", "Wolf Tail");
         tr("cosmetic.waist.wolf_tail.desc", "Gür ve vahşi gri kurt kuyruğu.");
@@ -918,6 +927,18 @@ public class KiemLang {
         en("cosmetic.foot.fighter_leg_wraps.title", "Fighter Leg Wraps");
         tr("cosmetic.foot.fighter_leg_wraps.desc", "Tekme ve çeviklik için sıkı dövüş bandajları.");
         en("cosmetic.foot.fighter_leg_wraps.desc", "Tightly wound martial arts shin wraps.");
+        tr("cosmetic.foot.bare_feet.title", "Ayak");
+        en("cosmetic.foot.bare_feet.title", "Feet");
+        tr("cosmetic.foot.bare_feet.desc", "Doğal cilt tonlu, kademeli 5 parmaklı ve eğimli ayak modeli.");
+        en("cosmetic.foot.bare_feet.desc", "Natural skin-toned feet with arched instep and sculpted toes.");
+        tr("cosmetic.foot.combat_boots.title", "Klasik Bot");
+        en("cosmetic.foot.combat_boots.title", "Platform Boots");
+        tr("cosmetic.foot.combat_boots.desc", "Mat siyah deri, dişli kalın taban ve gümüş tokalı botlar.");
+        en("cosmetic.foot.combat_boots.desc", "Matte charcoal leather boots with lugged soles and silver buckles.");
+        tr("cosmetic.foot.classic_sneakers.title", "Klasik Sneaker");
+        en("cosmetic.foot.classic_sneakers.title", "Classic Sneakers");
+        tr("cosmetic.foot.classic_sneakers.desc", "Kırık beyaz ve arduvaz çift tonlu, beyaz tabanlı günlük sneaker.");
+        en("cosmetic.foot.classic_sneakers.desc", "Two-tone off-white and slate low-top sneakers with white cupsoles.");
 
         // Trail Effects
         tr("cosmetic.trail.jump_magic_circle.title", "Zıplama Büyü Çemberi");

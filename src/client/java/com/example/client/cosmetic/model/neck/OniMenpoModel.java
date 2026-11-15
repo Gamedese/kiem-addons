@@ -10,83 +10,44 @@ import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
 
 /**
- * Fierce black & gold samurai menpo lower-face armor mask attached to PlayerModel.head,
- * featuring sculpted cheek plates, nose guard, throat-guard (yodarekake), and white fangs at z = -4.3.
- * Texture: assets/modid/textures/cosmetic/neck_oni_menpo.png (256x256)
+ * Koyu kirmizi lake Oni Samuray Alt Yuz Maskesi (Oni Menpo).
+ * Doku: assets/modid/textures/cosmetic/neck_oni_menpo.png (64x64).
  */
 public class OniMenpoModel extends CosmeticModel {
-    private final ModelPart throatGuard;
+    private final ModelPart menpo;
 
     public OniMenpoModel(ModelPart root) {
         super(root);
-        this.throatGuard = root.getChild("throatGuard");
+        this.menpo = root.getChild("menpo");
     }
 
     public static LayerDefinition createLayer() {
         MeshDefinition mesh = new MeshDefinition();
         PartDefinition root = mesh.getRoot();
 
-        // Main lacquered black iron menpo shell (below eyes: y = -2.2..+0.5)
-        root.addOrReplaceChild("menpoBase",
-                CubeListBuilder.create()
-                        .texOffs(0, 0)
-                        .addBox(-4.25f, -2.2f, -4.28f, 8.5f, 2.7f, 8.5f),
-                PartPose.ZERO);
+        CubeListBuilder b = CubeListBuilder.create()
+                // Ana alt yuz ve cene zirhi
+                .texOffs(0, 0).addBox(-4.3f, -2.9f, -4.55f, 8.6f, 2.9f, 0.9f)
+                .texOffs(0, 0).addBox(-4.2f, -0.5f, -4.45f, 8.4f, 0.9f, 2.2f)
+                // Burun koruyucu cikinti
+                .texOffs(0, 0).addBox(-1.1f, -3.7f, -4.85f, 2.2f, 1.3f, 0.9f)
+                // Yanak yan plakalar
+                .texOffs(0, 0).addBox(-4.5f, -3.2f, -4.2f, 0.8f, 3.0f, 3.2f)
+                .texOffs(0, 0).addBox( 3.7f, -3.2f, -4.2f, 0.8f, 3.0f, 3.2f)
+                // Ense bagcigi
+                .texOffs(0, 32).addBox(-4.35f, -2.5f, -1.0f, 8.7f, 0.8f, 5.4f)
+                // 4 Sivri Oni disi (32, 0)
+                .texOffs(32, 0).addBox(-2.8f, -2.3f, -4.85f, 0.85f, 1.4f, 0.6f)
+                .texOffs(32, 0).addBox( 1.95f, -2.3f, -4.85f, 0.85f, 1.4f, 0.6f)
+                .texOffs(32, 0).addBox(-1.3f, -1.9f, -4.75f, 0.8f, 1.0f, 0.5f)
+                .texOffs(32, 0).addBox( 0.5f, -1.9f, -4.75f, 0.8f, 1.0f, 0.5f);
 
-        // Aggressive samurai nose bridge
-        root.addOrReplaceChild("noseGuard",
-                CubeListBuilder.create()
-                        .texOffs(0, 16)
-                        .addBox(-1.1f, -2.25f, -4.46f, 2.2f, 1.1f, 0.5f),
-                PartPose.ZERO);
-
-        // Sculpted flared cheek armor plates
-        root.addOrReplaceChild("cheekPlateL",
-                CubeListBuilder.create()
-                        .texOffs(8, 16)
-                        .addBox(-1.4f, -0.75f, -0.35f, 2.8f, 1.5f, 0.7f),
-                PartPose.offsetAndRotation(2.85f, -1.35f, -4.15f, 0.0f, -0.28f, -0.10f));
-
-        root.addOrReplaceChild("cheekPlateR",
-                CubeListBuilder.create()
-                        .texOffs(20, 16)
-                        .addBox(-1.4f, -0.75f, -0.35f, 2.8f, 1.5f, 0.7f),
-                PartPose.offsetAndRotation(-2.85f, -1.35f, -4.15f, 0.0f, 0.28f, 0.10f));
-
-        // Recessed fierce mouth-plate
-        root.addOrReplaceChild("mouthGrimace",
-                CubeListBuilder.create()
-                        .texOffs(0, 24)
-                        .addBox(-2.4f, -1.25f, -4.34f, 4.8f, 1.1f, 0.35f),
-                PartPose.ZERO);
-
-        // White sculpted oni fangs jutting out at z = -4.3
-        root.addOrReplaceChild("fangL",
-                CubeListBuilder.create()
-                        .texOffs(14, 24)
-                        .addBox(-0.35f, -0.75f, -0.35f, 0.7f, 0.95f, 0.65f),
-                PartPose.offsetAndRotation(1.45f, -0.70f, -4.32f, -0.18f, 0.0f, 0.14f));
-
-        root.addOrReplaceChild("fangR",
-                CubeListBuilder.create()
-                        .texOffs(20, 24)
-                        .addBox(-0.35f, -0.75f, -0.35f, 0.7f, 0.95f, 0.65f),
-                PartPose.offsetAndRotation(-1.45f, -0.70f, -4.32f, -0.18f, 0.0f, -0.14f));
-
-        // Gold-laced samurai throat-guard (yodarekake) below chin
-        root.addOrReplaceChild("throatGuard",
-                CubeListBuilder.create()
-                        .texOffs(0, 32)
-                        .addBox(-3.1f, 0.0f, -0.25f, 6.2f, 1.0f, 0.5f),
-                PartPose.offsetAndRotation(0.0f, 0.45f, -4.15f, -0.12f, 0.0f, 0.0f));
-
-        return LayerDefinition.create(mesh, 256, 256);
+        root.addOrReplaceChild("menpo", b, PartPose.ZERO);
+        return LayerDefinition.create(mesh, 64, 64);
     }
 
     @Override
     public void setupAnim(CosmeticRenderState s) {
-        resetPose();
-        float speed = Math.min(1.2f, s.walkSpeed);
-        throatGuard.xRot = -0.12f - speed * 0.10f - s.headXRot * 0.18f;
+        this.menpo.yRot = 0.0f;
     }
 }

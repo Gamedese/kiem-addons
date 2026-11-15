@@ -21,6 +21,8 @@ import org.joml.Vector3f;
 
 public class KiemScreen extends Screen {
 
+    public static final boolean ENABLE_DEV_MENU = true;
+
     private static final Identifier SANARA_V1_PREVIEW =
             Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_sanara.png");
     private static final Identifier SANARA_V2_PREVIEW =
@@ -29,6 +31,14 @@ public class KiemScreen extends Screen {
             Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_sanara_v3.png");
     private static final Identifier RIKKA_PREVIEW =
             Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_rikka.png");
+    private static final Identifier RIKKA_MASCOT_HEAD =
+            Identifier.fromNamespaceAndPath("modid", "textures/gui/rikka_head.png");
+    private static final Identifier RIKKA_MASCOT_BODY =
+            Identifier.fromNamespaceAndPath("modid", "textures/gui/rikka_body.png");
+    private static final Identifier RIKKA_MASCOT_LEG_L =
+            Identifier.fromNamespaceAndPath("modid", "textures/gui/rikka_leg_l.png");
+    private static final Identifier RIKKA_MASCOT_LEG_R =
+            Identifier.fromNamespaceAndPath("modid", "textures/gui/rikka_leg_r.png");
     private static final Identifier HAMSTER_PREVIEW =
             Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_pet_hamster.png");
     private static final Identifier HAMSTER_HD_PREVIEW =
@@ -68,7 +78,8 @@ public class KiemScreen extends Screen {
     private enum Tab {
         WELCOME("WELCOME"),
         CONFIG("FEATURES"),
-        COSMETICS("WARDROBE");
+        COSMETICS("WARDROBE"),
+        DEV("THEMES");
 
         private final String label;
 
@@ -79,6 +90,12 @@ public class KiemScreen extends Screen {
         public String getLabel() {
             return label;
         }
+    }
+
+    private static Tab[] getVisibleTabs() {
+        return ENABLE_DEV_MENU
+                ? Tab.values()
+                : new Tab[] { Tab.WELCOME, Tab.CONFIG, Tab.COSMETICS };
     }
 
     private enum ConfigSubView {
@@ -110,6 +127,11 @@ public class KiemScreen extends Screen {
     private float cosmeticPreviewPitch = 0.0f;
     private float cosmeticPreviewScale = 1.0f;
     private boolean draggingCosmeticPreview = false;
+    private boolean cosmeticCustomizeOpen = false;
+    private boolean draggingMascot = false;
+    private float mascotDragOffsetX = 0.0f;
+    private float mascotDragOffsetY = 0.0f;
+    private static final int MASCOT_SIZE = 88;
     private boolean showResetConfirmModal = false;
     private boolean showLanguageModal = !KiemConfig.hasSelectedLanguage;
 
@@ -119,17 +141,6 @@ public class KiemScreen extends Screen {
     private int sliderTrackW = 0;
     private float sliderMin = 0f;
     private float sliderMax = 0f;
-
-    // Sakura & Ink Boutique Palette
-    private static final int COLOR_TEXT_WHITE = 0xFFF7EEF2;
-    private static final int COLOR_TEXT_ROSEGOLD = 0xFFE8B8B0;
-    private static final int COLOR_TEXT_MUTED = 0xFFBFA8B8;
-    private static final int COLOR_TEXT_DIM = 0xFF8C7488;
-    private static final int COLOR_TEXT_INK = 0xFF211728;
-    private static final int COLOR_ACCENT = 0xFFF2B8C6;
-    private static final int COLOR_SAKURA_BRIGHT = 0xFFF2C2CE;
-    private static final int COLOR_ACTIVE_STATUS = 0xFF7CE8B4;
-    private static final int COLOR_DIVIDER = 0x44E6B0A4;
 
     // Layout constants
     private static final int MARGIN_X = 18;
@@ -168,10 +179,26 @@ public class KiemScreen extends Screen {
 
     // --- Layout Geometry Helpers ---
 
-    private int getMx() { return MARGIN_X; }
-    private int getMy() { return MARGIN_Y; }
-    private int getMw() { return Math.max(460, this.width - 36); }
-    private int getMh() { return Math.max(260, this.height - 28); }
+    private int getMw() {
+        return KiemConfig.uiFullscreen
+                ? Math.max(460, this.width - 36)
+                : Math.min(Math.max(460, this.width - 40), 700);
+    }
+
+    private int getMh() {
+        return KiemConfig.uiFullscreen
+                ? Math.max(260, this.height - 28)
+                : Math.min(Math.max(260, this.height - 36), 380);
+    }
+
+    private int getMx() {
+        return KiemConfig.uiFullscreen ? 18 : (this.width - getMw()) / 2;
+    }
+
+    private int getMy() {
+        return KiemConfig.uiFullscreen ? 14 : (this.height - getMh()) / 2;
+    }
+
     private int getTopY() { return getMy(); }
     private int getBottomY() { return getMy() + getMh() - BOTTOM_H; }
     private int getContentY() { return getTopY() + TOP_H + SECTION_GAP; }
@@ -184,10 +211,10 @@ public class KiemScreen extends Screen {
     private int getStripW() { return getMw() - getGalleryW() - getStageW() - 16; }
 
     private int[] computeTopNavPillWidths() {
-        Tab[] tabs = Tab.values();
+        Tab[] tabs = getVisibleTabs();
         int[] widths = new int[tabs.length];
         for (int i = 0; i < tabs.length; i++) {
-            widths[i] = Math.max(66, this.font.width(tabs[i].getLabel()) + 22);
+            widths[i] = Math.max(54, BoutiqueDraw.textWidth(this.font, tabs[i].getLabel()) + 22);
         }
         return widths;
     }
@@ -207,7 +234,7 @@ public class KiemScreen extends Screen {
         int langX = gearX - gap - langW;
 
         String playerName = getPlayerDisplayName();
-        int playerW = Math.min(118, Math.max(60, this.font.width(playerName) + 24));
+        int playerW = Math.min(118, Math.max(60, BoutiqueDraw.textWidth(this.font, playerName) + 24));
         int playerX = langX - gap - playerW;
 
         return new int[] { closeX, gearX, langX, langW, playerX, playerW };
@@ -217,7 +244,7 @@ public class KiemScreen extends Screen {
         int mx = getMx();
         int totalSlotsW = 5 * 28 + 4 * 6; // 164
         String leftLabel = "EQUIPPED COSMETIC SLOT BAR";
-        int leftEnd = mx + 14 + Math.min(185, this.font.width(leftLabel)) + 10;
+        int leftEnd = mx + 14 + Math.min(185, BoutiqueDraw.textWidth(this.font, leftLabel)) + 10;
         int idealStart = mx + (getMw() - totalSlotsW) / 2;
         int maxStart = playerPillX - 10 - totalSlotsW;
         return Math.max(leftEnd, Math.min(idealStart, maxStart));
@@ -240,11 +267,18 @@ public class KiemScreen extends Screen {
         int bgMouseY = hasModal ? -9999 : mouseY;
 
         int mx = getMx();
+        int my = getMy();
         int mw = getMw();
+        int mh = getMh();
         int topY = getTopY();
         int bottomY = getBottomY();
         int contentY = getContentY();
         int contentH = getContentH();
+
+        // Centered floating boutique shell (only in modal mode)
+        if (!KiemConfig.uiFullscreen) {
+            BoutiqueDraw.drawGlassPanel(graphics, mx - 10, my - 10, mw + 20, mh + 20);
+        }
 
         // 2. Top Header
         renderTopHeader(graphics, mx, topY, mw, TOP_H, bgMouseX, bgMouseY);
@@ -254,12 +288,19 @@ public class KiemScreen extends Screen {
             renderWelcomeTab(graphics, mx, contentY, mw, contentH, bgMouseX, bgMouseY);
         } else if (currentTab == Tab.COSMETICS) {
             renderCosmeticsTab(graphics, mx, contentY, mw, contentH, bgMouseX, bgMouseY);
+        } else if (ENABLE_DEV_MENU && currentTab == Tab.DEV) {
+            renderDevTab(graphics, mx, contentY, mw, contentH, bgMouseX, bgMouseY);
         } else {
             renderConfigTab(graphics, mx, contentY, mw, contentH, bgMouseX, bgMouseY);
         }
 
         // 4. Bottom Slot & Status Bar
         renderBottomBar(graphics, mx, bottomY, mw, BOTTOM_H, bgMouseX, bgMouseY);
+
+        // 4.5 Bottom-Right Animated Rikka Mascot
+        if (KiemConfig.uiShowMascot) {
+            renderRikkaMascot(graphics, mouseX, mouseY);
+        }
 
         // 5. Reset Confirmation Modal Overlay
         if (showResetConfirmModal) {
@@ -275,21 +316,22 @@ public class KiemScreen extends Screen {
     }
 
     private void renderTopHeader(GuiGraphicsExtractor graphics, int x, int y, int w, int h, int mouseX, int mouseY) {
-        // Left title: KIEM ADDONS | Sakura & Ink Boutique
+        BoutiqueDraw.Theme theme = BoutiqueDraw.theme();
+        // Left title: KIEM ADDONS | <Theme Display Name>
         int textY = y + (h - 8) / 2;
         String brand = "KIEM ADDONS";
         String sep = " | ";
-        String sub = "Sakura & Ink Boutique";
+        String sub = theme.displayName + " Boutique";
 
         int cx = x + 4;
-        graphics.text(this.font, brand, cx, textY, COLOR_TEXT_WHITE, false);
-        cx += this.font.width(brand);
-        graphics.text(this.font, sep, cx, textY, 0x88E8B8B0, false);
-        cx += this.font.width(sep);
-        graphics.text(this.font, sub, cx, textY, COLOR_TEXT_ROSEGOLD, false);
+        BoutiqueDraw.drawText(graphics, this.font, brand, cx, textY, theme.textPrimary);
+        cx += BoutiqueDraw.textWidth(this.font, brand);
+        BoutiqueDraw.drawText(graphics, this.font, sep, cx, textY, theme.textDim);
+        cx += BoutiqueDraw.textWidth(this.font, sep);
+        BoutiqueDraw.drawText(graphics, this.font, sub, cx, textY, theme.textAccent);
 
-        // Right pill bar with WELCOME, FEATURES, WARDROBE
-        Tab[] tabs = Tab.values();
+        // Right pill bar with WELCOME, FEATURES, WARDROBE (and DEV if enabled)
+        Tab[] tabs = getVisibleTabs();
         int[] pillWidths = computeTopNavPillWidths();
         int pillGap = 6;
         int pillH = 22;
@@ -313,8 +355,8 @@ public class KiemScreen extends Screen {
             boolean active = (currentTab == t);
             boolean hover = mouseX >= px && mouseX <= px + pw && mouseY >= py && mouseY <= py + pillH;
             BoutiqueDraw.drawPill(graphics, px, py, pw, pillH, active, hover);
-            int txtColor = active ? COLOR_TEXT_INK : (hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
-            graphics.centeredText(this.font, t.getLabel(), px + pw / 2, py + 7, txtColor);
+            int txtColor = active ? theme.textOnActivePill : (hover ? theme.textPrimary : theme.textMuted);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, t.getLabel(), px + pw / 2, py + 7, txtColor);
             px += pw + pillGap;
         }
     }
@@ -333,7 +375,7 @@ public class KiemScreen extends Screen {
         // Left label
         int slotsStartX = computeBottomSlotsStartX(playerX);
         int maxLabelW = Math.max(40, slotsStartX - (x + 14) - 8);
-        drawBoundedText(graphics, "EQUIPPED COSMETIC SLOT BAR", x + 14, y + (h - 8) / 2, maxLabelW, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, "EQUIPPED COSMETIC SLOT BAR", x + 14, y + (h - 8) / 2, maxLabelW, BoutiqueDraw.theme().textMuted);
 
         // Center 5 circular slots
         int slotSize = 28;
@@ -370,11 +412,11 @@ public class KiemScreen extends Screen {
             boolean hover = mouseX >= sx && mouseX <= sx + slotSize && mouseY >= slotY && mouseY <= slotY + slotSize;
             boolean active = slotEquipped[i] || slotSelected[i];
             BoutiqueDraw.drawCircleSlot(graphics, sx, slotY, slotSize, active, hover);
-            int glyphColor = slotEquipped[i] ? COLOR_SAKURA_BRIGHT : (hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
-            graphics.centeredText(this.font, slotGlyphs[i], sx + slotSize / 2, slotY + 10, glyphColor);
+            int glyphColor = slotEquipped[i] ? BoutiqueDraw.theme().textAccent : (hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, slotGlyphs[i], sx + slotSize / 2, slotY + 10, glyphColor);
             if (slotEquipped[i]) {
                 // Small active sakura dot at bottom-right of slot
-                graphics.fill(sx + slotSize - 7, slotY + slotSize - 7, sx + slotSize - 3, slotY + slotSize - 3, COLOR_SAKURA_BRIGHT);
+                graphics.fill(sx + slotSize - 7, slotY + slotSize - 7, sx + slotSize - 3, slotY + slotSize - 3, BoutiqueDraw.theme().textAccent);
             }
         }
 
@@ -384,18 +426,18 @@ public class KiemScreen extends Screen {
         BoutiqueDraw.drawPill(graphics, playerX, pillY, playerW, pillH, false, false);
         int dotX = playerX + 8;
         int dotY = pillY + (pillH - 5) / 2;
-        graphics.fill(dotX, dotY, dotX + 5, dotY + 5, COLOR_ACTIVE_STATUS);
-        drawBoundedText(graphics, getPlayerDisplayName(), dotX + 9, pillY + 7, playerW - 22, COLOR_TEXT_WHITE);
+        graphics.fill(dotX, dotY, dotX + 5, dotY + 5, BoutiqueDraw.theme().textPositive);
+        drawBoundedText(graphics, getPlayerDisplayName(), dotX + 9, pillY + 7, playerW - 22, BoutiqueDraw.theme().textPrimary);
 
         // Right: Language Flag Pill
         boolean langHover = mouseX >= langX && mouseX <= langX + langW && mouseY >= pillY && mouseY <= pillY + pillH;
         BoutiqueDraw.drawPill(graphics, langX, pillY, langW, pillH, false, langHover);
         if ("en".equalsIgnoreCase(KiemConfig.language)) {
             drawFlagUK(graphics, langX + 7, pillY + 6);
-            graphics.text(this.font, "EN", langX + 26, pillY + 7, langHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED, false);
+            BoutiqueDraw.drawText(graphics, this.font, "EN", langX + 26, pillY + 7, langHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
         } else {
             drawFlagTR(graphics, langX + 7, pillY + 6);
-            graphics.text(this.font, "TR", langX + 26, pillY + 7, langHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED, false);
+            BoutiqueDraw.drawText(graphics, this.font, "TR", langX + 26, pillY + 7, langHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
         }
 
         // Right: Circular Settings / Reset button (⚙)
@@ -403,12 +445,12 @@ public class KiemScreen extends Screen {
         int circleY = y + (h - circleSize) / 2;
         boolean gearHover = mouseX >= gearX && mouseX <= gearX + circleSize && mouseY >= circleY && mouseY <= circleY + circleSize;
         BoutiqueDraw.drawCircleSlot(graphics, gearX, circleY, circleSize, false, gearHover);
-        graphics.centeredText(this.font, "⚙", gearX + circleSize / 2, circleY + 9, gearHover ? COLOR_SAKURA_BRIGHT : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "⚙", gearX + circleSize / 2, circleY + 9, gearHover ? BoutiqueDraw.theme().textAccent : BoutiqueDraw.theme().textMuted);
 
         // Right: Circular Close button (✕)
         boolean closeHover = mouseX >= closeX && mouseX <= closeX + circleSize && mouseY >= circleY && mouseY <= circleY + circleSize;
         BoutiqueDraw.drawCircleSlot(graphics, closeX, circleY, circleSize, false, closeHover);
-        graphics.centeredText(this.font, "✕", closeX + circleSize / 2, circleY + 9, closeHover ? 0xFFFF8899 : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "✕", closeX + circleSize / 2, circleY + 9, closeHover ? 0xFFFF8899 : BoutiqueDraw.theme().textMuted);
     }
 
     // ==================== COSMETICS (WARDROBE) TAB ====================
@@ -422,7 +464,7 @@ public class KiemScreen extends Screen {
 
         // 1. Left/Center Main Gallery Panel
         BoutiqueDraw.drawGlassPanel(graphics, x, y, galleryW, h);
-        graphics.text(this.font, "COSMETIC GALLERY", x + 14, y + 11, COLOR_TEXT_WHITE, false);
+        BoutiqueDraw.drawText(graphics, this.font, "COSMETIC GALLERY", x + 14, y + 11, BoutiqueDraw.theme().textPrimary);
 
         // 9 Category Pills Strip
         CosmeticsSub[] subs = CosmeticsSub.values();
@@ -439,9 +481,9 @@ public class KiemScreen extends Screen {
             boolean active = (currentCosmeticsSub == sub);
             boolean hover = mouseX >= bx && mouseX <= bx + catW && mouseY >= catY && mouseY <= catY + catH;
             BoutiqueDraw.drawPill(graphics, bx, catY, catW, catH, active, hover);
-            String label = this.font.plainSubstrByWidth(KiemLang.get(sub.langKey), Math.max(8, catW - 6));
-            int txtColor = active ? COLOR_TEXT_INK : (hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
-            graphics.centeredText(this.font, label, bx + catW / 2, catY + 5, txtColor);
+            String label = BoutiqueDraw.fitText(this.font, KiemLang.get(sub.langKey), Math.max(8, catW - 6));
+            int txtColor = active ? BoutiqueDraw.theme().textOnActivePill : (hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, label, bx + catW / 2, catY + 5, txtColor);
         }
 
         // Gallery viewport & footer
@@ -501,24 +543,90 @@ public class KiemScreen extends Screen {
                 graphics.entity(avatar, scale, translation, rotation, view, x0, y0, x1, y1);
             }
         } else {
-            graphics.centeredText(this.font, "3D", px + pw / 2, py + ph / 2 - 4, COLOR_TEXT_DIM);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, "3D", px + pw / 2, py + ph / 2 - 4, BoutiqueDraw.theme().textDim);
         }
 
-        // Floating Reset View pill at bottom of stage
-        int btnW = Math.min(112, pw - 16);
+        // Floating Reset View & Customize pills at bottom of stage
+        int gap = 4;
+        int totalW = pw - 12;
+        int resetW = (totalW - gap) / 2;
+        int custW = totalW - gap - resetW;
         int btnH = 20;
-        int btnX = px + (pw - btnW) / 2;
+        int resetX = px + 6;
+        int custX = resetX + resetW + gap;
         int btnY = py + ph - 26;
-        boolean resetHover = mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= btnY && mouseY <= btnY + btnH;
-        BoutiqueDraw.drawPill(graphics, btnX, btnY, btnW, btnH, false, resetHover);
-        String resetLabel = this.font.plainSubstrByWidth(KiemLang.get("auras.custom.reset_view"), btnW - 10);
-        graphics.centeredText(this.font, resetLabel, btnX + btnW / 2, btnY + 6,
-                resetHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+
+        boolean resetHover = mouseX >= resetX && mouseX <= resetX + resetW && mouseY >= btnY && mouseY <= btnY + btnH;
+        BoutiqueDraw.drawPill(graphics, resetX, btnY, resetW, btnH, false, resetHover);
+        String resetLabel = BoutiqueDraw.fitText(this.font, KiemLang.get("auras.custom.reset_view"), resetW - 8);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, resetLabel, resetX + resetW / 2, btnY + 6,
+                resetHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
+
+        boolean custHover = mouseX >= custX && mouseX <= custX + custW && mouseY >= btnY && mouseY <= btnY + btnH;
+        BoutiqueDraw.drawPill(graphics, custX, btnY, custW, btnH, cosmeticCustomizeOpen, custHover);
+        String custLabel = BoutiqueDraw.fitText(this.font, "Customize", custW - 8);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, custLabel, custX + custW / 2, btnY + 6,
+                cosmeticCustomizeOpen ? BoutiqueDraw.theme().textOnActivePill
+                        : (custHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
+
+        if (cosmeticCustomizeOpen) {
+            String slotKey = getActiveAdjustSlot();
+            int popW = pw - 12;
+            int popH = 92;
+            int popX = px + 6;
+            int popY = btnY - popH - 6;
+            BoutiqueDraw.drawGlassPanel(graphics, popX, popY, popW, popH);
+
+            BoutiqueDraw.drawText(graphics, this.font, "ADJUST: " + slotKey, popX + 8, popY + 7, BoutiqueDraw.theme().textAccent);
+            int rstW = 38;
+            int rstX = popX + popW - rstW - 6;
+            int rstY = popY + 5;
+            boolean rstHover = mouseX >= rstX && mouseX <= rstX + rstW && mouseY >= rstY && mouseY <= rstY + 14;
+            BoutiqueDraw.drawPill(graphics, rstX, rstY, rstW, 14, false, rstHover);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, "Reset", rstX + rstW / 2, rstY + 3,
+                    rstHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
+
+            float offY = KiemConfig.getCosmeticOffsetY(slotKey);
+            float offZ = KiemConfig.getCosmeticOffsetZ(slotKey);
+            float sc = KiemConfig.getCosmeticScale(slotKey);
+
+            drawAdjustRow(graphics, popX + 8, popY + 24, popW - 16, "Y (Up/Dn)", String.format(java.util.Locale.ROOT, "%+.2f", offY), mouseX, mouseY);
+            drawAdjustRow(graphics, popX + 8, popY + 46, popW - 16, "Z (Fwd/Bk)", String.format(java.util.Locale.ROOT, "%+.2f", offZ), mouseX, mouseY);
+            drawAdjustRow(graphics, popX + 8, popY + 68, popW - 16, "Scale", String.format(java.util.Locale.ROOT, "%.2fx", sc), mouseX, mouseY);
+        }
+    }
+
+    private String getActiveAdjustSlot() {
+        return switch (currentCosmeticsSub) {
+            case WINGS -> "WING";
+            case HATS -> "HAT";
+            case NECK -> "NECK";
+            case HAND -> "HAND";
+            case WAIST -> "WAIST";
+            case FOOT -> "FOOT";
+            default -> "HAT";
+        };
+    }
+
+    private void drawAdjustRow(GuiGraphicsExtractor graphics, int rx, int ry, int rw, String label, String valText, int mouseX, int mouseY) {
+        BoutiqueDraw.drawText(graphics, this.font, BoutiqueDraw.fitText(this.font, label, rw - 78), rx, ry + 5, BoutiqueDraw.theme().textMuted);
+        int btnS = 16;
+        int plusX = rx + rw - btnS;
+        int minusX = plusX - btnS - 36;
+        boolean mHov = mouseX >= minusX && mouseX <= minusX + btnS && mouseY >= ry + 1 && mouseY <= ry + 1 + btnS;
+        boolean pHov = mouseX >= plusX && mouseX <= plusX + btnS && mouseY >= ry + 1 && mouseY <= ry + 1 + btnS;
+        BoutiqueDraw.drawPill(graphics, minusX, ry + 1, btnS, btnS, false, mHov);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "-", minusX + btnS / 2, ry + 5,
+                mHov ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, valText, minusX + btnS + 18, ry + 5, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawPill(graphics, plusX, ry + 1, btnS, btnS, false, pHov);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "+", plusX + btnS / 2, ry + 5,
+                pHov ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
     }
 
     private void renderEquippedItemsStrip(GuiGraphicsExtractor graphics, int sx, int sy, int sw, int sh, int mouseX, int mouseY) {
         BoutiqueDraw.drawGlassPanel(graphics, sx, sy, sw, sh);
-        graphics.centeredText(this.font, "EQUIPPED", sx + sw / 2, sy + 10, COLOR_TEXT_WHITE);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "EQUIPPED", sx + sw / 2, sy + 10, BoutiqueDraw.theme().textPrimary);
 
         int padX = 7;
         int cardX = sx + padX;
@@ -543,12 +651,13 @@ public class KiemScreen extends Screen {
             boolean hover = mouseX >= cardX && mouseX <= cardX + cardW && mouseY >= cy && mouseY <= cy + cardH;
             BoutiqueDraw.drawGlassCard(graphics, cardX, cy, cardW, cardH, equipped, hover);
 
-            drawBoundedText(graphics, labels[i], cardX + 7, cy + 6, cardW - 22, COLOR_TEXT_ROSEGOLD);
+            drawBoundedText(graphics, labels[i], cardX + 7, cy + 6, cardW - 22, BoutiqueDraw.theme().textAccent);
             if (equipped) {
-                graphics.text(this.font, "✦", cardX + cardW - 13, cy + 6, COLOR_SAKURA_BRIGHT, false);
+                BoutiqueDraw.drawText(graphics, this.font, "✦", cardX + cardW - 13, cy + 6, BoutiqueDraw.theme().textAccent);
             }
-            String displayVal = equipped ? values[i] : KiemLang.get("cosmetics.none");
-            int valColor = equipped ? COLOR_TEXT_WHITE : COLOR_TEXT_DIM;
+            String emptyLabel = "en".equalsIgnoreCase(KiemConfig.language) ? "Empty" : "Boş";
+            String displayVal = equipped ? values[i] : emptyLabel;
+            int valColor = equipped ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textDim;
             drawBoundedText(graphics, displayVal, cardX + 7, cy + cardH - 14, cardW - 14, valColor);
         }
     }
@@ -590,12 +699,8 @@ public class KiemScreen extends Screen {
     private CosmeticItemDef[] getSlotItems(CosmeticsSub sub) {
         return switch (sub) {
             case WINGS -> new CosmeticItemDef[] {
-                    new CosmeticItemDef(WingType.SERAPHIM.id, "cosmetic.wing.seraphim.title", "cosmetic.wing.seraphim.desc", "WING", 0xFFF3C669, guiTex("preview_cosmetic_wing_seraphim.png")),
-                    new CosmeticItemDef(WingType.DEMON_DRAGON.id, "cosmetic.wing.demon_dragon.title", "cosmetic.wing.demon_dragon.desc", "WING", 0xFFE05252, guiTex("preview_cosmetic_wing_demon.png")),
-                    new CosmeticItemDef(WingType.ARCANE_BUTTERFLY.id, "cosmetic.wing.arcane_butterfly.title", "cosmetic.wing.arcane_butterfly.desc", "WING", 0xFFB078FF, guiTex("preview_cosmetic_wing_butterfly.png")),
-                    new CosmeticItemDef(WingType.FALLEN_ANGEL.id, "cosmetic.wing.fallen_angel.title", "cosmetic.wing.fallen_angel.desc", "WING", 0xFF9C72E8, guiTex("preview_cosmetic_wing_fallen_angel.png")),
-                    new CosmeticItemDef(WingType.VAMPIRE_BAT.id, "cosmetic.wing.vampire_bat.title", "cosmetic.wing.vampire_bat.desc", "WING", 0xFFC83C4C, guiTex("preview_cosmetic_wing_vampire_bat.png")),
-                    new CosmeticItemDef(WingType.ENDER_DRAGON.id, "cosmetic.wing.ender_dragon.title", "cosmetic.wing.ender_dragon.desc", "WING", 0xFFC058FF, guiTex("preview_cosmetic_wing_ender_dragon.png"))
+                    new CosmeticItemDef(WingType.SERAPHIM.id, "cosmetic.wing.seraphim.title", "cosmetic.wing.seraphim.desc", "WING", 0xFFF4F6FA, guiTex("preview_cosmetic_wing_seraphim_angel.png")),
+                    new CosmeticItemDef(WingType.VALKYRIE.id, "cosmetic.wing.valkyrie.title", "cosmetic.wing.valkyrie.desc", "WING", 0xFFF3C669, guiTex("preview_cosmetic_wing_seraphim.png"))
             };
             case HATS -> new CosmeticItemDef[] {
                     new CosmeticItemDef(HatType.RONIN.id, "cosmetic.hat.ronin.title", "cosmetic.hat.ronin.desc", "HAT", 0xFFD9A66C, guiTex("preview_cosmetic_hat_ronin.png")),
@@ -606,25 +711,21 @@ public class KiemScreen extends Screen {
                     new CosmeticItemDef(HatType.ONI_HORNS.id, "cosmetic.hat.oni_horns.title", "cosmetic.hat.oni_horns.desc", "HAT", 0xFFD94A4A, guiTex("preview_cosmetic_hat_oni_horns.png")),
                     new CosmeticItemDef(HatType.KITSUNE_MASK.id, "cosmetic.hat.kitsune_mask.title", "cosmetic.hat.kitsune_mask.desc", "HAT", 0xFFF08C64, guiTex("preview_cosmetic_hat_kitsune_mask.png")),
                     new CosmeticItemDef(HatType.BROKEN_HALO.id, "cosmetic.hat.broken_halo.title", "cosmetic.hat.broken_halo.desc", "HAT", 0xFFB090D8, guiTex("preview_cosmetic_hat_broken_halo.png")),
-                    new CosmeticItemDef(HatType.ROYAL_CROWN.id, "cosmetic.hat.royal_crown.title", "cosmetic.hat.royal_crown.desc", "HAT", 0xFFF5C94C, guiTex("preview_cosmetic_hat_royal_crown.png")),
-                    new CosmeticItemDef(HatType.NEKO_HEADPHONES.id, "cosmetic.hat.neko_headphones.title", "cosmetic.hat.neko_headphones.desc", "HAT", 0xFFFF6EA8, guiTex("preview_cosmetic_hat_neko_headphones.png")),
+                    new CosmeticItemDef(HatType.CROWN.id, "cosmetic.hat.royal_crown.title", "cosmetic.hat.royal_crown.desc", "HAT", 0xFFF5C94C, guiTex("preview_cosmetic_hat_royal_crown.png")),
                     new CosmeticItemDef(HatType.STRAW_PIRATE.id, "cosmetic.hat.straw_pirate.title", "cosmetic.hat.straw_pirate.desc", "HAT", 0xFFE8B858, guiTex("preview_cosmetic_hat_straw_pirate.png")),
                     new CosmeticItemDef(HatType.USHANKA_FUR.id, "cosmetic.hat.ushanka_fur.title", "cosmetic.hat.ushanka_fur.desc", "HAT", 0xFF9EB0C8, guiTex("preview_cosmetic_hat_ushanka_fur.png")),
                     new CosmeticItemDef(HatType.TRICORN_CAPTAIN.id, "cosmetic.hat.tricorn_captain.title", "cosmetic.hat.tricorn_captain.desc", "HAT", 0xFFC89B54, guiTex("preview_cosmetic_hat_tricorn_captain.png")),
+                    new CosmeticItemDef(HatType.NAPOLEON_BICORNE.id, "cosmetic.hat.napoleon_bicorne.title", "cosmetic.hat.napoleon_bicorne.desc", "HAT", 0xFF4B6FA8, guiTex("preview_cosmetic_hat_tricorn_captain.png")),
                     new CosmeticItemDef(HatType.EGIRL_HEADPHONES.id, "cosmetic.hat.egirl_headphones.title", "cosmetic.hat.egirl_headphones.desc", "HAT", 0xFFFF88CC, guiTex("preview_cosmetic_hat_egirl_headphones.png"))
             };
             case NECK -> new CosmeticItemDef[] {
                     new CosmeticItemDef(NeckType.CRIMSON_SCARF.id, "cosmetic.neck.crimson_scarf.title", "cosmetic.neck.crimson_scarf.desc", "NECK", 0xFFE04848, guiTex("preview_cosmetic_neck_scarf.png")),
-                    new CosmeticItemDef(NeckType.ARCANE_PENDANT.id, "cosmetic.neck.arcane_pendant.title", "cosmetic.neck.arcane_pendant.desc", "NECK", 0xFF70C8FF, guiTex("preview_cosmetic_neck_pendant.png")),
                     new CosmeticItemDef(NeckType.GOLD_CHAIN.id, "cosmetic.neck.gold_chain.title", "cosmetic.neck.gold_chain.desc", "NECK", 0xFFF2C94C, guiTex("preview_cosmetic_neck_chain.png")),
                     new CosmeticItemDef(NeckType.SHADOW_NINJA_MASK.id, "cosmetic.neck.shadow_ninja_mask.title", "cosmetic.neck.shadow_ninja_mask.desc", "NECK", 0xFF6B7796, guiTex("preview_cosmetic_neck_shadow_ninja_mask.png")),
                     new CosmeticItemDef(NeckType.ONI_MENPO.id, "cosmetic.neck.oni_menpo.title", "cosmetic.neck.oni_menpo.desc", "NECK", 0xFFD94A4A, guiTex("preview_cosmetic_neck_oni_menpo.png")),
                     new CosmeticItemDef(NeckType.COOL_SUNGLASSES.id, "cosmetic.neck.cool_sunglasses.title", "cosmetic.neck.cool_sunglasses.desc", "NECK", 0xFF64B5F6, guiTex("preview_cosmetic_neck_cool_sunglasses.png")),
                     new CosmeticItemDef(NeckType.SNOW_SCARF.id, "cosmetic.neck.snow_scarf.title", "cosmetic.neck.snow_scarf.desc", "NECK", 0xFFB8E2FF, guiTex("preview_cosmetic_neck_snow_scarf.png")),
-                    new CosmeticItemDef(NeckType.SKULL_BANDANA.id, "cosmetic.neck.skull_bandana.title", "cosmetic.neck.skull_bandana.desc", "NECK", 0xFFC8CCD6, guiTex("preview_cosmetic_neck_skull_bandana.png")),
-                    new CosmeticItemDef(NeckType.ROYAL_BROOCH.id, "cosmetic.neck.royal_brooch.title", "cosmetic.neck.royal_brooch.desc", "NECK", 0xFF5C9CFF, guiTex("preview_cosmetic_neck_royal_brooch.png")),
-                    new CosmeticItemDef(NeckType.RUBY_CHOKER.id, "cosmetic.neck.ruby_choker.title", "cosmetic.neck.ruby_choker.desc", "NECK", 0xFFE63E62, guiTex("preview_cosmetic_neck_ruby_choker.png")),
-                    new CosmeticItemDef(NeckType.SILVER_FANG.id, "cosmetic.neck.silver_fang.title", "cosmetic.neck.silver_fang.desc", "NECK", 0xFFC0D0E2, guiTex("preview_cosmetic_neck_silver_fang.png"))
+                    new CosmeticItemDef(NeckType.RUBY_CHOKER.id, "cosmetic.neck.ruby_choker.title", "cosmetic.neck.ruby_choker.desc", "NECK", 0xFFE63E62, guiTex("preview_cosmetic_neck_ruby_choker.png"))
             };
             case HAND -> new CosmeticItemDef[] {
                     new CosmeticItemDef(HandType.FIGHTER_WRAPS.id, "cosmetic.hand.fighter_wraps.title", "cosmetic.hand.fighter_wraps.desc", "HAND", 0xFFDADDE8, guiTex("preview_cosmetic_hand_wraps.png")),
@@ -636,13 +737,16 @@ public class KiemScreen extends Screen {
                     new CosmeticItemDef(WaistType.KITSUNE_TAIL.id, "cosmetic.waist.kitsune_tail.title", "cosmetic.waist.kitsune_tail.desc", "WAIST", 0xFFFF9A62, guiTex("preview_cosmetic_waist_tail.png")),
                     new CosmeticItemDef(WaistType.DEMON_TAIL.id, "cosmetic.waist.demon_tail.title", "cosmetic.waist.demon_tail.desc", "WAIST", 0xFFE04C5A, guiTex("preview_cosmetic_waist_demon_tail.png")),
                     new CosmeticItemDef(WaistType.TWIN_DAGGERS.id, "cosmetic.waist.twin_daggers.title", "cosmetic.waist.twin_daggers.desc", "WAIST", 0xFF8FB8DE, guiTex("preview_cosmetic_waist_twin_daggers.png")),
-                    new CosmeticItemDef(WaistType.NEKOMATA_TAILS.id, "cosmetic.waist.nekomata_tails.title", "cosmetic.waist.nekomata_tails.desc", "WAIST", 0xFFB87CFF, guiTex("preview_cosmetic_waist_nekomata_tails.png")),
+                    new CosmeticItemDef(WaistType.CAT_TAIL.id, "cosmetic.waist.cat_tail.title", "cosmetic.waist.cat_tail.desc", "WAIST", 0xFFB87CFF, guiTex("preview_cosmetic_waist_nekomata_tails.png")),
                     new CosmeticItemDef(WaistType.WOLF_TAIL.id, "cosmetic.waist.wolf_tail.title", "cosmetic.waist.wolf_tail.desc", "WAIST", 0xFFA2AAB8, guiTex("preview_cosmetic_waist_wolf_tail.png"))
             };
             case FOOT -> new CosmeticItemDef[] {
                     new CosmeticItemDef(FootType.HERMES_BOOTS.id, "cosmetic.foot.hermes_boots.title", "cosmetic.foot.hermes_boots.desc", "FOOT", 0xFFF5C96B, guiTex("preview_cosmetic_foot_hermes.png")),
                     new CosmeticItemDef(FootType.SHINOBI_WRAPS.id, "cosmetic.foot.shinobi_wraps.title", "cosmetic.foot.shinobi_wraps.desc", "FOOT", 0xFF6B7B99, guiTex("preview_cosmetic_foot_shinobi.png")),
-                    new CosmeticItemDef(FootType.FIGHTER_LEG_WRAPS.id, "cosmetic.foot.fighter_leg_wraps.title", "cosmetic.foot.fighter_leg_wraps.desc", "FOOT", 0xFFD0B89E, guiTex("preview_cosmetic_foot_fighter_leg_wraps.png"))
+                    new CosmeticItemDef(FootType.FIGHTER_LEG_WRAPS.id, "cosmetic.foot.fighter_leg_wraps.title", "cosmetic.foot.fighter_leg_wraps.desc", "FOOT", 0xFFD0B89E, guiTex("preview_cosmetic_foot_fighter_leg_wraps.png")),
+                    new CosmeticItemDef(FootType.BARE_FEET.id, "cosmetic.foot.bare_feet.title", "cosmetic.foot.bare_feet.desc", "FOOT", 0xFFE2B290, guiTex("preview_cosmetic_foot_bare.png")),
+                    new CosmeticItemDef(FootType.COMBAT_BOOTS.id, "cosmetic.foot.combat_boots.title", "cosmetic.foot.combat_boots.desc", "FOOT", 0xFF4A4E58, guiTex("preview_cosmetic_foot_combat_boots.png")),
+                    new CosmeticItemDef(FootType.CLASSIC_SNEAKERS.id, "cosmetic.foot.classic_sneakers.title", "cosmetic.foot.classic_sneakers.desc", "FOOT", 0xFFE8E6E0, guiTex("preview_cosmetic_foot_sneakers.png"))
             };
             default -> new CosmeticItemDef[0];
         };
@@ -685,14 +789,14 @@ public class KiemScreen extends Screen {
     private int getHandFirstPersonToggleWidth() {
         String onLabel = KiemLang.get("cosmetics.hand.first_person") + ": " + KiemLang.get("ui.on");
         String offLabel = KiemLang.get("cosmetics.hand.first_person") + ": " + KiemLang.get("ui.off");
-        int textW = Math.max(this.font.width(onLabel), this.font.width(offLabel));
+        int textW = Math.max(BoutiqueDraw.textWidth(this.font, onLabel), BoutiqueDraw.textWidth(this.font, offLabel));
         return Math.min(180, Math.max(120, textW + 20));
     }
 
     private int getWaistDisableCapeToggleWidth() {
         String onLabel = KiemLang.get("cosmetic.waist.disable_cape.on");
         String offLabel = KiemLang.get("cosmetic.waist.disable_cape.off");
-        int textW = Math.max(this.font.width(onLabel), this.font.width(offLabel));
+        int textW = Math.max(BoutiqueDraw.textWidth(this.font, onLabel), BoutiqueDraw.textWidth(this.font, offLabel));
         return Math.min(180, Math.max(120, textW + 20));
     }
 
@@ -717,7 +821,7 @@ public class KiemScreen extends Screen {
         int contentH = height + maxScroll;
         int thumbH = Math.max(20, (int) ((height / (float) contentH) * height));
         int thumbY = top + (int) Math.round((scroll / maxScroll) * (height - thumbH));
-        graphics.fill(trackX, thumbY, trackX + 3, thumbY + thumbH, COLOR_ACCENT);
+        graphics.fill(trackX, thumbY, trackX + 3, thumbY + thumbH, BoutiqueDraw.theme().textAccent);
     }
 
     private void drawBoutiqueCard(GuiGraphicsExtractor graphics, int cx, int cy, int cardW, int cardH,
@@ -726,7 +830,7 @@ public class KiemScreen extends Screen {
         BoutiqueDraw.drawGlassCard(graphics, cx, cy, cardW, cardH, equipped, cardHover);
 
         // Top-right ✦ sparkle
-        graphics.text(this.font, "✦", cx + cardW - 14, cy + 7, equipped ? COLOR_SAKURA_BRIGHT : 0x55E8B8B0, false);
+        BoutiqueDraw.drawText(graphics, this.font, "✦", cx + cardW - 14, cy + 7, equipped ? BoutiqueDraw.theme().textAccent : 0x55E8B8B0);
 
         // Centered 44x44 preview icon
         int iconSize = 44;
@@ -735,8 +839,8 @@ public class KiemScreen extends Screen {
         graphics.blit(preview, ix, iy, ix + iconSize, iy + iconSize, 0.0f, 1.0f, 0.0f, 1.0f);
 
         // Centered title
-        String boundedTitle = this.font.plainSubstrByWidth(title, cardW - 14);
-        graphics.centeredText(this.font, boundedTitle, cx + cardW / 2, cy + 62, COLOR_TEXT_WHITE);
+        String boundedTitle = BoutiqueDraw.fitText(this.font, title, cardW - 14);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, boundedTitle, cx + cardW / 2, cy + 62, BoutiqueDraw.theme().textPrimary);
 
         // Bottom pill(s)
         int btnH = 18;
@@ -750,22 +854,22 @@ public class KiemScreen extends Screen {
 
             boolean eqHover = mouseX >= equipX && mouseX <= equipX + equipW && mouseY >= btnY && mouseY <= btnY + btnH;
             BoutiqueDraw.drawPill(graphics, equipX, btnY, equipW, btnH, equipped, eqHover);
-            String eqLabel = this.font.plainSubstrByWidth(KiemLang.get(equipped ? "cosmetics.equipped" : "cosmetics.equip"), equipW - 6);
-            graphics.centeredText(this.font, eqLabel, equipX + equipW / 2, btnY + 5,
-                    equipped ? COLOR_TEXT_INK : (eqHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+            String eqLabel = BoutiqueDraw.fitText(this.font, KiemLang.get(equipped ? "cosmetics.equipped" : "cosmetics.equip"), equipW - 6);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, eqLabel, equipX + equipW / 2, btnY + 5,
+                    equipped ? BoutiqueDraw.theme().textOnActivePill : (eqHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
 
             boolean custHover = mouseX >= custX && mouseX <= custX + custW && mouseY >= btnY && mouseY <= btnY + btnH;
             BoutiqueDraw.drawPill(graphics, custX, btnY, custW, btnH, false, custHover);
-            graphics.centeredText(this.font, "⚙", custX + custW / 2, btnY + 5,
-                    custHover ? COLOR_SAKURA_BRIGHT : COLOR_TEXT_MUTED);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, "⚙", custX + custW / 2, btnY + 5,
+                    custHover ? BoutiqueDraw.theme().textAccent : BoutiqueDraw.theme().textMuted);
         } else {
             int btnW = Math.min(92, cardW - 18);
             int btnX = cx + (cardW - btnW) / 2;
             boolean btnHover = mouseX >= btnX && mouseX <= btnX + btnW && mouseY >= btnY && mouseY <= btnY + btnH;
             BoutiqueDraw.drawPill(graphics, btnX, btnY, btnW, btnH, equipped, btnHover);
-            String eqLabel = this.font.plainSubstrByWidth(KiemLang.get(equipped ? "cosmetics.equipped" : "cosmetics.equip"), btnW - 8);
-            graphics.centeredText(this.font, eqLabel, btnX + btnW / 2, btnY + 5,
-                    equipped ? COLOR_TEXT_INK : (btnHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+            String eqLabel = BoutiqueDraw.fitText(this.font, KiemLang.get(equipped ? "cosmetics.equipped" : "cosmetics.equip"), btnW - 8);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, eqLabel, btnX + btnW / 2, btnY + 5,
+                    equipped ? BoutiqueDraw.theme().textOnActivePill : (btnHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
         }
     }
 
@@ -824,9 +928,9 @@ public class KiemScreen extends Screen {
             boolean toggleHover = mouseX >= toggleX && mouseX <= toggleX + toggleW && mouseY >= toggleY && mouseY <= toggleY + toggleH;
             String label = KiemLang.get("cosmetics.hand.first_person") + ": " + KiemLang.get(fpOn ? "ui.on" : "ui.off");
             BoutiqueDraw.drawPill(graphics, toggleX, toggleY, toggleW, toggleH, fpOn, toggleHover);
-            String boundedLbl = this.font.plainSubstrByWidth(label, toggleW - 10);
-            graphics.centeredText(this.font, boundedLbl, toggleX + toggleW / 2, toggleY + 6,
-                    fpOn ? COLOR_TEXT_INK : (toggleHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+            String boundedLbl = BoutiqueDraw.fitText(this.font, label, toggleW - 10);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, boundedLbl, toggleX + toggleW / 2, toggleY + 6,
+                    fpOn ? BoutiqueDraw.theme().textOnActivePill : (toggleHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
         } else if (currentCosmeticsSub == CosmeticsSub.WAIST) {
             int toggleW = getWaistDisableCapeToggleWidth();
             int toggleH = 20;
@@ -838,13 +942,13 @@ public class KiemScreen extends Screen {
             boolean toggleHover = mouseX >= toggleX && mouseX <= toggleX + toggleW && mouseY >= toggleY && mouseY <= toggleY + toggleH;
             String label = KiemLang.get(hideCape ? "cosmetic.waist.disable_cape.on" : "cosmetic.waist.disable_cape.off");
             BoutiqueDraw.drawPill(graphics, toggleX, toggleY, toggleW, toggleH, hideCape, toggleHover);
-            String boundedLbl = this.font.plainSubstrByWidth(label, toggleW - 10);
-            graphics.centeredText(this.font, boundedLbl, toggleX + toggleW / 2, toggleY + 6,
-                    hideCape ? COLOR_TEXT_INK : (toggleHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+            String boundedLbl = BoutiqueDraw.fitText(this.font, label, toggleW - 10);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, boundedLbl, toggleX + toggleW / 2, toggleY + 6,
+                    hideCape ? BoutiqueDraw.theme().textOnActivePill : (toggleHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
         }
 
-        drawBoundedText(graphics, KiemLang.get("cosmetics.slot.active") + ": " + activeTitle, x + 12, infoY + 6, textMaxW, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("cosmetics.slot.hint"), x + 12, infoY + 19, textMaxW, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("cosmetics.slot.active") + ": " + activeTitle, x + 12, infoY + 6, textMaxW, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("cosmetics.slot.hint"), x + 12, infoY + 19, textMaxW, BoutiqueDraw.theme().textMuted);
     }
 
     private void renderPetsSubView(GuiGraphicsExtractor graphics, int x, int y, int w, int vpH, int footerH, int mouseX, int mouseY) {
@@ -895,8 +999,8 @@ public class KiemScreen extends Screen {
         ShoulderPetType sel = ShoulderPetManager.getSelectedPet();
         String currentName = sel == ShoulderPetType.OFF ? KiemLang.get("pets.none") : KiemLang.get(sel.titleKey);
         String sideLabel = ShoulderPetManager.isLeftShoulder() ? KiemLang.get("pets.side.left") : KiemLang.get("pets.side.right");
-        drawBoundedText(graphics, KiemLang.get("pets.active_selection") + ": " + currentName + "  (" + sideLabel + ")", x + 12, infoY + 6, w - 24, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("pets.info_desc"), x + 12, infoY + 19, w - 24, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("pets.active_selection") + ": " + currentName + "  (" + sideLabel + ")", x + 12, infoY + 6, w - 24, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("pets.info_desc"), x + 12, infoY + 19, w - 24, BoutiqueDraw.theme().textMuted);
     }
 
     private void renderTrailsSubView(GuiGraphicsExtractor graphics, int x, int y, int w, int vpH, int footerH, int mouseX, int mouseY) {
@@ -931,7 +1035,7 @@ public class KiemScreen extends Screen {
 
             int rightX = imgX + thumbSize + 10;
             int rightW = gridW - thumbSize - 28;
-            drawBoundedText(graphics, KiemLang.get("trails.sakura.title"), rightX, sakuraY + 11, rightW, COLOR_TEXT_WHITE);
+            drawBoundedText(graphics, KiemLang.get("trails.sakura.title"), rightX, sakuraY + 11, rightW, BoutiqueDraw.theme().textPrimary);
 
             int btnW = Math.max(84, (rightW - 8) / 2);
             int btnH = 20;
@@ -940,13 +1044,13 @@ public class KiemScreen extends Screen {
 
             boolean hover1 = hoverX >= rightX && hoverX <= rightX + btnW && hoverY >= btnY && hoverY <= btnY + btnH;
             BoutiqueDraw.drawPill(graphics, rightX, btnY, btnW, btnH, active1, hover1);
-            graphics.centeredText(this.font, KiemLang.get(active1 ? "auras.disable" : "auras.enable"),
-                    rightX + btnW / 2, btnY + 6, active1 ? COLOR_TEXT_INK : COLOR_TEXT_WHITE);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get(active1 ? "auras.disable" : "auras.enable"),
+                    rightX + btnW / 2, btnY + 6, active1 ? BoutiqueDraw.theme().textOnActivePill : BoutiqueDraw.theme().textPrimary);
 
             boolean custHover1 = hoverX >= custX && hoverX <= custX + btnW && hoverY >= btnY && hoverY <= btnY + btnH;
             BoutiqueDraw.drawPill(graphics, custX, btnY, btnW, btnH, false, custHover1);
-            graphics.centeredText(this.font, KiemLang.get("ui.customize"),
-                    custX + btnW / 2, btnY + 6, custHover1 ? COLOR_SAKURA_BRIGHT : COLOR_TEXT_WHITE);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("ui.customize"),
+                    custX + btnW / 2, btnY + 6, custHover1 ? BoutiqueDraw.theme().textAccent : BoutiqueDraw.theme().textPrimary);
         }
 
         // 3-column Trail Effect Cards
@@ -970,8 +1074,8 @@ public class KiemScreen extends Screen {
         // Footer bar
         int infoY = viewportBottom + 6;
         BoutiqueDraw.drawGlassCard(graphics, x, infoY, w, footerH, false, false);
-        drawBoundedText(graphics, KiemLang.get("auras.local"), x + 12, infoY + 6, w - 24, COLOR_TEXT_MUTED);
-        drawBoundedText(graphics, KiemLang.get("auras.compatible"), x + 12, infoY + 19, w - 24, COLOR_TEXT_DIM);
+        drawBoundedText(graphics, KiemLang.get("auras.local"), x + 12, infoY + 6, w - 24, BoutiqueDraw.theme().textMuted);
+        drawBoundedText(graphics, KiemLang.get("auras.compatible"), x + 12, infoY + 19, w - 24, BoutiqueDraw.theme().textDim);
     }
 
     private void renderCapesSubView(GuiGraphicsExtractor graphics, int x, int y, int w, int vpH, int footerH, int mouseX, int mouseY) {
@@ -1025,23 +1129,23 @@ public class KiemScreen extends Screen {
         int p3X = p2X + pillW + pillGap;
         int pillY = card1Y + 8;
 
-        drawBoundedText(graphics, "SANARA", card1X + 8, card1Y + 11, p1X - (card1X + 10), COLOR_TEXT_WHITE);
+        drawBoundedText(graphics, "SANARA", card1X + 8, card1Y + 11, p1X - (card1X + 10), BoutiqueDraw.theme().textPrimary);
 
         boolean p1Hover = hoverX >= p1X && hoverX <= p1X + pillW && hoverY >= pillY && hoverY <= pillY + pillH;
         boolean p2Hover = hoverX >= p2X && hoverX <= p2X + pillW && hoverY >= pillY && hoverY <= pillY + pillH;
         boolean p3Hover = hoverX >= p3X && hoverX <= p3X + pillW && hoverY >= pillY && hoverY <= pillY + pillH;
 
         BoutiqueDraw.drawPill(graphics, p1X, pillY, pillW, pillH, selectedSanaraVersion == 1, p1Hover);
-        graphics.centeredText(this.font, "V1", p1X + pillW / 2, pillY + 3,
-                selectedSanaraVersion == 1 ? COLOR_TEXT_INK : (p1Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "V1", p1X + pillW / 2, pillY + 3,
+                selectedSanaraVersion == 1 ? BoutiqueDraw.theme().textOnActivePill : (p1Hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
 
         BoutiqueDraw.drawPill(graphics, p2X, pillY, pillW, pillH, selectedSanaraVersion == 2, p2Hover);
-        graphics.centeredText(this.font, "V2", p2X + pillW / 2, pillY + 3,
-                selectedSanaraVersion == 2 ? COLOR_TEXT_INK : (p2Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "V2", p2X + pillW / 2, pillY + 3,
+                selectedSanaraVersion == 2 ? BoutiqueDraw.theme().textOnActivePill : (p2Hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
 
         BoutiqueDraw.drawPill(graphics, p3X, pillY, pillW, pillH, selectedSanaraVersion == 3, p3Hover);
-        graphics.centeredText(this.font, "V3", p3X + pillW / 2, pillY + 3,
-                selectedSanaraVersion == 3 ? COLOR_TEXT_INK : (p3Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "V3", p3X + pillW / 2, pillY + 3,
+                selectedSanaraVersion == 3 ? BoutiqueDraw.theme().textOnActivePill : (p3Hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
 
         int imgW = cardW - 16;
         int imgH = 138;
@@ -1055,7 +1159,7 @@ public class KiemScreen extends Screen {
         int verTagW = 24;
         int verTagH = 14;
         BoutiqueDraw.drawPill(graphics, img1X + imgW - verTagW - 4, img1Y + imgH - verTagH - 4, verTagW, verTagH, false, false);
-        graphics.centeredText(this.font, verLabel, img1X + imgW - verTagW / 2 - 4, img1Y + imgH - verTagH + 3, COLOR_TEXT_WHITE);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, verLabel, img1X + imgW - verTagW / 2 - 4, img1Y + imgH - verTagH + 3, BoutiqueDraw.theme().textPrimary);
 
         int btnY = img1Y + imgH + 8;
         int btnW = (imgW - 4) / 2;
@@ -1067,21 +1171,21 @@ public class KiemScreen extends Screen {
         boolean b2Hover = hoverX >= btn2X && hoverX <= btn2X + btnW && hoverY >= btnY && hoverY <= btnY + btnH;
 
         BoutiqueDraw.drawPill(graphics, btn1X, btnY, btnW, btnH, isThisVersionStatic, b1Hover);
-        graphics.centeredText(this.font, this.font.plainSubstrByWidth("STANDARD", btnW - 4), btn1X + btnW / 2, btnY + 6,
-                isThisVersionStatic ? COLOR_TEXT_INK : (b1Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, "STANDARD", btnW - 4), btn1X + btnW / 2, btnY + 6,
+                isThisVersionStatic ? BoutiqueDraw.theme().textOnActivePill : (b1Hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
 
         BoutiqueDraw.drawPill(graphics, btn2X, btnY, btnW, btnH, isThisVersionAnim, b2Hover);
-        graphics.centeredText(this.font, this.font.plainSubstrByWidth("ANIMATED", btnW - 4), btn2X + btnW / 2, btnY + 6,
-                isThisVersionAnim ? COLOR_TEXT_INK : (b2Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, "ANIMATED", btnW - 4), btn2X + btnW / 2, btnY + 6,
+                isThisVersionAnim ? BoutiqueDraw.theme().textOnActivePill : (b2Hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
 
         int footerY = btnY + btnH + 7;
         if (hasThisVersionActive) {
             boolean unequipHover = hoverX >= card1X + 12 && hoverX <= card1X + cardW - 12 && hoverY >= footerY && hoverY <= footerY + 14;
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.unequip"), card1X + cardW / 2, footerY + 2, unequipHover ? 0xFFFF7788 : COLOR_TEXT_ROSEGOLD);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("cosmetics.unequip"), card1X + cardW / 2, footerY + 2, unequipHover ? 0xFFFF7788 : BoutiqueDraw.theme().textAccent);
         } else if (current != CapeManager.CapeType.OFF) {
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.other_active"), card1X + cardW / 2, footerY + 2, COLOR_TEXT_DIM);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("cosmetics.other_active"), card1X + cardW / 2, footerY + 2, BoutiqueDraw.theme().textDim);
         } else {
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.inactive"), card1X + cardW / 2, footerY + 2, COLOR_TEXT_DIM);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("cosmetics.inactive"), card1X + cardW / 2, footerY + 2, BoutiqueDraw.theme().textDim);
         }
 
         // ----------------- CARD 2: RIKKA -----------------
@@ -1091,16 +1195,16 @@ public class KiemScreen extends Screen {
         boolean card2Hover = hoverX >= card2X && hoverX <= card2X + cardW && hoverY >= card1Y && hoverY <= card1Y + cardH;
 
         BoutiqueDraw.drawGlassCard(graphics, card2X, card1Y, cardW, cardH, rikkaActive, card2Hover);
-        graphics.text(this.font, "RIKKA", card2X + 8, card1Y + 11, COLOR_TEXT_WHITE, false);
+        BoutiqueDraw.drawText(graphics, this.font, "RIKKA", card2X + 8, card1Y + 11, BoutiqueDraw.theme().textPrimary);
         BoutiqueDraw.drawPill(graphics, card2X + cardW - 34, card1Y + 8, 26, 14, true, false);
-        graphics.centeredText(this.font, "NEW", card2X + cardW - 21, card1Y + 11, COLOR_TEXT_INK);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "NEW", card2X + cardW - 21, card1Y + 11, BoutiqueDraw.theme().textOnActivePill);
 
         int img2X = card2X + 8;
         int img2Y = card1Y + 26;
         graphics.blit(RIKKA_PREVIEW, img2X, img2Y, img2X + imgW, img2Y + imgH, 0.0f, 1.0f, 0.0f, 1.0f);
 
         BoutiqueDraw.drawPill(graphics, img2X + imgW - verTagW - 4, img2Y + imgH - verTagH - 4, verTagW, verTagH, false, false);
-        graphics.centeredText(this.font, "V1", img2X + imgW - verTagW / 2 - 4, img2Y + imgH - verTagH + 3, COLOR_TEXT_WHITE);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "V1", img2X + imgW - verTagW / 2 - 4, img2Y + imgH - verTagH + 3, BoutiqueDraw.theme().textPrimary);
 
         int btn2_1X = img2X;
         int btn2_2X = img2X + btnW + 4;
@@ -1108,20 +1212,20 @@ public class KiemScreen extends Screen {
         boolean b2_2Hover = hoverX >= btn2_2X && hoverX <= btn2_2X + btnW && hoverY >= btnY && hoverY <= btnY + btnH;
 
         BoutiqueDraw.drawPill(graphics, btn2_1X, btnY, btnW, btnH, isRikkaStatic, b2_1Hover);
-        graphics.centeredText(this.font, this.font.plainSubstrByWidth("STANDARD", btnW - 4), btn2_1X + btnW / 2, btnY + 6,
-                isRikkaStatic ? COLOR_TEXT_INK : (b2_1Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, "STANDARD", btnW - 4), btn2_1X + btnW / 2, btnY + 6,
+                isRikkaStatic ? BoutiqueDraw.theme().textOnActivePill : (b2_1Hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
 
         BoutiqueDraw.drawPill(graphics, btn2_2X, btnY, btnW, btnH, isRikkaAnim, b2_2Hover);
-        graphics.centeredText(this.font, this.font.plainSubstrByWidth("ANIMATED", btnW - 4), btn2_2X + btnW / 2, btnY + 6,
-                isRikkaAnim ? COLOR_TEXT_INK : (b2_2Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, "ANIMATED", btnW - 4), btn2_2X + btnW / 2, btnY + 6,
+                isRikkaAnim ? BoutiqueDraw.theme().textOnActivePill : (b2_2Hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
 
         if (rikkaActive) {
             boolean unequipHover2 = hoverX >= card2X + 12 && hoverX <= card2X + cardW - 12 && hoverY >= footerY && hoverY <= footerY + 14;
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.unequip"), card2X + cardW / 2, footerY + 2, unequipHover2 ? 0xFFFF7788 : COLOR_TEXT_ROSEGOLD);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("cosmetics.unequip"), card2X + cardW / 2, footerY + 2, unequipHover2 ? 0xFFFF7788 : BoutiqueDraw.theme().textAccent);
         } else if (current != CapeManager.CapeType.OFF) {
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.other_active"), card2X + cardW / 2, footerY + 2, COLOR_TEXT_DIM);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("cosmetics.other_active"), card2X + cardW / 2, footerY + 2, BoutiqueDraw.theme().textDim);
         } else {
-            graphics.centeredText(this.font, KiemLang.get("cosmetics.inactive"), card2X + cardW / 2, footerY + 2, COLOR_TEXT_DIM);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("cosmetics.inactive"), card2X + cardW / 2, footerY + 2, BoutiqueDraw.theme().textDim);
         }
 
         // ----------------- CARD 3: CUSTOM CAPE -----------------
@@ -1131,22 +1235,22 @@ public class KiemScreen extends Screen {
 
         String folderLabel = KiemLang.get("cosmetics.open_folder");
         int refreshPillW = 18;
-        int folderPillW = Math.min(46, Math.max(36, this.font.width(folderLabel) + 10));
+        int folderPillW = Math.min(54, Math.max(42, BoutiqueDraw.textWidth(this.font, folderLabel) + 12));
         int refreshPillX = card3X + cardW - 8 - refreshPillW;
         int folderPillX = refreshPillX - folderPillW - 3;
         int customPillY = card1Y + 8;
 
-        drawBoundedText(graphics, KiemLang.get("cosmetics.custom_title"), card3X + 8, card1Y + 11, folderPillX - (card3X + 12), COLOR_TEXT_WHITE);
+        drawBoundedText(graphics, KiemLang.get("cosmetics.custom_title"), card3X + 8, card1Y + 11, folderPillX - (card3X + 12), BoutiqueDraw.theme().textPrimary);
 
         boolean folderHover = hoverX >= folderPillX && hoverX <= folderPillX + folderPillW && hoverY >= customPillY && hoverY <= customPillY + pillH;
         boolean refreshHover = hoverX >= refreshPillX && hoverX <= refreshPillX + refreshPillW && hoverY >= customPillY && hoverY <= customPillY + pillH;
 
         BoutiqueDraw.drawPill(graphics, folderPillX, customPillY, folderPillW, pillH, false, folderHover);
-        graphics.centeredText(this.font, this.font.plainSubstrByWidth(folderLabel, folderPillW - 6),
-                folderPillX + folderPillW / 2, customPillY + 3, folderHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, folderLabel, folderPillW - 6),
+                folderPillX + folderPillW / 2, customPillY + 3, folderHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
 
         BoutiqueDraw.drawPill(graphics, refreshPillX, customPillY, refreshPillW, pillH, false, refreshHover);
-        graphics.centeredText(this.font, "🔄", refreshPillX + refreshPillW / 2, customPillY + 3, refreshHover ? COLOR_SAKURA_BRIGHT : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "🔄", refreshPillX + refreshPillW / 2, customPillY + 3, refreshHover ? BoutiqueDraw.theme().textAccent : BoutiqueDraw.theme().textMuted);
 
         int img3X = card3X + 8;
         int img3Y = card1Y + 26;
@@ -1155,9 +1259,9 @@ public class KiemScreen extends Screen {
 
         if (capes.isEmpty()) {
             BoutiqueDraw.drawGlassCard(graphics, img3X, img3Y, imgW, imgH, false, false);
-            graphics.centeredText(this.font, this.font.plainSubstrByWidth(KiemLang.get("cosmetics.empty_folder"), imgW - 10), img3X + imgW / 2, img3Y + 28, COLOR_TEXT_MUTED);
-            graphics.centeredText(this.font, this.font.plainSubstrByWidth(KiemLang.get("cosmetics.empty_sub"), imgW - 10), img3X + imgW / 2, img3Y + 46, COLOR_TEXT_DIM);
-            graphics.centeredText(this.font, this.font.plainSubstrByWidth(KiemLang.get("cosmetics.empty_hint"), imgW - 10), img3X + imgW / 2, img3Y + 62, COLOR_TEXT_DIM);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, KiemLang.get("cosmetics.empty_folder"), imgW - 10), img3X + imgW / 2, img3Y + 28, BoutiqueDraw.theme().textMuted);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, KiemLang.get("cosmetics.empty_sub"), imgW - 10), img3X + imgW / 2, img3Y + 46, BoutiqueDraw.theme().textDim);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, KiemLang.get("cosmetics.empty_hint"), imgW - 10), img3X + imgW / 2, img3Y + 62, BoutiqueDraw.theme().textDim);
 
             int openBtnW = imgW - 16;
             int openBtnH = 20;
@@ -1165,8 +1269,8 @@ public class KiemScreen extends Screen {
             int openBtnY = img3Y + 92;
             boolean openHover = hoverX >= openBtnX && hoverX <= openBtnX + openBtnW && hoverY >= openBtnY && hoverY <= openBtnY + openBtnH;
             BoutiqueDraw.drawPill(graphics, openBtnX, openBtnY, openBtnW, openBtnH, false, openHover);
-            graphics.centeredText(this.font, this.font.plainSubstrByWidth(KiemLang.get("cosmetics.open_folder_btn"), openBtnW - 8),
-                    openBtnX + openBtnW / 2, openBtnY + 6, openHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, KiemLang.get("cosmetics.open_folder_btn"), openBtnW - 8),
+                    openBtnX + openBtnW / 2, openBtnY + 6, openHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
         } else if (activeCustom != null) {
             Identifier previewTex = activeCustom.frameIdentifiers[0];
             float u0 = 192.0f / 1024.0f;
@@ -1187,20 +1291,20 @@ public class KiemScreen extends Screen {
             boolean rightArrowHover = hoverX >= rightArrowX && hoverX <= rightArrowX + arrowW && hoverY >= selBarY && hoverY <= selBarY + selBarH;
 
             BoutiqueDraw.drawPillBar(graphics, img3X + 2, selBarY, imgW - 4, selBarH);
-            graphics.centeredText(this.font, "◀", leftArrowX + arrowW / 2, selBarY + 5, leftArrowHover ? COLOR_SAKURA_BRIGHT : COLOR_TEXT_MUTED);
-            graphics.centeredText(this.font, "▶", rightArrowX + arrowW / 2, selBarY + 5, rightArrowHover ? COLOR_SAKURA_BRIGHT : COLOR_TEXT_MUTED);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, "◀", leftArrowX + arrowW / 2, selBarY + 5, leftArrowHover ? BoutiqueDraw.theme().textAccent : BoutiqueDraw.theme().textMuted);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, "▶", rightArrowX + arrowW / 2, selBarY + 5, rightArrowHover ? BoutiqueDraw.theme().textAccent : BoutiqueDraw.theme().textMuted);
 
             String capeLabel = activeCustom.displayName;
-            if (this.font.width(capeLabel) > selMidW - 6) {
-                capeLabel = this.font.plainSubstrByWidth(capeLabel, selMidW - 14) + "...";
+            if (BoutiqueDraw.textWidth(this.font, capeLabel) > selMidW - 6) {
+                capeLabel = BoutiqueDraw.fitText(this.font, capeLabel, selMidW - 14);
             }
-            graphics.centeredText(this.font, capeLabel, selMidX + selMidW / 2, selBarY + 5, COLOR_TEXT_WHITE);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, capeLabel, selMidX + selMidW / 2, selBarY + 5, BoutiqueDraw.theme().textPrimary);
 
             String badge = activeCustom.isAnimated ? ("GIF • " + activeCustom.frameCount + "F") : "PNG";
-            int badgeW = this.font.width(badge) + 10;
+            int badgeW = BoutiqueDraw.textWidth(this.font, badge) + 10;
             int badgeH = 14;
             BoutiqueDraw.drawPill(graphics, img3X + imgW - badgeW - 4, img3Y + 4, badgeW, badgeH, false, false);
-            graphics.centeredText(this.font, badge, img3X + imgW - badgeW / 2 - 4, img3Y + 7, COLOR_TEXT_WHITE);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, badge, img3X + imgW - badgeW / 2 - 4, img3Y + 7, BoutiqueDraw.theme().textPrimary);
 
             int equipBtnW = imgW;
             int equipBtnH = 20;
@@ -1209,16 +1313,16 @@ public class KiemScreen extends Screen {
             boolean equipHover = hoverX >= equipBtnX && hoverX <= equipBtnX + equipBtnW && hoverY >= equipBtnY && hoverY <= equipBtnY + equipBtnH;
             boolean customEquipped = isCustomActive && activeCustom.fileName.equalsIgnoreCase(KiemConfig.customCapeFileName);
             BoutiqueDraw.drawPill(graphics, equipBtnX, equipBtnY, equipBtnW, equipBtnH, customEquipped, equipHover);
-            graphics.centeredText(this.font, KiemLang.get(customEquipped ? "cosmetics.equipped" : "cosmetics.equip"),
-                    equipBtnX + equipBtnW / 2, equipBtnY + 6, customEquipped ? COLOR_TEXT_INK : (equipHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get(customEquipped ? "cosmetics.equipped" : "cosmetics.equip"),
+                    equipBtnX + equipBtnW / 2, equipBtnY + 6, customEquipped ? BoutiqueDraw.theme().textOnActivePill : (equipHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
 
             if (isCustomActive) {
                 boolean unequipHover3 = hoverX >= card3X + 12 && hoverX <= card3X + cardW - 12 && hoverY >= footerY && hoverY <= footerY + 14;
-                graphics.centeredText(this.font, KiemLang.get("cosmetics.unequip"), card3X + cardW / 2, footerY + 2, unequipHover3 ? 0xFFFF7788 : COLOR_TEXT_ROSEGOLD);
+                BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("cosmetics.unequip"), card3X + cardW / 2, footerY + 2, unequipHover3 ? 0xFFFF7788 : BoutiqueDraw.theme().textAccent);
             } else if (current != CapeManager.CapeType.OFF) {
-                graphics.centeredText(this.font, KiemLang.get("cosmetics.other_active"), card3X + cardW / 2, footerY + 2, COLOR_TEXT_DIM);
+                BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("cosmetics.other_active"), card3X + cardW / 2, footerY + 2, BoutiqueDraw.theme().textDim);
             } else {
-                graphics.centeredText(this.font, KiemLang.get("cosmetics.inactive"), card3X + cardW / 2, footerY + 2, COLOR_TEXT_DIM);
+                BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("cosmetics.inactive"), card3X + cardW / 2, footerY + 2, BoutiqueDraw.theme().textDim);
             }
         }
 
@@ -1241,13 +1345,13 @@ public class KiemScreen extends Screen {
         int toggleX = x + w - toggleW - 8;
         int toggleY = infoY + (footerH - toggleH) / 2;
         int infoTextMaxW = w - toggleW - 24;
-        drawBoundedText(graphics, KiemLang.get("cosmetics.active_selection") + ": " + currentName, x + 12, infoY + 6, infoTextMaxW, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("cosmetics.info_desc"), x + 12, infoY + 19, infoTextMaxW, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("cosmetics.active_selection") + ": " + currentName, x + 12, infoY + 6, infoTextMaxW, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("cosmetics.info_desc"), x + 12, infoY + 19, infoTextMaxW, BoutiqueDraw.theme().textMuted);
 
         boolean toggleHover = mouseX >= toggleX && mouseX <= toggleX + toggleW && mouseY >= toggleY && mouseY <= toggleY + toggleH;
         BoutiqueDraw.drawPill(graphics, toggleX, toggleY, toggleW, toggleH, KiemConfig.capeTrueColor, toggleHover);
-        graphics.centeredText(this.font, KiemLang.get(KiemConfig.capeTrueColor ? "cosmetics.true_color_on" : "cosmetics.true_color_off"),
-                toggleX + toggleW / 2, toggleY + 6, KiemConfig.capeTrueColor ? COLOR_TEXT_INK : (toggleHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get(KiemConfig.capeTrueColor ? "cosmetics.true_color_on" : "cosmetics.true_color_off"),
+                toggleX + toggleW / 2, toggleY + 6, KiemConfig.capeTrueColor ? BoutiqueDraw.theme().textOnActivePill : (toggleHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
     }
 
     // ==================== WELCOME TAB ====================
@@ -1272,10 +1376,10 @@ public class KiemScreen extends Screen {
             int maxTextW = dlBtnX - (ix + 14) - 8;
             String verTag = "v" + UpdateChecker.getLatestVersion();
             drawBoundedText(graphics, "✦ " + KiemLang.get("update.banner.title") + " (" + verTag + ")", ix + 14, curBaseY + 6, maxTextW, 0xFF88F5B5);
-            drawBoundedText(graphics, KiemLang.get("update.banner.desc") + " " + verTag, ix + 14, curBaseY + 19, maxTextW, COLOR_TEXT_WHITE);
+            drawBoundedText(graphics, KiemLang.get("update.banner.desc") + " " + verTag, ix + 14, curBaseY + 19, maxTextW, BoutiqueDraw.theme().textPrimary);
 
             BoutiqueDraw.drawPill(graphics, dlBtnX, dlBtnY, dlBtnW, dlBtnH, true, dlHover);
-            graphics.centeredText(this.font, KiemLang.get("update.banner.download"), dlBtnX + dlBtnW / 2, dlBtnY + 6, COLOR_TEXT_INK);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("update.banner.download"), dlBtnX + dlBtnW / 2, dlBtnY + 6, BoutiqueDraw.theme().textOnActivePill);
 
             curBaseY += bannerH + 8;
         }
@@ -1283,16 +1387,16 @@ public class KiemScreen extends Screen {
         // Hero Header Banner
         int heroH = 72;
         BoutiqueDraw.drawGlassCard(graphics, ix, curBaseY, iw, heroH, false, false);
-        graphics.text(this.font, KiemLang.get("welcome.hero_title"), ix + 14, curBaseY + 12, COLOR_SAKURA_BRIGHT, false);
-        drawBoundedText(graphics, KiemLang.get("welcome.hero_desc"), ix + 14, curBaseY + 26, iw - 28, COLOR_TEXT_WHITE);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("welcome.hero_title"), ix + 14, curBaseY + 12, BoutiqueDraw.theme().textAccent);
+        drawBoundedText(graphics, KiemLang.get("welcome.hero_desc"), ix + 14, curBaseY + 26, iw - 28, BoutiqueDraw.theme().textPrimary);
 
         // Keybind Pill inside Hero Banner
         int keyBoxX = ix + 14;
         int keyBoxY = curBaseY + 44;
         int keyBoxH = 20;
         String menuKeyName = KiemConfig.getKeyName(KiemConfig.menuKey);
-        graphics.text(this.font, KiemLang.get("welcome.menu_key"), keyBoxX, keyBoxY + 6, COLOR_TEXT_MUTED, false);
-        int labelW = this.font.width(KiemLang.get("welcome.menu_key")) + 8;
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("welcome.menu_key"), keyBoxX, keyBoxY + 6, BoutiqueDraw.theme().textMuted);
+        int labelW = BoutiqueDraw.textWidth(this.font, KiemLang.get("welcome.menu_key")) + 8;
         int btnW = 90;
         boolean keyHover = mouseX >= keyBoxX + labelW && mouseX <= keyBoxX + labelW + btnW && mouseY >= keyBoxY && mouseY <= keyBoxY + keyBoxH;
         drawKeybindButton(graphics, keyBoxX + labelW, keyBoxY, btnW, keyBoxH, menuKeyName, listeningForMenuKey, keyHover);
@@ -1302,14 +1406,14 @@ public class KiemScreen extends Screen {
         int resetBtnX = ix + iw - resetBtnW - 14;
         boolean resetHover = mouseX >= resetBtnX && mouseX <= resetBtnX + resetBtnW && mouseY >= keyBoxY && mouseY <= keyBoxY + keyBoxH;
         BoutiqueDraw.drawPill(graphics, resetBtnX, keyBoxY, resetBtnW, keyBoxH, false, resetHover);
-        graphics.centeredText(this.font, KiemLang.get("welcome.reset_all"), resetBtnX + resetBtnW / 2, keyBoxY + 6,
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("welcome.reset_all"), resetBtnX + resetBtnW / 2, keyBoxY + 6,
                 resetHover ? 0xFFFF8899 : 0xFFFF9AA8);
 
         // Recent Modules Section Header
         int featY = curBaseY + heroH + 10;
-        graphics.text(this.font, KiemLang.get("welcome.recent_title"), ix, featY, COLOR_TEXT_WHITE, false);
-        int titleW = this.font.width(KiemLang.get("welcome.recent_title"));
-        graphics.fill(ix + titleW + 10, featY + 4, ix + iw, featY + 5, COLOR_DIVIDER);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("welcome.recent_title"), ix, featY, BoutiqueDraw.theme().textPrimary);
+        int titleW = BoutiqueDraw.textWidth(this.font, KiemLang.get("welcome.recent_title"));
+        graphics.fill(ix + titleW + 10, featY + 4, ix + iw, featY + 5, BoutiqueDraw.theme().panelBorder);
 
         int listY = featY + 14;
         int navBtnH = 24;
@@ -1330,13 +1434,13 @@ public class KiemScreen extends Screen {
             boolean cardHover = mouseX >= ix && mouseX <= ix + iw && mouseY >= curY && mouseY <= curY + itemH;
             BoutiqueDraw.drawGlassCard(graphics, ix, curY, iw, itemH, false, cardHover);
             int maxMetaW = goX - (ix + 14) - 8;
-            drawBoundedText(graphics, meta.title, ix + 14, curY + Math.max(5, itemH / 2 - 12), maxMetaW, COLOR_TEXT_WHITE);
-            drawBoundedText(graphics, meta.desc, ix + 14, curY + Math.max(17, itemH / 2 + 1), maxMetaW, COLOR_TEXT_DIM);
+            drawBoundedText(graphics, meta.title, ix + 14, curY + Math.max(5, itemH / 2 - 12), maxMetaW, BoutiqueDraw.theme().textPrimary);
+            drawBoundedText(graphics, meta.desc, ix + 14, curY + Math.max(17, itemH / 2 + 1), maxMetaW, BoutiqueDraw.theme().textDim);
 
             int btnCurY = curY + (itemH - 20) / 2;
             BoutiqueDraw.drawPill(graphics, goX, btnCurY, goW, 20, cardHover, cardHover);
-            graphics.centeredText(this.font, KiemLang.get("ui.edit"), goX + goW / 2, btnCurY + 6,
-                    cardHover ? COLOR_TEXT_INK : COLOR_TEXT_MUTED);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("ui.edit"), goX + goW / 2, btnCurY + 6,
+                    cardHover ? BoutiqueDraw.theme().textOnActivePill : BoutiqueDraw.theme().textMuted);
         }
 
         // Quick Bottom Nav Bar (Features & Cosmetics)
@@ -1346,13 +1450,13 @@ public class KiemScreen extends Screen {
         int b1X = ix;
         boolean b1Hover = mouseX >= b1X && mouseX <= b1X + navBtnW && mouseY >= navY && mouseY <= navY + navBtnH;
         BoutiqueDraw.drawPill(graphics, b1X, navY, navBtnW, navBtnH, false, b1Hover);
-        graphics.centeredText(this.font, KiemLang.get("welcome.nav_features"), b1X + navBtnW / 2, navY + 8,
-                b1Hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("welcome.nav_features"), b1X + navBtnW / 2, navY + 8,
+                b1Hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
 
         int b2X = b1X + navBtnW + 8;
         boolean b2Hover = mouseX >= b2X && mouseX <= b2X + navBtnW && mouseY >= navY && mouseY <= navY + navBtnH;
         BoutiqueDraw.drawPill(graphics, b2X, navY, navBtnW, navBtnH, true, b2Hover);
-        graphics.centeredText(this.font, KiemLang.get("welcome.nav_cosmetics"), b2X + navBtnW / 2, navY + 8, COLOR_TEXT_INK);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("welcome.nav_cosmetics"), b2X + navBtnW / 2, navY + 8, BoutiqueDraw.theme().textOnActivePill);
     }
 
     // ==================== CONFIG (FEATURES) TAB ====================
@@ -1431,8 +1535,8 @@ public class KiemScreen extends Screen {
         int backBtnH = 20;
         boolean backHover = mouseX >= x && mouseX <= x + backBtnW && mouseY >= y && mouseY <= y + backBtnH;
         BoutiqueDraw.drawPill(graphics, x, y, backBtnW, backBtnH, false, backHover);
-        graphics.centeredText(this.font, KiemLang.get("ui.back"), x + backBtnW / 2, y + 6,
-                backHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("ui.back"), x + backBtnW / 2, y + 6,
+                backHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
 
         String modTitle = switch (configSubView) {
             case MINI_MODELS -> KiemLang.get("mod.mini_models.title");
@@ -1447,7 +1551,7 @@ public class KiemScreen extends Screen {
         };
 
         int titleX = x + backBtnW + 12;
-        graphics.text(this.font, modTitle, titleX, y + 6, COLOR_TEXT_WHITE, false);
+        BoutiqueDraw.drawText(graphics, this.font, modTitle, titleX, y + 6, BoutiqueDraw.theme().textPrimary);
 
         boolean hasReset = (configSubView == ConfigSubView.MINI_MODELS
                 || configSubView == ConfigSubView.CUSTOM_VIEWMODEL
@@ -1460,8 +1564,8 @@ public class KiemScreen extends Screen {
             int resetBtnX = x + w - resetBtnW;
             boolean resetHover = mouseX >= resetBtnX && mouseX <= resetBtnX + resetBtnW && mouseY >= y && mouseY <= y + backBtnH;
             BoutiqueDraw.drawPill(graphics, resetBtnX, y, resetBtnW, backBtnH, false, resetHover);
-            graphics.centeredText(this.font, KiemLang.get("ui.reset"), resetBtnX + resetBtnW / 2, y + 6,
-                    resetHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("ui.reset"), resetBtnX + resetBtnW / 2, y + 6,
+                    resetHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
             rightLimit = resetBtnX - 8;
         }
         if (hasMasterToggle) {
@@ -1474,16 +1578,16 @@ public class KiemScreen extends Screen {
             rightLimit = tX - 8;
         }
 
-        int headerLineX = titleX + this.font.width(modTitle) + 10;
+        int headerLineX = titleX + BoutiqueDraw.textWidth(this.font, modTitle) + 10;
         if (rightLimit - 10 > headerLineX) {
-            graphics.fill(headerLineX, y + 10, rightLimit - 4, y + 11, COLOR_DIVIDER);
+            graphics.fill(headerLineX, y + 10, rightLimit - 4, y + 11, BoutiqueDraw.theme().panelBorder);
         }
     }
 
     private void renderConfigMainView(GuiGraphicsExtractor graphics, int x, int y, int w, int h, int mouseX, int mouseY) {
-        graphics.text(this.font, KiemLang.get("ui.modules"), x, y, COLOR_TEXT_WHITE, false);
-        int titleW = this.font.width(KiemLang.get("ui.modules"));
-        graphics.fill(x + titleW + 10, y + 4, x + w, y + 5, COLOR_DIVIDER);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("ui.modules"), x, y, BoutiqueDraw.theme().textPrimary);
+        int titleW = BoutiqueDraw.textWidth(this.font, KiemLang.get("ui.modules"));
+        graphics.fill(x + titleW + 10, y + 4, x + w, y + 5, BoutiqueDraw.theme().panelBorder);
 
         int colGap = 10;
         int colW = (w - colGap) / 2;
@@ -1547,11 +1651,11 @@ public class KiemScreen extends Screen {
         int bX = cx + cw - badgeW - 10;
         int bY = cy + (ch - badgeH) / 2;
         int maxTextW = bX - (cx + 12) - 8;
-        drawBoundedText(graphics, title, cx + 12, cy + Math.max(8, ch / 2 - 12), maxTextW, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, desc, cx + 12, cy + Math.max(22, ch / 2 + 2), maxTextW, enabled ? COLOR_SAKURA_BRIGHT : COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, title, cx + 12, cy + Math.max(8, ch / 2 - 12), maxTextW, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, desc, cx + 12, cy + Math.max(22, ch / 2 + 2), maxTextW, enabled ? BoutiqueDraw.theme().textAccent : BoutiqueDraw.theme().textMuted);
         BoutiqueDraw.drawPill(graphics, bX, bY, badgeW, badgeH, hover, hover);
-        graphics.centeredText(this.font, KiemLang.get("ui.customize"), bX + badgeW / 2, bY + 6,
-                hover ? COLOR_TEXT_INK : COLOR_SAKURA_BRIGHT);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("ui.customize"), bX + badgeW / 2, bY + 6,
+                hover ? BoutiqueDraw.theme().textOnActivePill : BoutiqueDraw.theme().textAccent);
     }
 
     private void renderMiniModelsView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
@@ -1569,8 +1673,8 @@ public class KiemScreen extends Screen {
         int t0X = leftColX + colW - toggleW - 10;
         int t0Y = r0Y + (36 - toggleH) / 2;
         int maxSelfTextW = t0X - (leftColX + 10) - 6;
-        drawBoundedText(graphics, KiemLang.get("mod.mini_models.self_title"), leftColX + 10, r0Y + 8, maxSelfTextW, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("mod.mini_models.self_desc"), leftColX + 10, r0Y + 20, maxSelfTextW, COLOR_TEXT_DIM);
+        drawBoundedText(graphics, KiemLang.get("mod.mini_models.self_title"), leftColX + 10, r0Y + 8, maxSelfTextW, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("mod.mini_models.self_desc"), leftColX + 10, r0Y + 20, maxSelfTextW, BoutiqueDraw.theme().textDim);
         boolean t0Hover = mouseX >= t0X && mouseX <= t0X + toggleW && mouseY >= t0Y && mouseY <= t0Y + toggleH;
         drawToggleButton(graphics, t0X, t0Y, toggleW, toggleH, KiemConfig.selfScaleEnabled, t0Hover);
 
@@ -1591,8 +1695,8 @@ public class KiemScreen extends Screen {
         int t1X = rightColX + colW - toggleW - 12;
         int t1Y = r0Y + (r0RightH - toggleH) / 2;
         int maxOthersTextW = t1X - (rightColX + 12) - 6;
-        drawBoundedText(graphics, KiemLang.get("mod.mini_models.others_title"), rightColX + 12, r0Y + 22, maxOthersTextW, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("mod.mini_models.others_desc"), rightColX + 12, r0Y + 38, maxOthersTextW, COLOR_TEXT_DIM);
+        drawBoundedText(graphics, KiemLang.get("mod.mini_models.others_title"), rightColX + 12, r0Y + 22, maxOthersTextW, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("mod.mini_models.others_desc"), rightColX + 12, r0Y + 38, maxOthersTextW, BoutiqueDraw.theme().textDim);
         boolean t1Hover = mouseX >= t1X && mouseX <= t1X + toggleW && mouseY >= t1Y && mouseY <= t1Y + toggleH;
         drawToggleButton(graphics, t1X, t1Y, toggleW, toggleH, KiemConfig.othersScaleEnabled, t1Hover);
 
@@ -1642,8 +1746,8 @@ public class KiemScreen extends Screen {
         int t1X = x + w - toggleW - 12;
         int t1Y = r1Y + (rowH - toggleH) / 2;
         int maxR1W = t1X - (x + 12) - 6;
-        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.row1_title"), x + 12, r1Y + 8, maxR1W, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.row1_desc"), x + 12, r1Y + 22, maxR1W, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.row1_title"), x + 12, r1Y + 8, maxR1W, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.row1_desc"), x + 12, r1Y + 22, maxR1W, BoutiqueDraw.theme().textMuted);
         drawToggleButton(graphics, t1X, t1Y, toggleW, toggleH, KiemConfig.betterThirdPersonEnabled,
                 mouseX >= t1X && mouseX <= t1X + toggleW && mouseY >= t1Y && mouseY <= t1Y + toggleH);
 
@@ -1652,8 +1756,8 @@ public class KiemScreen extends Screen {
         int t2X = x + w - toggleW - 12;
         int t2Y = r2Y + (rowH - toggleH) / 2;
         int maxR2W = t2X - (x + 12) - 6;
-        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.shoulder_title"), x + 12, r2Y + 8, maxR2W, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.shoulder_desc"), x + 12, r2Y + 22, maxR2W, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.shoulder_title"), x + 12, r2Y + 8, maxR2W, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.shoulder_desc"), x + 12, r2Y + 22, maxR2W, BoutiqueDraw.theme().textMuted);
         drawToggleButton(graphics, t2X, t2Y, toggleW, toggleH, KiemConfig.shoulderSurfingEnabled,
                 mouseX >= t2X && mouseX <= t2X + toggleW && mouseY >= t2Y && mouseY <= t2Y + toggleH);
 
@@ -1674,14 +1778,14 @@ public class KiemScreen extends Screen {
         boolean rightH = mouseX >= pillRightX && mouseX <= pillRightX + pillW && mouseY >= keyBtnY && mouseY <= keyBtnY + toggleH;
 
         int maxR3W = pillLeftX - (x + 12) - 6;
-        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.swap_title"), x + 12, r3Y + 8, maxR3W, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.shoulder_desc"), x + 12, r3Y + 22, maxR3W, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.swap_title"), x + 12, r3Y + 8, maxR3W, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.shoulder_desc"), x + 12, r3Y + 22, maxR3W, BoutiqueDraw.theme().textMuted);
 
         BoutiqueDraw.drawPill(graphics, pillLeftX, keyBtnY, pillW, toggleH, !isRight, leftH);
-        graphics.centeredText(this.font, KiemLang.get("mod.better_third_person.left"), pillLeftX + pillW / 2, keyBtnY + 5, !isRight ? COLOR_TEXT_INK : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("mod.better_third_person.left"), pillLeftX + pillW / 2, keyBtnY + 5, !isRight ? BoutiqueDraw.theme().textOnActivePill : BoutiqueDraw.theme().textMuted);
 
         BoutiqueDraw.drawPill(graphics, pillRightX, keyBtnY, pillW, toggleH, isRight, rightH);
-        graphics.centeredText(this.font, KiemLang.get("mod.better_third_person.right"), pillRightX + pillW / 2, keyBtnY + 5, isRight ? COLOR_TEXT_INK : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("mod.better_third_person.right"), pillRightX + pillW / 2, keyBtnY + 5, isRight ? BoutiqueDraw.theme().textOnActivePill : BoutiqueDraw.theme().textMuted);
 
         int r4Y = r3Y + rowH + rowGap;
         drawCustomSlider(graphics, "tp_smoothness", x, r4Y, w, rowH, KiemLang.get("mod.better_third_person.smooth_title"), KiemLang.get("mod.better_third_person.smooth_sub"), KiemConfig.thirdPersonSmoothness, 0.0f, 1.0f, "%.2f", mouseX, mouseY);
@@ -1691,8 +1795,8 @@ public class KiemScreen extends Screen {
         int t5X = x + w - toggleW - 12;
         int t5Y = r5Y + (rowH - toggleH) / 2;
         int maxR5W = t5X - (x + 12) - 6;
-        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.lag_title"), x + 12, r5Y + 8, maxR5W, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.lag_desc"), x + 12, r5Y + 22, maxR5W, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.lag_title"), x + 12, r5Y + 8, maxR5W, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("mod.better_third_person.lag_desc"), x + 12, r5Y + 22, maxR5W, BoutiqueDraw.theme().textMuted);
         drawToggleButton(graphics, t5X, t5Y, toggleW, toggleH, KiemConfig.thirdPersonSpeedLag,
                 mouseX >= t5X && mouseX <= t5X + toggleW && mouseY >= t5Y && mouseY <= t5Y + toggleH);
 
@@ -1708,8 +1812,8 @@ public class KiemScreen extends Screen {
 
         int r1Y = y;
         BoutiqueDraw.drawGlassCard(graphics, x, r1Y, w, rowH, KiemConfig.tooltipScrollEnabled, false);
-        graphics.text(this.font, KiemLang.get("mod.tooltip_qol.scroll_title"), x + 14, r1Y + 12, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.tooltip_qol.scroll_desc"), x + 14, r1Y + 28, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.tooltip_qol.scroll_title"), x + 14, r1Y + 12, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.tooltip_qol.scroll_desc"), x + 14, r1Y + 28, BoutiqueDraw.theme().textMuted);
         int t1X = x + w - toggleW - 14;
         int t1Y = r1Y + (rowH - toggleH) / 2;
         drawToggleButton(graphics, t1X, t1Y, toggleW, toggleH, KiemConfig.tooltipScrollEnabled,
@@ -1717,8 +1821,8 @@ public class KiemScreen extends Screen {
 
         int r2Y = r1Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r2Y, w, rowH, KiemConfig.tooltipScaleEnabled, false);
-        graphics.text(this.font, KiemLang.get("mod.tooltip_qol.scale_title"), x + 14, r2Y + 12, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.tooltip_qol.scale_desc"), x + 14, r2Y + 28, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.tooltip_qol.scale_title"), x + 14, r2Y + 12, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.tooltip_qol.scale_desc"), x + 14, r2Y + 28, BoutiqueDraw.theme().textMuted);
         int t2X = x + w - toggleW - 14;
         int t2Y = r2Y + (rowH - toggleH) / 2;
         drawToggleButton(graphics, t2X, t2Y, toggleW, toggleH, KiemConfig.tooltipScaleEnabled,
@@ -1727,16 +1831,16 @@ public class KiemScreen extends Screen {
         int r3Y = r2Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r3Y, w, rowH, false, false);
         int currentPct = Math.round(KiemConfig.tooltipScale * 100.0f);
-        graphics.text(this.font, KiemLang.get("mod.tooltip_qol.current_scale") + currentPct + "%", x + 14, r3Y + 12, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.tooltip_qol.scale_reset_desc"), x + 14, r3Y + 28, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.tooltip_qol.current_scale") + currentPct + "%", x + 14, r3Y + 12, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.tooltip_qol.scale_reset_desc"), x + 14, r3Y + 28, BoutiqueDraw.theme().textMuted);
 
         int resetBtnW = 90;
         int resetBtnX = x + w - resetBtnW - 14;
         int resetBtnY = r3Y + (rowH - toggleH) / 2;
         boolean resetHover = mouseX >= resetBtnX && mouseX <= resetBtnX + resetBtnW && mouseY >= resetBtnY && mouseY <= resetBtnY + toggleH;
         BoutiqueDraw.drawPill(graphics, resetBtnX, resetBtnY, resetBtnW, toggleH, false, resetHover);
-        graphics.centeredText(this.font, KiemLang.get("mod.tooltip_qol.reset_100"), resetBtnX + resetBtnW / 2, resetBtnY + 7,
-                resetHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("mod.tooltip_qol.reset_100"), resetBtnX + resetBtnW / 2, resetBtnY + 7,
+                resetHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
     }
 
     private void renderChatQoLView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
@@ -1747,8 +1851,8 @@ public class KiemScreen extends Screen {
 
         int r1Y = y;
         BoutiqueDraw.drawGlassCard(graphics, x, r1Y, w, rowH, KiemConfig.infiniteChat, false);
-        graphics.text(this.font, KiemLang.get("mod.chat_qol.infinite_title"), x + 14, r1Y + 12, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.chat_qol.infinite_desc"), x + 14, r1Y + 28, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.chat_qol.infinite_title"), x + 14, r1Y + 12, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.chat_qol.infinite_desc"), x + 14, r1Y + 28, BoutiqueDraw.theme().textMuted);
         int t1X = x + w - toggleW - 14;
         int t1Y = r1Y + (rowH - toggleH) / 2;
         drawToggleButton(graphics, t1X, t1Y, toggleW, toggleH, KiemConfig.infiniteChat,
@@ -1756,8 +1860,8 @@ public class KiemScreen extends Screen {
 
         int r2Y = r1Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r2Y, w, rowH, KiemConfig.chatPeekEnabled, false);
-        graphics.text(this.font, KiemLang.get("mod.chat_qol.peek_title"), x + 14, r2Y + 12, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.chat_qol.peek_desc"), x + 14, r2Y + 28, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.chat_qol.peek_title"), x + 14, r2Y + 12, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.chat_qol.peek_desc"), x + 14, r2Y + 28, BoutiqueDraw.theme().textMuted);
         int t2X = x + w - toggleW - 14;
         int t2Y = r2Y + (rowH - toggleH) / 2;
         drawToggleButton(graphics, t2X, t2Y, toggleW, toggleH, KiemConfig.chatPeekEnabled,
@@ -1771,8 +1875,8 @@ public class KiemScreen extends Screen {
 
         int r3Y = r2Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r3Y, w, rowH, KiemConfig.compactMessages, false);
-        graphics.text(this.font, KiemLang.get("mod.chat_qol.compact_title"), x + 14, r3Y + 12, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.chat_qol.compact_desc"), x + 14, r3Y + 28, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.chat_qol.compact_title"), x + 14, r3Y + 12, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.chat_qol.compact_desc"), x + 14, r3Y + 28, BoutiqueDraw.theme().textMuted);
         int t3X = x + w - toggleW - 14;
         int t3Y = r3Y + (rowH - toggleH) / 2;
         drawToggleButton(graphics, t3X, t3Y, toggleW, toggleH, KiemConfig.compactMessages,
@@ -1780,8 +1884,8 @@ public class KiemScreen extends Screen {
 
         int r4Y = r3Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r4Y, w, rowH, KiemConfig.copyChatEnabled, false);
-        graphics.text(this.font, KiemLang.get("mod.chat_qol.copy_title"), x + 14, r4Y + 12, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.chat_qol.copy_desc"), x + 14, r4Y + 28, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.chat_qol.copy_title"), x + 14, r4Y + 12, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.chat_qol.copy_desc"), x + 14, r4Y + 28, BoutiqueDraw.theme().textMuted);
         int t4X = x + w - toggleW - 14;
         int t4Y = r4Y + (rowH - toggleH) / 2;
         drawToggleButton(graphics, t4X, t4Y, toggleW, toggleH, KiemConfig.copyChatEnabled,
@@ -1796,8 +1900,8 @@ public class KiemScreen extends Screen {
 
         int r1Y = y;
         BoutiqueDraw.drawGlassCard(graphics, x, r1Y, w, rowH, KiemConfig.zoomEnabled, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.row1_title"), x + 14, r1Y + 6, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.row1_desc"), x + 14, r1Y + 19, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.row1_title"), x + 14, r1Y + 6, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.row1_desc"), x + 14, r1Y + 19, BoutiqueDraw.theme().textMuted);
         int t1X = x + w - toggleW - 14;
         int t1Y = r1Y + (rowH - toggleH) / 2;
         drawToggleButton(graphics, t1X, t1Y, toggleW, toggleH, KiemConfig.zoomEnabled,
@@ -1806,8 +1910,8 @@ public class KiemScreen extends Screen {
         int r2Y = r1Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r2Y, w, rowH, false, false);
         String zoomStr = String.format(java.util.Locale.ROOT, "%.1fx", KiemConfig.zoomDefaultFactor);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.key_title") + zoomStr, x + 14, r2Y + 6, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.key_desc"), x + 14, r2Y + 19, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.key_title") + zoomStr, x + 14, r2Y + 6, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.key_desc"), x + 14, r2Y + 19, BoutiqueDraw.theme().textMuted);
 
         int keyBtnW = 76;
         int keyBtnX = x + w - keyBtnW - 14;
@@ -1821,14 +1925,14 @@ public class KiemScreen extends Screen {
         boolean minusHover = mouseX >= btnMinusX && mouseX <= btnMinusX + btnStepW && mouseY >= keyBtnY && mouseY <= keyBtnY + toggleH;
         boolean plusHover = mouseX >= btnPlusX && mouseX <= btnPlusX + btnStepW && mouseY >= keyBtnY && mouseY <= keyBtnY + toggleH;
         BoutiqueDraw.drawPill(graphics, btnMinusX, keyBtnY, btnStepW, toggleH, false, minusHover);
-        graphics.centeredText(this.font, "-", btnMinusX + btnStepW / 2, keyBtnY + 5, minusHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "-", btnMinusX + btnStepW / 2, keyBtnY + 5, minusHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
         BoutiqueDraw.drawPill(graphics, btnPlusX, keyBtnY, btnStepW, toggleH, false, plusHover);
-        graphics.centeredText(this.font, "+", btnPlusX + btnStepW / 2, keyBtnY + 5, plusHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "+", btnPlusX + btnStepW / 2, keyBtnY + 5, plusHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
 
         int r3Y = r2Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r3Y, w, rowH, KiemConfig.zoomScrollEnabled, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.scroll_title"), x + 14, r3Y + 6, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.scroll_desc"), x + 14, r3Y + 19, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.scroll_title"), x + 14, r3Y + 6, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.scroll_desc"), x + 14, r3Y + 19, BoutiqueDraw.theme().textMuted);
         int t3X = x + w - toggleW - 14;
         int t3Y = r3Y + (rowH - toggleH) / 2;
         drawToggleButton(graphics, t3X, t3Y, toggleW, toggleH, KiemConfig.zoomScrollEnabled,
@@ -1836,8 +1940,8 @@ public class KiemScreen extends Screen {
 
         int r4Y = r3Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r4Y, w, rowH, KiemConfig.zoomCinematicCamera, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.cinematic_title"), x + 14, r4Y + 6, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.cinematic_desc"), x + 14, r4Y + 19, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.cinematic_title"), x + 14, r4Y + 6, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.cinematic_desc"), x + 14, r4Y + 19, BoutiqueDraw.theme().textMuted);
         int t4X = x + w - toggleW - 14;
         int t4Y = r4Y + (rowH - toggleH) / 2;
         drawToggleButton(graphics, t4X, t4Y, toggleW, toggleH, KiemConfig.zoomCinematicCamera,
@@ -1845,8 +1949,8 @@ public class KiemScreen extends Screen {
 
         int r5Y = r4Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r5Y, w, rowH, KiemConfig.zoomCinematicBars, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.bars_title"), x + 14, r5Y + 6, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.bars_desc"), x + 14, r5Y + 19, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.bars_title"), x + 14, r5Y + 6, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.bars_desc"), x + 14, r5Y + 19, BoutiqueDraw.theme().textMuted);
         int t5X = x + w - toggleW - 14;
         int t5Y = r5Y + (rowH - toggleH) / 2;
         drawToggleButton(graphics, t5X, t5Y, toggleW, toggleH, KiemConfig.zoomCinematicBars,
@@ -1854,8 +1958,8 @@ public class KiemScreen extends Screen {
 
         int r6Y = r5Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r6Y, w, rowH, KiemConfig.cinematicBarsAlways, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.bars_always_title"), x + 14, r6Y + 6, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.bars_always_desc"), x + 14, r6Y + 19, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.bars_always_title"), x + 14, r6Y + 6, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.bars_always_desc"), x + 14, r6Y + 19, BoutiqueDraw.theme().textMuted);
         int t6X = x + w - toggleW - 14;
         int t6Y = r6Y + (rowH - toggleH) / 2;
         drawToggleButton(graphics, t6X, t6Y, toggleW, toggleH, KiemConfig.cinematicBarsAlways,
@@ -1866,8 +1970,8 @@ public class KiemScreen extends Screen {
 
         int r8Y = r7Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r8Y, w, rowH, KiemConfig.zoomSensitivityScale, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.sens_title"), x + 14, r8Y + 6, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.sens_desc"), x + 14, r8Y + 19, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.sens_title"), x + 14, r8Y + 6, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.sens_desc"), x + 14, r8Y + 19, BoutiqueDraw.theme().textMuted);
         int t8X = x + w - toggleW - 14;
         int t8Y = r8Y + (rowH - toggleH) / 2;
         drawToggleButton(graphics, t8X, t8Y, toggleW, toggleH, KiemConfig.zoomSensitivityScale,
@@ -1875,16 +1979,16 @@ public class KiemScreen extends Screen {
 
         int r9Y = r8Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r9Y, w, rowH, false, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.speed_title"), x + 14, r9Y + 6, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.smooth_zoom.speed_desc"), x + 14, r9Y + 19, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.speed_title"), x + 14, r9Y + 6, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.smooth_zoom.speed_desc"), x + 14, r9Y + 19, BoutiqueDraw.theme().textMuted);
 
         int resetBtnW = 60;
         int resetBtnX = x + w - resetBtnW - 14;
         int r9BtnsY = r9Y + (rowH - toggleH) / 2;
         boolean resetHover = mouseX >= resetBtnX && mouseX <= resetBtnX + resetBtnW && mouseY >= r9BtnsY && mouseY <= r9BtnsY + toggleH;
         BoutiqueDraw.drawPill(graphics, resetBtnX, r9BtnsY, resetBtnW, toggleH, false, resetHover);
-        graphics.centeredText(this.font, KiemLang.get("ui.reset"), resetBtnX + resetBtnW / 2, r9BtnsY + 5,
-                resetHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("ui.reset"), resetBtnX + resetBtnW / 2, r9BtnsY + 5,
+                resetHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
 
         int spW = 46;
         int spGap = 4;
@@ -1897,13 +2001,13 @@ public class KiemScreen extends Screen {
         boolean sp3Active = Math.abs(KiemConfig.zoomSpeed - 26.0) < 1.0;
 
         BoutiqueDraw.drawPill(graphics, sp1X, r9BtnsY, spW, toggleH, sp1Active, mouseX >= sp1X && mouseX <= sp1X + spW && mouseY >= r9BtnsY && mouseY <= r9BtnsY + toggleH);
-        graphics.centeredText(this.font, KiemLang.get("mod.smooth_zoom.slow"), sp1X + spW / 2, r9BtnsY + 5, sp1Active ? COLOR_TEXT_INK : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("mod.smooth_zoom.slow"), sp1X + spW / 2, r9BtnsY + 5, sp1Active ? BoutiqueDraw.theme().textOnActivePill : BoutiqueDraw.theme().textMuted);
 
         BoutiqueDraw.drawPill(graphics, sp2X, r9BtnsY, spW, toggleH, sp2Active, mouseX >= sp2X && mouseX <= sp2X + spW && mouseY >= r9BtnsY && mouseY <= r9BtnsY + toggleH);
-        graphics.centeredText(this.font, KiemLang.get("mod.smooth_zoom.normal"), sp2X + spW / 2, r9BtnsY + 5, sp2Active ? COLOR_TEXT_INK : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("mod.smooth_zoom.normal"), sp2X + spW / 2, r9BtnsY + 5, sp2Active ? BoutiqueDraw.theme().textOnActivePill : BoutiqueDraw.theme().textMuted);
 
         BoutiqueDraw.drawPill(graphics, sp3X, r9BtnsY, spW, toggleH, sp3Active, mouseX >= sp3X && mouseX <= sp3X + spW && mouseY >= r9BtnsY && mouseY <= r9BtnsY + toggleH);
-        graphics.centeredText(this.font, KiemLang.get("mod.smooth_zoom.fast"), sp3X + spW / 2, r9BtnsY + 5, sp3Active ? COLOR_TEXT_INK : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("mod.smooth_zoom.fast"), sp3X + spW / 2, r9BtnsY + 5, sp3Active ? BoutiqueDraw.theme().textOnActivePill : BoutiqueDraw.theme().textMuted);
     }
 
     private void renderAfkCinematicsView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
@@ -1917,8 +2021,8 @@ public class KiemScreen extends Screen {
         int t1X = x + w - toggleW - 12;
         int t1Y = r1Y + (rowH - toggleH) / 2;
         int maxR1W = t1X - (x + 12) - 6;
-        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.row1_title"), x + 12, r1Y + 8, maxR1W, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.row1_desc"), x + 12, r1Y + 22, maxR1W, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.row1_title"), x + 12, r1Y + 8, maxR1W, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.row1_desc"), x + 12, r1Y + 22, maxR1W, BoutiqueDraw.theme().textMuted);
         drawToggleButton(graphics, t1X, t1Y, toggleW, toggleH, KiemConfig.afkCinematicsEnabled,
                 mouseX >= t1X && mouseX <= t1X + toggleW && mouseY >= t1Y && mouseY <= t1Y + toggleH);
 
@@ -1932,8 +2036,8 @@ public class KiemScreen extends Screen {
         int pillsStartX = x + w - totalSecW - 12;
         int pillsY = r2Y + (rowH - toggleH) / 2;
         int maxR2W = pillsStartX - (x + 12) - 6;
-        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.time_title"), x + 12, r2Y + 8, maxR2W, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.time_desc"), x + 12, r2Y + 22, maxR2W, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.time_title"), x + 12, r2Y + 8, maxR2W, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.time_desc"), x + 12, r2Y + 22, maxR2W, BoutiqueDraw.theme().textMuted);
 
         for (int i = 0; i < secOptions.length; i++) {
             int s = secOptions[i];
@@ -1941,8 +2045,8 @@ public class KiemScreen extends Screen {
             boolean active = (KiemConfig.afkCinematicsSeconds == s);
             boolean hover = mouseX >= pX && mouseX <= pX + pillW && mouseY >= pillsY && mouseY <= pillsY + toggleH;
             BoutiqueDraw.drawPill(graphics, pX, pillsY, pillW, toggleH, active, hover);
-            graphics.centeredText(this.font, secLabels[i], pX + pillW / 2, pillsY + 5,
-                    active ? COLOR_TEXT_INK : (hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+            BoutiqueDraw.drawCenteredText(graphics, this.font, secLabels[i], pX + pillW / 2, pillsY + 5,
+                    active ? BoutiqueDraw.theme().textOnActivePill : (hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
         }
 
         int r3Y = r2Y + rowH + rowGap;
@@ -1950,8 +2054,8 @@ public class KiemScreen extends Screen {
         int t3X = x + w - toggleW - 12;
         int t3Y = r3Y + (rowH - toggleH) / 2;
         int maxR3W = t3X - (x + 12) - 6;
-        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.bars_title"), x + 12, r3Y + 8, maxR3W, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.bars_desc"), x + 12, r3Y + 22, maxR3W, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.bars_title"), x + 12, r3Y + 8, maxR3W, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.bars_desc"), x + 12, r3Y + 22, maxR3W, BoutiqueDraw.theme().textMuted);
         drawToggleButton(graphics, t3X, t3Y, toggleW, toggleH, KiemConfig.afkCinematicBars,
                 mouseX >= t3X && mouseX <= t3X + toggleW && mouseY >= t3Y && mouseY <= t3Y + toggleH);
 
@@ -1960,8 +2064,8 @@ public class KiemScreen extends Screen {
         int t4X = x + w - toggleW - 12;
         int t4Y = r4Y + (rowH - toggleH) / 2;
         int maxR4W = t4X - (x + 12) - 6;
-        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.raycast_title"), x + 12, r4Y + 8, maxR4W, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.raycast_desc"), x + 12, r4Y + 22, maxR4W, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.raycast_title"), x + 12, r4Y + 8, maxR4W, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.raycast_desc"), x + 12, r4Y + 22, maxR4W, BoutiqueDraw.theme().textMuted);
         drawToggleButton(graphics, t4X, t4Y, toggleW, toggleH, KiemConfig.afkRaycastEnabled,
                 mouseX >= t4X && mouseX <= t4X + toggleW && mouseY >= t4Y && mouseY <= t4Y + toggleH);
 
@@ -1971,12 +2075,12 @@ public class KiemScreen extends Screen {
         int testBtnX = x + w - testBtnW - 12;
         int testBtnY = r5Y + (rowH - 22) / 2;
         int maxR5W = testBtnX - (x + 12) - 6;
-        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.test_title"), x + 12, r5Y + 8, maxR5W, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.test_desc"), x + 12, r5Y + 22, maxR5W, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.test_title"), x + 12, r5Y + 8, maxR5W, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("mod.afk_cinematics.test_desc"), x + 12, r5Y + 22, maxR5W, BoutiqueDraw.theme().textMuted);
 
         boolean testHover = mouseX >= testBtnX && mouseX <= testBtnX + testBtnW && mouseY >= testBtnY && mouseY <= testBtnY + 22;
         BoutiqueDraw.drawPill(graphics, testBtnX, testBtnY, testBtnW, 22, true, testHover);
-        graphics.centeredText(this.font, KiemLang.get("mod.afk_cinematics.test_btn"), testBtnX + testBtnW / 2, testBtnY + 7, COLOR_TEXT_INK);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("mod.afk_cinematics.test_btn"), testBtnX + testBtnW / 2, testBtnY + 7, BoutiqueDraw.theme().textOnActivePill);
     }
 
     private void renderAntiAfkView(GuiGraphicsExtractor graphics, int x, int y, int w, int mouseX, int mouseY) {
@@ -1987,8 +2091,8 @@ public class KiemScreen extends Screen {
 
         int r1Y = y;
         BoutiqueDraw.drawGlassCard(graphics, x, r1Y, w, rowH, KiemConfig.antiAfkEnabled, false);
-        graphics.text(this.font, KiemLang.get("mod.anti_afk.row1_title"), x + 14, r1Y + 12, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.anti_afk.row1_desc"), x + 14, r1Y + 28, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.anti_afk.row1_title"), x + 14, r1Y + 12, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.anti_afk.row1_desc"), x + 14, r1Y + 28, BoutiqueDraw.theme().textMuted);
         int t1X = x + w - toggleW - 14;
         int t1Y = r1Y + (rowH - toggleH) / 2;
         drawToggleButton(graphics, t1X, t1Y, toggleW, toggleH, KiemConfig.antiAfkEnabled,
@@ -1996,8 +2100,8 @@ public class KiemScreen extends Screen {
 
         int r2Y = r1Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r2Y, w, rowH, false, false);
-        graphics.text(this.font, KiemLang.get("mod.anti_afk.interval_title"), x + 14, r2Y + 12, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.anti_afk.interval_desc"), x + 14, r2Y + 28, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.anti_afk.interval_title"), x + 14, r2Y + 12, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.anti_afk.interval_desc"), x + 14, r2Y + 28, BoutiqueDraw.theme().textMuted);
 
         int pillW = 42;
         int pillGap = 5;
@@ -2012,14 +2116,14 @@ public class KiemScreen extends Screen {
             boolean active = (KiemConfig.antiAfkMinutes == m);
             boolean hover = mouseX >= pX && mouseX <= pX + pillW && mouseY >= pillsY && mouseY <= pillsY + toggleH;
             BoutiqueDraw.drawPill(graphics, pX, pillsY, pillW, toggleH, active, hover);
-            graphics.centeredText(this.font, m + " " + KiemLang.get("mod.anti_afk.min"), pX + pillW / 2, pillsY + 7,
-                    active ? COLOR_TEXT_INK : (hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+            BoutiqueDraw.drawCenteredText(graphics, this.font, m + " " + KiemLang.get("mod.anti_afk.min"), pX + pillW / 2, pillsY + 7,
+                    active ? BoutiqueDraw.theme().textOnActivePill : (hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
         }
 
         int r3Y = r2Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r3Y, w, rowH, false, false);
-        graphics.text(this.font, KiemLang.get("mod.anti_afk.action_title"), x + 14, r3Y + 12, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("mod.anti_afk.action_desc"), x + 14, r3Y + 28, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.anti_afk.action_title"), x + 14, r3Y + 12, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.anti_afk.action_desc"), x + 14, r3Y + 28, BoutiqueDraw.theme().textMuted);
 
         String[] actions = {"SHIFT", "JUMP", "CLICK"};
         String[] actionLabels = {"Shift", "Jump", "Click"};
@@ -2036,28 +2140,28 @@ public class KiemScreen extends Screen {
             boolean active = act.equalsIgnoreCase(KiemConfig.antiAfkAction);
             boolean hover = mouseX >= aX && mouseX <= aX + actW && mouseY >= actsY && mouseY <= actsY + toggleH;
             BoutiqueDraw.drawPill(graphics, aX, actsY, actW, toggleH, active, hover);
-            graphics.centeredText(this.font, lbl, aX + actW / 2, actsY + 7,
-                    active ? COLOR_TEXT_INK : (hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED));
+            BoutiqueDraw.drawCenteredText(graphics, this.font, lbl, aX + actW / 2, actsY + 7,
+                    active ? BoutiqueDraw.theme().textOnActivePill : (hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
         }
 
         int r4Y = r3Y + rowH + rowGap;
         BoutiqueDraw.drawGlassCard(graphics, x, r4Y, w, rowH, false, false);
-        graphics.text(this.font, KiemLang.get("mod.anti_afk.status_title"), x + 14, r4Y + 12, COLOR_TEXT_WHITE, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("mod.anti_afk.status_title"), x + 14, r4Y + 12, BoutiqueDraw.theme().textPrimary);
         String infoStr;
         if ("en".equalsIgnoreCase(KiemConfig.language)) {
             infoStr = KiemConfig.antiAfkEnabled ? "Active: Triggers " + KiemConfig.antiAfkAction + " every " + KiemConfig.antiAfkMinutes + " min." : "Disabled: No automatic action is performed.";
         } else {
             infoStr = KiemConfig.antiAfkEnabled ? "Aktif: Her " + KiemConfig.antiAfkMinutes + " dakikada bir " + KiemConfig.antiAfkAction + " tetikleniyor." : "Devre dışı: Otomatik eylem yürütülmüyor.";
         }
-        graphics.text(this.font, infoStr, x + 14, r4Y + 28, KiemConfig.antiAfkEnabled ? COLOR_SAKURA_BRIGHT : COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, infoStr, x + 14, r4Y + 28, KiemConfig.antiAfkEnabled ? BoutiqueDraw.theme().textAccent : BoutiqueDraw.theme().textMuted);
 
         int resetW = 76;
         int resetX = x + w - resetW - 14;
         int resetY = r4Y + (rowH - toggleH) / 2;
         boolean resetH = mouseX >= resetX && mouseX <= resetX + resetW && mouseY >= resetY && mouseY <= resetY + toggleH;
         BoutiqueDraw.drawPill(graphics, resetX, resetY, resetW, toggleH, false, resetH);
-        graphics.centeredText(this.font, KiemLang.get("ui.reset"), resetX + resetW / 2, resetY + 7,
-                resetH ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("ui.reset"), resetX + resetW / 2, resetY + 7,
+                resetH ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
     }
 
     // ==================== SLIDERS, CHECKBOXES, BUTTONS, MODALS ====================
@@ -2079,27 +2183,27 @@ public class KiemScreen extends Screen {
         int trackY = y + 14;
 
         String valStr = String.format(java.util.Locale.ROOT, format, value);
-        int valW = this.font.width("[ " + valStr + " ]");
+        int valW = BoutiqueDraw.textWidth(this.font, "[ " + valStr + " ]");
         int maxTitleW = trackX - valW - 12 - (x + 10);
-        drawBoundedText(graphics, title, x + 10, y + 8, maxTitleW, COLOR_TEXT_WHITE);
-        graphics.text(this.font, "[ " + valStr + " ]", trackX - valW - 8, y + 8, COLOR_SAKURA_BRIGHT, false);
+        drawBoundedText(graphics, title, x + 10, y + 8, maxTitleW, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, "[ " + valStr + " ]", trackX - valW - 8, y + 8, BoutiqueDraw.theme().textAccent);
 
         if (subtitle != null && !subtitle.isEmpty()) {
-            drawBoundedText(graphics, subtitle, x + 10, y + 23, trackX - (x + 10) - 8, COLOR_TEXT_DIM);
+            drawBoundedText(graphics, subtitle, x + 10, y + 23, trackX - (x + 10) - 8, BoutiqueDraw.theme().textDim);
         }
 
         String minStr = String.format(java.util.Locale.ROOT, format, min);
         String maxStr = String.format(java.util.Locale.ROOT, format, max);
-        graphics.text(this.font, minStr, trackX, trackY + 8, COLOR_TEXT_MUTED, false);
-        int maxW = this.font.width(maxStr);
-        graphics.text(this.font, maxStr, trackX + trackW - maxW, trackY + 8, COLOR_TEXT_MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, minStr, trackX, trackY + 8, BoutiqueDraw.theme().textMuted);
+        int maxW = BoutiqueDraw.textWidth(this.font, maxStr);
+        BoutiqueDraw.drawText(graphics, this.font, maxStr, trackX + trackW - maxW, trackY + 8, BoutiqueDraw.theme().textMuted);
 
         graphics.fill(trackX, trackY, trackX + trackW, trackY + trackH, 0x44FFFFFF);
 
         float pct = (value - min) / (max - min);
         pct = net.minecraft.util.Mth.clamp(pct, 0.0f, 1.0f);
         int fillW = (int) (pct * trackW);
-        graphics.fill(trackX, trackY, trackX + fillW, trackY + trackH, COLOR_ACCENT);
+        graphics.fill(trackX, trackY, trackX + fillW, trackY + trackH, BoutiqueDraw.theme().textAccent);
 
         int thumbW = 8;
         int thumbH = 12;
@@ -2107,7 +2211,7 @@ public class KiemScreen extends Screen {
         int thumbY = trackY + trackH / 2 - thumbH / 2;
         boolean isDragging = id.equals(draggingSlider);
         boolean thumbHover = mouseX >= trackX - 4 && mouseX <= trackX + trackW + 4 && mouseY >= trackY - 8 && mouseY <= trackY + trackH + 8;
-        graphics.fill(thumbX, thumbY, thumbX + thumbW, thumbY + thumbH, (thumbHover || isDragging) ? 0xFFFFFFFF : COLOR_SAKURA_BRIGHT);
+        graphics.fill(thumbX, thumbY, thumbX + thumbW, thumbY + thumbH, (thumbHover || isDragging) ? 0xFFFFFFFF : BoutiqueDraw.theme().textAccent);
     }
 
     private void drawCustomCheckbox(
@@ -2122,15 +2226,15 @@ public class KiemScreen extends Screen {
         int boxX = x + w - boxSize - 14;
         int maxCheckTextW = boxX - (x + 10) - 6;
 
-        drawBoundedText(graphics, title, x + 10, y + 8, maxCheckTextW, COLOR_TEXT_WHITE);
+        drawBoundedText(graphics, title, x + 10, y + 8, maxCheckTextW, BoutiqueDraw.theme().textPrimary);
         if (subtitle != null && !subtitle.isEmpty()) {
-            drawBoundedText(graphics, subtitle, x + 10, y + 22, maxCheckTextW, COLOR_TEXT_DIM);
+            drawBoundedText(graphics, subtitle, x + 10, y + 22, maxCheckTextW, BoutiqueDraw.theme().textDim);
         }
         int boxY = y + (h - boxSize) / 2;
         boolean hover = mouseX >= boxX && mouseX <= boxX + boxSize && mouseY >= boxY && mouseY <= boxY + boxSize;
         BoutiqueDraw.drawPill(graphics, boxX, boxY, boxSize, boxSize, checked, hover);
         if (checked) {
-            graphics.centeredText(this.font, "✓", boxX + boxSize / 2, boxY + 5, COLOR_TEXT_INK);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, "✓", boxX + boxSize / 2, boxY + 5, BoutiqueDraw.theme().textOnActivePill);
         }
     }
 
@@ -2212,6 +2316,268 @@ public class KiemScreen extends Screen {
         return new RecentModuleMeta("⚡ " + moduleId, "Kiem Addons module.", Tab.CONFIG, ConfigSubView.MAIN);
     }
 
+    // ==================== DEV MENU TAB (REMOVABLE) ====================
+
+    private void renderDevTab(GuiGraphicsExtractor graphics, int x, int y, int w, int h, int mouseX, int mouseY) {
+        BoutiqueDraw.Theme theme = BoutiqueDraw.theme();
+        BoutiqueDraw.FontChoice activeFont = BoutiqueDraw.fontChoice();
+        BoutiqueDraw.drawGlassPanel(graphics, x, y, w, h);
+
+        int padX = 14;
+        int innerW = w - padX * 2;
+        int curY = y + 12;
+
+        // 1. Themes (2x3 grid of BoutiqueDraw.Theme.values())
+        String themeHeader = "THEMES";
+        BoutiqueDraw.drawText(graphics, this.font, themeHeader, x + padX, curY, theme.textAccent);
+        int thW = BoutiqueDraw.textWidth(this.font, themeHeader);
+        graphics.fill(x + padX + thW + 8, curY + 4, x + w - padX, curY + 5, theme.panelBorder);
+        curY += 16;
+
+        BoutiqueDraw.Theme[] themes = BoutiqueDraw.Theme.values();
+        int tCols = 4;
+        int tGapX = 8;
+        int tGapY = 8;
+        int tCardW = (innerW - tGapX * (tCols - 1)) / tCols;
+        int tCardH = 38;
+        for (int i = 0; i < themes.length; i++) {
+            BoutiqueDraw.Theme th = themes[i];
+            int col = i % tCols;
+            int row = i / tCols;
+            int cx = x + padX + col * (tCardW + tGapX);
+            int cy = curY + row * (tCardH + tGapY);
+
+            boolean active = (theme == th);
+            boolean hover = mouseX >= cx && mouseX <= cx + tCardW && mouseY >= cy && mouseY <= cy + tCardH;
+            BoutiqueDraw.drawGlassCard(graphics, cx, cy, tCardW, tCardH, active, hover);
+
+            // Swatch box
+            int swX = cx + 10;
+            int swY = cy + (tCardH - 20) / 2;
+            graphics.fill(swX - 1, swY - 1, swX + 25, swY + 21, th.panelBorder);
+            graphics.fill(swX, swY, swX + 12, swY + 20, th.panelTop);
+            graphics.fill(swX + 12, swY, swX + 24, swY + 20, th.pillActiveFill);
+
+            int tx = swX + 32;
+            int maxTW = tCardW - 48;
+            drawBoundedText(graphics, th.displayName, tx, cy + 7, maxTW, active ? theme.textAccent : theme.textPrimary);
+            String modeTag = th.isLight ? "(Light)" : "(Dark)";
+            drawBoundedText(graphics, modeTag, tx, cy + 21, maxTW, theme.textMuted);
+        }
+
+        int tRows = (themes.length + tCols - 1) / tCols;
+        curY += tRows * tCardH + (tRows - 1) * tGapY + 14;
+
+        // 2. Fonts (grid of BoutiqueDraw.FontChoice.values())
+        String fontHeader = "FONTS";
+        BoutiqueDraw.drawText(graphics, this.font, fontHeader, x + padX, curY, theme.textAccent);
+        int fhW = BoutiqueDraw.textWidth(this.font, fontHeader);
+        graphics.fill(x + padX + fhW + 8, curY + 4, x + w - padX, curY + 5, theme.panelBorder);
+        curY += 16;
+
+        BoutiqueDraw.FontChoice[] fonts = BoutiqueDraw.FontChoice.values();
+        int fCols = 2;
+        int fGapX = 8;
+        int fGapY = 6;
+        int fPillW = (innerW - fGapX * (fCols - 1)) / fCols;
+        int fPillH = 22;
+        for (int i = 0; i < fonts.length; i++) {
+            BoutiqueDraw.FontChoice fc = fonts[i];
+            int col = i % fCols;
+            int row = i / fCols;
+            int fx = x + padX + col * (fPillW + fGapX);
+            int fy = curY + row * (fPillH + fGapY);
+
+            boolean active = (activeFont == fc);
+            boolean hover = mouseX >= fx && mouseX <= fx + fPillW && mouseY >= fy && mouseY <= fy + fPillH;
+            BoutiqueDraw.drawPill(graphics, fx, fy, fPillW, fPillH, active, hover);
+
+            String label = BoutiqueDraw.fitText(this.font, fc.displayName, fPillW - 14);
+            int txtCol = active ? theme.textOnActivePill : (hover ? theme.textPrimary : theme.textMuted);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, label, fx + fPillW / 2, fy + 7, txtCol);
+        }
+
+        int fRows = (fonts.length + fCols - 1) / fCols;
+        curY += fRows * fPillH + (fRows - 1) * fGapY + 14;
+
+        // 3. Window & Backdrop Mode
+        String winHeader = "WINDOW & BACKDROP";
+        BoutiqueDraw.drawText(graphics, this.font, winHeader, x + padX, curY, theme.textAccent);
+        int whW = BoutiqueDraw.textWidth(this.font, winHeader);
+        graphics.fill(x + padX + whW + 8, curY + 4, x + w - padX, curY + 5, theme.panelBorder);
+        curY += 16;
+
+        int wGap = 6;
+        int wBtnW = (innerW - wGap * 3) / 4;
+        int wBtnH = 24;
+        int modalX = x + padX;
+        int fullX = modalX + wBtnW + wGap;
+        int tintX = fullX + wBtnW + wGap;
+        int mascotX = tintX + wBtnW + wGap;
+
+        boolean modalActive = !KiemConfig.uiFullscreen;
+        boolean modalHover = mouseX >= modalX && mouseX <= modalX + wBtnW && mouseY >= curY && mouseY <= curY + wBtnH;
+        BoutiqueDraw.drawPill(graphics, modalX, curY, wBtnW, wBtnH, modalActive, modalHover);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "Centered Modal", modalX + wBtnW / 2, curY + 8,
+                modalActive ? theme.textOnActivePill : (modalHover ? theme.textPrimary : theme.textMuted));
+
+        boolean fullActive = KiemConfig.uiFullscreen;
+        boolean fullHover = mouseX >= fullX && mouseX <= fullX + wBtnW && mouseY >= curY && mouseY <= curY + wBtnH;
+        BoutiqueDraw.drawPill(graphics, fullX, curY, wBtnW, wBtnH, fullActive, fullHover);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "Fullscreen", fullX + wBtnW / 2, curY + 8,
+                fullActive ? theme.textOnActivePill : (fullHover ? theme.textPrimary : theme.textMuted));
+
+        boolean tintActive = KiemConfig.uiBackdropTint;
+        boolean tintHover = mouseX >= tintX && mouseX <= tintX + wBtnW && mouseY >= curY && mouseY <= curY + wBtnH;
+        BoutiqueDraw.drawPill(graphics, tintX, curY, wBtnW, wBtnH, tintActive, tintHover);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "Tint: " + (tintActive ? "ON" : "OFF"),
+                tintX + wBtnW / 2, curY + 8,
+                tintActive ? theme.textOnActivePill : (tintHover ? theme.textPrimary : theme.textMuted));
+
+        boolean mascotActive = KiemConfig.uiShowMascot;
+        boolean mascotHover = mouseX >= mascotX && mouseX <= mascotX + wBtnW && mouseY >= curY && mouseY <= curY + wBtnH;
+        BoutiqueDraw.drawPill(graphics, mascotX, curY, wBtnW, wBtnH, mascotActive, mascotHover);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, "Mascot: " + (mascotActive ? "ON" : "OFF"),
+                mascotX + wBtnW / 2, curY + 8,
+                mascotActive ? theme.textOnActivePill : (mascotHover ? theme.textPrimary : theme.textMuted));
+    }
+
+    private boolean handleDevClick(int x, int y, int w, int h, double mouseX, double mouseY) {
+        int padX = 14;
+        int innerW = w - padX * 2;
+        int curY = y + 12 + 16;
+
+        // 1. Themes
+        BoutiqueDraw.Theme[] themes = BoutiqueDraw.Theme.values();
+        int tCols = 4;
+        int tGapX = 8;
+        int tGapY = 8;
+        int tCardW = (innerW - tGapX * (tCols - 1)) / tCols;
+        int tCardH = 38;
+        for (int i = 0; i < themes.length; i++) {
+            int col = i % tCols;
+            int row = i / tCols;
+            int cx = x + padX + col * (tCardW + tGapX);
+            int cy = curY + row * (tCardH + tGapY);
+            if (mouseX >= cx && mouseX <= cx + tCardW && mouseY >= cy && mouseY <= cy + tCardH) {
+                KiemConfig.uiTheme = themes[i].id;
+                KiemConfig.save();
+                return true;
+            }
+        }
+
+        int tRows = (themes.length + tCols - 1) / tCols;
+        curY += tRows * tCardH + (tRows - 1) * tGapY + 14 + 16;
+
+        // 2. Fonts
+        BoutiqueDraw.FontChoice[] fonts = BoutiqueDraw.FontChoice.values();
+        int fCols = 2;
+        int fGapX = 8;
+        int fGapY = 6;
+        int fPillW = (innerW - fGapX * (fCols - 1)) / fCols;
+        int fPillH = 22;
+        for (int i = 0; i < fonts.length; i++) {
+            int col = i % fCols;
+            int row = i / fCols;
+            int fx = x + padX + col * (fPillW + fGapX);
+            int fy = curY + row * (fPillH + fGapY);
+            if (mouseX >= fx && mouseX <= fx + fPillW && mouseY >= fy && mouseY <= fy + fPillH) {
+                KiemConfig.uiFont = fonts[i].id;
+                KiemConfig.save();
+                return true;
+            }
+        }
+
+        int fRows = (fonts.length + fCols - 1) / fCols;
+        curY += fRows * fPillH + (fRows - 1) * fGapY + 14 + 16;
+
+        // 3. Window & Backdrop Mode
+        int wGap = 6;
+        int wBtnW = (innerW - wGap * 3) / 4;
+        int wBtnH = 24;
+        int modalX = x + padX;
+        int fullX = modalX + wBtnW + wGap;
+        int tintX = fullX + wBtnW + wGap;
+        int mascotX = tintX + wBtnW + wGap;
+
+        if (mouseX >= modalX && mouseX <= modalX + wBtnW && mouseY >= curY && mouseY <= curY + wBtnH) {
+            KiemConfig.uiFullscreen = false;
+            KiemConfig.save();
+            return true;
+        }
+        if (mouseX >= fullX && mouseX <= fullX + wBtnW && mouseY >= curY && mouseY <= curY + wBtnH) {
+            KiemConfig.uiFullscreen = true;
+            KiemConfig.save();
+            return true;
+        }
+        if (mouseX >= tintX && mouseX <= tintX + wBtnW && mouseY >= curY && mouseY <= curY + wBtnH) {
+            KiemConfig.uiBackdropTint = !KiemConfig.uiBackdropTint;
+            KiemConfig.save();
+            return true;
+        }
+        if (mouseX >= mascotX && mouseX <= mascotX + wBtnW && mouseY >= curY && mouseY <= curY + wBtnH) {
+            KiemConfig.uiShowMascot = !KiemConfig.uiShowMascot;
+            KiemConfig.save();
+            return true;
+        }
+
+        return false;
+    }
+
+    private int getMascotX() {
+        int range = Math.max(0, this.width - MASCOT_SIZE - 8);
+        return Math.round(net.minecraft.util.Mth.clamp(KiemConfig.uiMascotX, 0.0f, 1.0f) * range) + 4;
+    }
+
+    private int getMascotY() {
+        int range = Math.max(0, this.height - MASCOT_SIZE - 4);
+        return Math.round(net.minecraft.util.Mth.clamp(KiemConfig.uiMascotY, 0.0f, 1.0f) * range) + 2;
+    }
+
+    private boolean isOverMascot(double mx, double my) {
+        if (!KiemConfig.uiShowMascot) return false;
+        int rx = getMascotX();
+        int ry = getMascotY();
+        return mx >= rx + 18 && mx <= rx + MASCOT_SIZE - 14 && my >= ry + 6 && my <= ry + MASCOT_SIZE;
+    }
+
+    private void renderRikkaMascot(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+        int size = MASCOT_SIZE;
+        int rx = getMascotX();
+        int ry = getMascotY();
+
+        double t = System.currentTimeMillis() / 1000.0;
+        float breathY = (float) (Math.sin(t * 2.2) * 0.4);
+
+        float legPhase = (float) Math.sin(t * 4.0);
+        float legLAngle = legPhase * 0.15f;
+        float legRAngle = -legPhase * 0.15f;
+        float legLY = legPhase * 1.2f;
+        float legRY = -legPhase * 1.2f;
+
+        float headAngle = (float) Math.sin(t * 2.0) * 0.11f;
+
+        drawMascotPart(graphics, RIKKA_MASCOT_LEG_L, rx, ry + breathY + legLY, size, 96f / 256f, 182f / 256f, legLAngle);
+        drawMascotPart(graphics, RIKKA_MASCOT_LEG_R, rx, ry + breathY + legRY, size, 126f / 256f, 182f / 256f, legRAngle);
+        drawMascotPart(graphics, RIKKA_MASCOT_BODY, rx, ry + breathY, size, 126f / 256f, 150f / 256f, 0.0f);
+        drawMascotPart(graphics, RIKKA_MASCOT_HEAD, rx, ry + breathY, size, 126f / 256f, 115f / 256f, headAngle);
+    }
+
+    private void drawMascotPart(GuiGraphicsExtractor graphics, Identifier tex, float x, float y, int size,
+                                float pivotNormX, float pivotNormY, float angleRad) {
+        var pose = graphics.pose();
+        pose.pushMatrix();
+        float px = x + size * pivotNormX;
+        float py = y + size * pivotNormY;
+        pose.translate(px, py);
+        if (angleRad != 0.0f) {
+            pose.rotate(angleRad);
+        }
+        pose.translate(-size * pivotNormX, -size * pivotNormY);
+        graphics.blit(tex, 0, 0, size, size, 0.0f, 1.0f, 0.0f, 1.0f);
+        pose.popMatrix();
+    }
+
     private void renderResetConfirmModal(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         graphics.fill(0, 0, this.width, this.height, 0xB0000000);
 
@@ -2222,12 +2588,12 @@ public class KiemScreen extends Screen {
 
         BoutiqueDraw.drawGlassPanel(graphics, popX, popY, popW, popH);
 
-        graphics.text(this.font, KiemLang.get("reset_modal.title"), popX + 16, popY + 16, 0xFFFF8899, false);
-        graphics.fill(popX + 16, popY + 30, popX + popW - 16, popY + 31, COLOR_DIVIDER);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("reset_modal.title"), popX + 16, popY + 16, 0xFFFF8899);
+        graphics.fill(popX + 16, popY + 30, popX + popW - 16, popY + 31, BoutiqueDraw.theme().panelBorder);
 
-        graphics.text(this.font, KiemLang.get("reset_modal.desc1"), popX + 16, popY + 40, COLOR_TEXT_WHITE, false);
-        graphics.text(this.font, KiemLang.get("reset_modal.desc2"), popX + 16, popY + 54, COLOR_TEXT_MUTED, false);
-        graphics.text(this.font, KiemLang.get("reset_modal.desc3"), popX + 16, popY + 68, COLOR_TEXT_DIM, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("reset_modal.desc1"), popX + 16, popY + 40, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("reset_modal.desc2"), popX + 16, popY + 54, BoutiqueDraw.theme().textMuted);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("reset_modal.desc3"), popX + 16, popY + 68, BoutiqueDraw.theme().textDim);
 
         int btnW = 90;
         int btnH = 24;
@@ -2239,11 +2605,11 @@ public class KiemScreen extends Screen {
         boolean cancelHover = mouseX >= cancelX && mouseX <= cancelX + btnW && mouseY >= btnY && mouseY <= btnY + btnH;
 
         BoutiqueDraw.drawPill(graphics, confirmX, btnY, btnW, btnH, true, confirmHover);
-        graphics.centeredText(this.font, KiemLang.get("ui.confirm"), confirmX + btnW / 2, btnY + 8, COLOR_TEXT_INK);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("ui.confirm"), confirmX + btnW / 2, btnY + 8, BoutiqueDraw.theme().textOnActivePill);
 
         BoutiqueDraw.drawPill(graphics, cancelX, btnY, btnW, btnH, false, cancelHover);
-        graphics.centeredText(this.font, KiemLang.get("ui.cancel"), cancelX + btnW / 2, btnY + 8,
-                cancelHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("ui.cancel"), cancelX + btnW / 2, btnY + 8,
+                cancelHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
     }
 
     private void renderLanguageSelectModal(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
@@ -2256,11 +2622,11 @@ public class KiemScreen extends Screen {
 
         BoutiqueDraw.drawGlassPanel(graphics, popX, popY, popW, popH);
 
-        graphics.text(this.font, "✦ " + KiemLang.get("lang.modal_title"), popX + 16, popY + 16, COLOR_SAKURA_BRIGHT, false);
-        graphics.fill(popX + 16, popY + 30, popX + popW - 16, popY + 31, COLOR_DIVIDER);
+        BoutiqueDraw.drawText(graphics, this.font, "✦ " + KiemLang.get("lang.modal_title"), popX + 16, popY + 16, BoutiqueDraw.theme().textAccent);
+        graphics.fill(popX + 16, popY + 30, popX + popW - 16, popY + 31, BoutiqueDraw.theme().panelBorder);
 
-        drawBoundedText(graphics, KiemLang.get("lang.modal_desc"), popX + 16, popY + 40, popW - 32, COLOR_TEXT_WHITE);
-        drawBoundedText(graphics, KiemLang.get("lang.modal_desc2"), popX + 16, popY + 56, popW - 32, COLOR_TEXT_MUTED);
+        drawBoundedText(graphics, KiemLang.get("lang.modal_desc"), popX + 16, popY + 40, popW - 32, BoutiqueDraw.theme().textPrimary);
+        drawBoundedText(graphics, KiemLang.get("lang.modal_desc2"), popX + 16, popY + 56, popW - 32, BoutiqueDraw.theme().textMuted);
 
         int btnW = 160;
         int btnH = 32;
@@ -2276,45 +2642,34 @@ public class KiemScreen extends Screen {
 
         BoutiqueDraw.drawPill(graphics, trBtnX, btnY, btnW, btnH, isTrActive, trHover);
         drawFlagTR(graphics, trBtnX + 22, btnY + 10);
-        graphics.text(this.font, "Türkçe (TR)", trBtnX + 46, btnY + 12,
-                isTrActive ? COLOR_TEXT_INK : (trHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED), false);
+        BoutiqueDraw.drawText(graphics, this.font, "Türkçe (TR)", trBtnX + 46, btnY + 12,
+                isTrActive ? BoutiqueDraw.theme().textOnActivePill : (trHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
 
         BoutiqueDraw.drawPill(graphics, enBtnX, btnY, btnW, btnH, isEnActive, enHover);
         drawFlagUK(graphics, enBtnX + 22, btnY + 10);
-        graphics.text(this.font, "English (EN)", enBtnX + 46, btnY + 12,
-                isEnActive ? COLOR_TEXT_INK : (enHover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED), false);
+        BoutiqueDraw.drawText(graphics, this.font, "English (EN)", enBtnX + 46, btnY + 12,
+                isEnActive ? BoutiqueDraw.theme().textOnActivePill : (enHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
     }
 
     private void drawToggleButton(GuiGraphicsExtractor graphics, int x, int y, int w, int h, boolean active, boolean hover) {
         BoutiqueDraw.drawPill(graphics, x, y, w, h, active, hover);
         String label = active ? KiemLang.get("ui.on") : KiemLang.get("ui.off");
-        int textColor = active ? COLOR_TEXT_INK : (hover ? COLOR_TEXT_WHITE : COLOR_TEXT_MUTED);
-        graphics.centeredText(this.font, label, x + w / 2, y + (h - 8) / 2, textColor);
+        int textColor = active ? BoutiqueDraw.theme().textOnActivePill : (hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, label, x + w / 2, y + (h - 8) / 2, textColor);
     }
 
     private void drawKeybindButton(GuiGraphicsExtractor graphics, int x, int y, int w, int h, String keyText, boolean listening, boolean hover) {
         BoutiqueDraw.drawPill(graphics, x, y, w, h, listening, hover);
         String text = listening ? KiemLang.get("ui.press_key") : "[ " + keyText + " ]";
-        int textColor = listening ? COLOR_TEXT_INK : (hover ? COLOR_TEXT_WHITE : COLOR_TEXT_ROSEGOLD);
-        graphics.centeredText(this.font, text, x + w / 2, y + (h - 8) / 2, textColor);
+        int textColor = listening ? BoutiqueDraw.theme().textOnActivePill : (hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textAccent);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, text, x + w / 2, y + (h - 8) / 2, textColor);
     }
 
     private void drawBoundedText(GuiGraphicsExtractor graphics, String text, int x, int y, int maxWidth, int color) {
         if (text == null || text.isEmpty() || maxWidth <= 0) return;
-        if (this.font.width(text) <= maxWidth) {
-            graphics.text(this.font, text, x, y, color, false);
-        } else {
-            String dots = "...";
-            int dotsW = this.font.width(dots);
-            int available = maxWidth - dotsW;
-            if (available <= 0) return;
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < text.length(); i++) {
-                char ch = text.charAt(i);
-                if (this.font.width(sb.toString() + ch) > available) break;
-                sb.append(ch);
-            }
-            graphics.text(this.font, sb.toString() + dots, x, y, color, false);
+        String fitted = BoutiqueDraw.fitText(this.font, text, maxWidth);
+        if (!fitted.isEmpty()) {
+            BoutiqueDraw.drawText(graphics, this.font, fitted, x, y, color);
         }
     }
 
@@ -2418,6 +2773,13 @@ public class KiemScreen extends Screen {
                 return true;
             }
 
+            if (isOverMascot(mouseX, mouseY)) {
+                draggingMascot = true;
+                mascotDragOffsetX = (float) (mouseX - getMascotX());
+                mascotDragOffsetY = (float) (mouseY - getMascotY());
+                return true;
+            }
+
             int mx = getMx();
             int mw = getMw();
             int topY = getTopY();
@@ -2426,7 +2788,7 @@ public class KiemScreen extends Screen {
             int contentH = getContentH();
 
             // 3. Top Header Pill Bar Clicks
-            Tab[] tabs = Tab.values();
+            Tab[] tabs = getVisibleTabs();
             int[] pillWidths = computeTopNavPillWidths();
             int pillGap = 6;
             int pillH = 22;
@@ -2510,6 +2872,8 @@ public class KiemScreen extends Screen {
                 return handleWelcomeClick(mx, contentY, mw, contentH, mouseX, mouseY);
             } else if (currentTab == Tab.COSMETICS) {
                 return handleCosmeticsClick(mx, contentY, mw, contentH, mouseX, mouseY);
+            } else if (ENABLE_DEV_MENU && currentTab == Tab.DEV) {
+                return handleDevClick(mx, contentY, mw, contentH, mouseX, mouseY);
             } else if (currentTab == Tab.CONFIG) {
                 return handleConfigClick(mx, contentY, mw, contentH, mouseX, mouseY);
             }
@@ -2539,7 +2903,7 @@ public class KiemScreen extends Screen {
         int keyBoxX = ix + 14;
         int keyBoxY = curBaseY + 44;
         int keyBoxH = 20;
-        int labelW = this.font.width(KiemLang.get("welcome.menu_key")) + 8;
+        int labelW = BoutiqueDraw.textWidth(this.font, KiemLang.get("welcome.menu_key")) + 8;
         int btnW = 90;
         if (mouseX >= keyBoxX + labelW && mouseX <= keyBoxX + labelW + btnW && mouseY >= keyBoxY && mouseY <= keyBoxY + keyBoxH) {
             listeningForMenuKey = !listeningForMenuKey;
@@ -2620,16 +2984,72 @@ public class KiemScreen extends Screen {
             }
         }
 
-        // 2. 3D Stage Drag & Reset View
-        int resetBtnW = Math.min(112, stageW - 16);
+        // 2. 3D Stage Drag, Reset View & Customize
+        int btnGap = 4;
+        int totalW = stageW - 12;
+        int resetBtnW = (totalW - btnGap) / 2;
+        int custBtnW = totalW - btnGap - resetBtnW;
         int resetBtnH = 20;
-        int resetBtnX = stageX + (stageW - resetBtnW) / 2;
+        int resetBtnX = stageX + 6;
+        int custBtnX = resetBtnX + resetBtnW + btnGap;
         int resetBtnY = y + h - 26;
         if (mouseX >= resetBtnX && mouseX <= resetBtnX + resetBtnW && mouseY >= resetBtnY && mouseY <= resetBtnY + resetBtnH) {
             cosmeticPreviewYaw = 0.0f;
             cosmeticPreviewPitch = 0.0f;
             cosmeticPreviewScale = 1.0f;
             return true;
+        }
+        if (mouseX >= custBtnX && mouseX <= custBtnX + custBtnW && mouseY >= resetBtnY && mouseY <= resetBtnY + resetBtnH) {
+            cosmeticCustomizeOpen = !cosmeticCustomizeOpen;
+            return true;
+        }
+        if (cosmeticCustomizeOpen) {
+            int popW = stageW - 12;
+            int popH = 92;
+            int popX = stageX + 6;
+            int popY = resetBtnY - popH - 6;
+            if (mouseX >= popX && mouseX <= popX + popW && mouseY >= popY && mouseY <= popY + popH) {
+                String slotKey = getActiveAdjustSlot();
+                int rstW = 38;
+                int rstX = popX + popW - rstW - 6;
+                int rstY = popY + 5;
+                if (mouseX >= rstX && mouseX <= rstX + rstW && mouseY >= rstY && mouseY <= rstY + 14) {
+                    KiemConfig.resetCosmeticAdjustment(slotKey);
+                    KiemConfig.save();
+                    return true;
+                }
+                int rx = popX + 8;
+                int rw = popW - 16;
+                int btnS = 16;
+                int plusX = rx + rw - btnS;
+                int minusX = plusX - btnS - 36;
+                float offY = KiemConfig.getCosmeticOffsetY(slotKey);
+                float offZ = KiemConfig.getCosmeticOffsetZ(slotKey);
+                float sc = KiemConfig.getCosmeticScale(slotKey);
+                int[] rowYs = { popY + 24, popY + 46, popY + 68 };
+                for (int r = 0; r < 3; r++) {
+                    int ry = rowYs[r];
+                    if (mouseY >= ry + 1 && mouseY <= ry + 1 + btnS) {
+                        if (mouseX >= minusX && mouseX <= minusX + btnS) {
+                            if (r == 0) offY -= 0.25f;
+                            else if (r == 1) offZ -= 0.25f;
+                            else sc -= 0.05f;
+                            KiemConfig.setCosmeticAdjustment(slotKey, offY, offZ, sc);
+                            KiemConfig.save();
+                            return true;
+                        }
+                        if (mouseX >= plusX && mouseX <= plusX + btnS) {
+                            if (r == 0) offY += 0.25f;
+                            else if (r == 1) offZ += 0.25f;
+                            else sc += 0.05f;
+                            KiemConfig.setCosmeticAdjustment(slotKey, offY, offZ, sc);
+                            KiemConfig.save();
+                            return true;
+                        }
+                    }
+                }
+                return true;
+            }
         }
         if (mouseX >= stageX + 4 && mouseX < stageX + stageW - 4 && mouseY >= y + 8 && mouseY < y + h - 34) {
             draggingCosmeticPreview = true;
@@ -2749,7 +3169,7 @@ public class KiemScreen extends Screen {
                 // Card 3 (CUSTOM CAPE)
                 String folderLabel = KiemLang.get("cosmetics.open_folder");
                 int refreshPillW = 18;
-                int folderPillW = Math.min(46, Math.max(36, this.font.width(folderLabel) + 10));
+                int folderPillW = Math.min(54, Math.max(42, BoutiqueDraw.textWidth(this.font, folderLabel) + 12));
                 int refreshPillX = card3X + cW - 8 - refreshPillW;
                 int folderPillX = refreshPillX - folderPillW - 3;
                 int customPillY = card1Y + 8;
@@ -3549,6 +3969,13 @@ public class KiemScreen extends Screen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double deltaX, double deltaY) {
+        if (draggingMascot && event.button() == 0) {
+            float maxX = Math.max(1.0f, this.width - MASCOT_SIZE - 8);
+            float maxY = Math.max(1.0f, this.height - MASCOT_SIZE - 4);
+            KiemConfig.uiMascotX = net.minecraft.util.Mth.clamp((float) (event.x() - mascotDragOffsetX - 4.0) / maxX, 0.0f, 1.0f);
+            KiemConfig.uiMascotY = net.minecraft.util.Mth.clamp((float) (event.y() - mascotDragOffsetY - 2.0) / maxY, 0.0f, 1.0f);
+            return true;
+        }
         if (draggingCosmeticPreview && event.button() == 0) {
             cosmeticPreviewYaw = (cosmeticPreviewYaw + (float) deltaX * 0.65f) % 360f;
             cosmeticPreviewPitch = net.minecraft.util.Mth.clamp(cosmeticPreviewPitch + (float) deltaY * 0.45f, -45f, 45f);
@@ -3566,6 +3993,11 @@ public class KiemScreen extends Screen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
+        if (draggingMascot && event.button() == 0) {
+            draggingMascot = false;
+            KiemConfig.save();
+            return true;
+        }
         if (draggingCosmeticPreview && event.button() == 0) {
             draggingCosmeticPreview = false;
             return true;

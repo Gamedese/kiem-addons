@@ -3,6 +3,8 @@ package com.example.client;
 import com.example.client.pet.GroundPetManager;
 import com.example.client.pet.ShoulderPetManager;
 import com.example.client.pet.ShoulderPetType;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
@@ -16,11 +18,6 @@ import java.util.Locale;
  * Omuz yoldasi ozellestirme ekrani (Omuz Tarafi, Yerde Gezme, Sikilma Suresi, Boyut ve Etkilesimler).
  */
 public final class PetCustomizeScreen extends Screen {
-    private static final int ACCENT = 0xFFFF66B2;
-    private static final int ACCENT_BG = 0x33FF66B2;
-    private static final int TEXT = 0xFFF5EFEA;
-    private static final int MUTED = 0xFF9E9298;
-    private static final int BORDER = 0xFF3A3548;
 
     private static final Identifier PREVIEW_HAMSTER = Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_pet_hamster.png");
     private static final Identifier PREVIEW_HAMSTER_HD = Identifier.fromNamespaceAndPath("modid", "textures/gui/preview_pet_hamster_hd.png");
@@ -265,13 +262,14 @@ public final class PetCustomizeScreen extends Screen {
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
+        BoutiqueDraw.Theme t = BoutiqueDraw.theme();
         // Panel background MUST be drawn before super.extractRenderState so widgets stay visible on top!
         BoutiqueDraw.drawBackdrop(graphics, this.width, this.height, System.currentTimeMillis());
         BoutiqueDraw.drawGlassPanel(graphics, panelX, panelY, panelW, panelH);
 
         String petTitle = targetPet == ShoulderPetType.OFF ? KiemLang.get("pets.none") : KiemLang.get(targetPet.titleKey);
-        graphics.text(this.font, KiemLang.get("pets.custom.title") + " — " + petTitle, leftX, panelY + 16, TEXT, false);
-        graphics.text(this.font, KiemLang.get("pets.custom.roam_note"), leftX, panelY + 30, MUTED, false);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("pets.custom.title") + " — " + petTitle, leftX, panelY + 16, t.textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("pets.custom.roam_note"), leftX, panelY + 30, t.textMuted);
 
         // Left & Right card frames
         BoutiqueDraw.drawGlassCard(graphics, leftX, bodyY, leftW, bodyH, false, false);
@@ -286,9 +284,9 @@ public final class PetCustomizeScreen extends Screen {
 
         boolean roaming = GroundPetManager.isUsingWorldRenderer(targetPet);
         String statusText = roaming ? KiemLang.get("pets.custom.state_ground") : KiemLang.get("pets.custom.state_shoulder");
-        graphics.centeredText(this.font, statusText, viewX + viewW / 2, imgY + imgSize + 18, roaming ? ACCENT : TEXT);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, statusText, viewX + viewW / 2, imgY + imgSize + 18, roaming ? t.textAccent : t.textPrimary);
         String sideText = ShoulderPetManager.isLeftShoulder() ? KiemLang.get("pets.side.left") : KiemLang.get("pets.side.right");
-        graphics.centeredText(this.font, sideText, viewX + viewW / 2, imgY + imgSize + 34, MUTED);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, sideText, viewX + viewW / 2, imgY + imgSize + 34, t.textMuted);
 
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
     }
@@ -313,10 +311,13 @@ public final class PetCustomizeScreen extends Screen {
 
         @Override
         protected void extractContents(GuiGraphicsExtractor g, int mx, int my, float pt) {
+            BoutiqueDraw.Theme t = BoutiqueDraw.theme();
             boolean act = activeFn.getAsBoolean();
             BoutiqueDraw.drawPill(g, getX(), getY(), width, height, act, this.isHoveredOrFocused());
-            g.centeredText(net.minecraft.client.Minecraft.getInstance().font, labelFn.get(),
-                    getX() + width / 2, getY() + (height - 8) / 2, act ? 0xFF211728 : 0xFFF3ECEF);
+            Font mcFont = Minecraft.getInstance().font;
+            String label = BoutiqueDraw.fitText(mcFont, labelFn.get(), width - 8);
+            BoutiqueDraw.drawCenteredText(g, mcFont, label,
+                    getX() + width / 2, getY() + (height - 8) / 2, act ? t.textOnActivePill : t.textPrimary);
         }
     }
 
@@ -330,9 +331,12 @@ public final class PetCustomizeScreen extends Screen {
 
         @Override
         protected void extractContents(GuiGraphicsExtractor g, int mx, int my, float pt) {
+            BoutiqueDraw.Theme t = BoutiqueDraw.theme();
             BoutiqueDraw.drawPill(g, getX(), getY(), width, height, false, this.isHoveredOrFocused());
-            g.centeredText(net.minecraft.client.Minecraft.getInstance().font, text,
-                    getX() + width / 2, getY() + (height - 8) / 2, 0xFFF3ECEF);
+            Font mcFont = Minecraft.getInstance().font;
+            String label = BoutiqueDraw.fitText(mcFont, text, width - 8);
+            BoutiqueDraw.drawCenteredText(g, mcFont, label,
+                    getX() + width / 2, getY() + (height - 8) / 2, t.textPrimary);
         }
     }
 

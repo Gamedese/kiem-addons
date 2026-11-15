@@ -313,7 +313,7 @@ public class ShoulderPetLayer extends RenderLayer<AvatarRenderState, PlayerModel
                 // HD Pofuduk Chibi Hamster: bosluk kalmamasi icin omuza tam basar
                 float xMag = 0.38f - slimInset;
                 x = left ? xMag : -xMag;
-                y = 0.08f;
+                y = -0.02f;
                 z = 0.00f;
                 scale = 0.33f;
                 petFacingAngle = left ? -0.12f : 0.12f;

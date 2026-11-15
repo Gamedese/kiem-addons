@@ -10,85 +10,69 @@ import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
 
 /**
- * Pastel pink & pearl-white cute e-girl gaming headset with heart/wing accents on earcups (256x256 HD, 0.25x scale).
- * Texture: assets/modid/textures/cosmetic/hat_egirl_headphones.png
+ * Blockbench tabanli kedi kulakli, pembe LED'li ve mikrofonlu E-Girl Kulaklik.
+ * Doku: assets/modid/textures/cosmetic/hat_egirl_headphones.png (64x64).
  */
 public class EgirlHeadphonesModel extends CosmeticModel {
-    private static final float MODEL_SCALE = 0.25f;
-
-    private final ModelPart root;
-    private final ModelPart headsetRoot;
-    private final ModelPart wingL;
-    private final ModelPart wingR;
+    private final ModelPart headphones;
 
     public EgirlHeadphonesModel(ModelPart root) {
         super(root);
-        this.root = root;
-        this.headsetRoot = root.getChild("headsetRoot");
-        this.wingL = headsetRoot.getChild("earcupL").getChild("wingL");
-        this.wingR = headsetRoot.getChild("earcupR").getChild("wingR");
+        this.headphones = root.getChild("headphones");
     }
 
     public static LayerDefinition createLayer() {
         MeshDefinition mesh = new MeshDefinition();
         PartDefinition root = mesh.getRoot();
 
-        PartDefinition headsetRoot = root.addOrReplaceChild("headsetRoot",
+        PartDefinition hp = root.addOrReplaceChild("headphones",
                 CubeListBuilder.create()
-                        // Pearl-white headband arch & pastel pink inner cushion
-                        .texOffs(0, 0).addBox(-16.5f, -35.0f, -2.5f, 33.0f, 3.0f, 5.0f)
-                        .texOffs(0, 12).addBox(-12.0f, -32.4f, -2.0f, 24.0f, 2.0f, 4.0f)
-                        // Side sliders
-                        .texOffs(0, 22).addBox(15.8f, -33.0f, -2.0f, 2.0f, 16.0f, 4.0f)
-                        .texOffs(0, 22).addBox(-17.8f, -33.0f, -2.0f, 2.0f, 16.0f, 4.0f),
+                        // Kafa bandi (0,0 siyah / 32,0 pembe ic ped)
+                        .texOffs(0, 0).addBox(-4.3f, -9.2f, -1.0f, 8.6f, 1.1f, 2.0f)
+                        .texOffs(32, 0).addBox(-2.6f, -8.2f, -0.8f, 5.2f, 0.4f, 1.6f)
+                        // Yan kollar
+                        .texOffs(0, 0).addBox(-5.0f, -8.6f, -0.8f, 0.9f, 3.4f, 1.6f)
+                        .texOffs(0, 0).addBox( 4.1f, -8.6f, -0.8f, 0.9f, 3.4f, 1.6f)
+                        // Kulak pedleri (0,32) + pembe LED (32,0)
+                        .texOffs(0, 32).addBox(-5.5f, -5.9f, -1.9f, 1.4f, 3.8f, 3.8f)
+                        .texOffs(32, 0).addBox(-5.75f, -5.1f, -1.1f, 0.35f, 2.2f, 2.2f)
+                        .texOffs(0, 32).addBox( 4.1f, -5.9f, -1.9f, 1.4f, 3.8f, 3.8f)
+                        .texOffs(32, 0).addBox( 5.4f, -5.1f, -1.1f, 0.35f, 2.2f, 2.2f)
+                        // Mikrofon ucu
+                        .texOffs(32, 0).addBox(-3.8f, -2.2f, -4.4f, 0.8f, 0.7f, 0.9f),
                 PartPose.ZERO);
 
-        // Left earcup + mini angel wing + cute heart mic
-        PartDefinition cupL = headsetRoot.addOrReplaceChild("earcupL",
+        // Sol kedi kulagi (buyuk 3 kademeli sivri)
+        hp.addOrReplaceChild("earL",
                 CubeListBuilder.create()
-                        .texOffs(16, 22).addBox(-1.5f, -6.0f, -6.0f, 3.0f, 12.0f, 12.0f)
-                        .texOffs(52, 22).addBox(-0.4f, -5.0f, -5.0f, 3.0f, 10.0f, 10.0f)
-                        .texOffs(84, 22).addBox(2.0f, -3.0f, -3.0f, 1.0f, 6.0f, 6.0f),
-                PartPose.offset(17.2f, -16.0f, 0.0f));
+                        .texOffs(0, 0).addBox(-1.6f, -1.7f, -0.65f, 3.2f, 1.7f, 1.3f)
+                        .texOffs(0, 0).addBox(-1.1f, -2.8f, -0.55f, 2.2f, 1.2f, 1.1f)
+                        .texOffs(0, 0).addBox(-0.6f, -3.7f, -0.45f, 1.2f, 1.0f, 0.9f)
+                        .texOffs(32, 0).addBox(-1.0f, -1.5f, -0.75f, 2.0f, 1.3f, 0.95f)
+                        .texOffs(32, 0).addBox(-0.6f, -2.4f, -0.65f, 1.2f, 1.0f, 0.85f),
+                PartPose.offsetAndRotation(-3.0f, -9.0f, 0.0f, 0.0f, 0.0f, -0.24f));
 
-        cupL.addOrReplaceChild("wingL",
+        // Sag kedi kulagi (buyuk 3 kademeli sivri)
+        hp.addOrReplaceChild("earR",
                 CubeListBuilder.create()
-                        .texOffs(0, 50).addBox(-0.5f, -5.0f, 2.0f, 1.0f, 5.0f, 7.0f)
-                        .texOffs(20, 50).addBox(-0.4f, -7.5f, 5.0f, 1.0f, 4.0f, 6.0f),
-                PartPose.offsetAndRotation(1.5f, -1.0f, 3.0f, 0.12f, 0.35f, 0.20f));
+                        .texOffs(0, 0).addBox(-1.6f, -1.7f, -0.65f, 3.2f, 1.7f, 1.3f)
+                        .texOffs(0, 0).addBox(-1.1f, -2.8f, -0.55f, 2.2f, 1.2f, 1.1f)
+                        .texOffs(0, 0).addBox(-0.6f, -3.7f, -0.45f, 1.2f, 1.0f, 0.9f)
+                        .texOffs(32, 0).addBox(-1.0f, -1.5f, -0.75f, 2.0f, 1.3f, 0.95f)
+                        .texOffs(32, 0).addBox(-0.6f, -2.4f, -0.65f, 1.2f, 1.0f, 0.85f),
+                PartPose.offsetAndRotation(3.0f, -9.0f, 0.0f, 0.0f, 0.0f, 0.24f));
 
-        cupL.addOrReplaceChild("mic",
+        // Mikrofon kolu
+        hp.addOrReplaceChild("micArm",
                 CubeListBuilder.create()
-                        .texOffs(38, 50).addBox(-1.0f, 2.0f, -8.0f, 2.0f, 2.0f, 6.0f)
-                        .texOffs(58, 50).addBox(-1.5f, 1.5f, -10.2f, 3.0f, 3.0f, 2.0f),
-                PartPose.offsetAndRotation(0.0f, 1.0f, -3.0f, 0.15f, -0.30f, 0.0f));
+                        .texOffs(0, 0).addBox(-0.25f, -0.25f, -2.3f, 0.5f, 0.5f, 2.3f),
+                PartPose.offsetAndRotation(-4.45f, -2.65f, -1.2f, 0.31f, -0.28f, 0.0f));
 
-        // Right earcup + mini angel wing
-        PartDefinition cupR = headsetRoot.addOrReplaceChild("earcupR",
-                CubeListBuilder.create()
-                        .texOffs(16, 22).addBox(-1.5f, -6.0f, -6.0f, 3.0f, 12.0f, 12.0f)
-                        .texOffs(52, 22).addBox(-2.6f, -5.0f, -5.0f, 3.0f, 10.0f, 10.0f)
-                        .texOffs(84, 22).addBox(-3.0f, -3.0f, -3.0f, 1.0f, 6.0f, 6.0f),
-                PartPose.offset(-17.2f, -16.0f, 0.0f));
-
-        cupR.addOrReplaceChild("wingR",
-                CubeListBuilder.create()
-                        .texOffs(0, 50).addBox(-0.5f, -5.0f, 2.0f, 1.0f, 5.0f, 7.0f)
-                        .texOffs(20, 50).addBox(-0.6f, -7.5f, 5.0f, 1.0f, 4.0f, 6.0f),
-                PartPose.offsetAndRotation(-1.5f, -1.0f, 3.0f, 0.12f, -0.35f, -0.20f));
-
-        return LayerDefinition.create(mesh, 256, 256);
+        return LayerDefinition.create(mesh, 64, 64);
     }
 
     @Override
     public void setupAnim(CosmeticRenderState s) {
-        root.xScale = MODEL_SCALE;
-        root.yScale = MODEL_SCALE;
-        root.zScale = MODEL_SCALE;
-
-        float flutter = sin(s.ageInTicks * 0.14f) * 0.08f + sin(s.walkPos * 0.6662f) * 0.05f * s.walkSpeed;
-        wingL.yRot = 0.35f + flutter;
-        wingR.yRot = -0.35f - flutter;
-        headsetRoot.y = sin(s.walkPos * 1.3324f) * 0.15f * s.walkSpeed;
+        this.headphones.yRot = 0.0f;
     }
 }

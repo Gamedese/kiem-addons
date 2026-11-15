@@ -21,6 +21,15 @@ public class KiemConfig {
     public static String language = "tr"; // "tr" or "en"
     public static boolean hasSelectedLanguage = false;
 
+    // UI Boutique Theme, Font & Window Mode
+    public static String uiTheme = "sakura_ink";
+    public static String uiFont = "classic";
+    public static boolean uiFullscreen = false;
+    public static boolean uiBackdropTint = false;
+    public static boolean uiShowMascot = true;
+    public static float uiMascotX = 0.6365741f;
+    public static float uiMascotY = 0.9079831f;
+
     // Update Checker
     public static boolean updateCheckerEnabled = true;
 
@@ -187,6 +196,36 @@ public class KiemConfig {
     public static String cosmeticFoot = "OFF";
     public static String cosmeticTrailEffect = "OFF";
 
+    // Per-slot 3D cosmetic adjustments: [offsetY_px, offsetZ_px, scale]
+    public static final java.util.Map<String, float[]> cosmeticAdjustments = new java.util.HashMap<>();
+    private static final String[] ADJUSTABLE_SLOTS = { "WING", "HAT", "NECK", "HAND", "WAIST", "FOOT" };
+
+    public static float getCosmeticOffsetY(String slot) {
+        float[] v = cosmeticAdjustments.get(slot);
+        return v != null ? v[0] : 0.0f;
+    }
+
+    public static float getCosmeticOffsetZ(String slot) {
+        float[] v = cosmeticAdjustments.get(slot);
+        return v != null ? v[1] : 0.0f;
+    }
+
+    public static float getCosmeticScale(String slot) {
+        float[] v = cosmeticAdjustments.get(slot);
+        return v != null ? v[2] : 1.0f;
+    }
+
+    public static void setCosmeticAdjustment(String slot, float offY, float offZ, float scale) {
+        float cy = Math.max(-8.0f, Math.min(8.0f, Math.round(offY * 4.0f) / 4.0f));
+        float cz = Math.max(-8.0f, Math.min(8.0f, Math.round(offZ * 4.0f) / 4.0f));
+        float cs = Math.max(0.5f, Math.min(1.6f, Math.round(scale * 20.0f) / 20.0f));
+        cosmeticAdjustments.put(slot, new float[] { cy, cz, cs });
+    }
+
+    public static void resetCosmeticAdjustment(String slot) {
+        cosmeticAdjustments.remove(slot);
+    }
+
     // Recents Tracker for Welcome Screen (must be initialized BEFORE static { load(); })
     public static java.util.List<String> recentModules = new java.util.ArrayList<>();
 
@@ -206,6 +245,18 @@ public class KiemConfig {
 
             language = props.getProperty("language", "tr");
             hasSelectedLanguage = Boolean.parseBoolean(props.getProperty("has_selected_language", "false"));
+            uiTheme = props.getProperty("ui.theme", "sakura_ink");
+            uiFont = props.getProperty("ui.font", "classic");
+            uiFullscreen = Boolean.parseBoolean(props.getProperty("ui.fullscreen", "false"));
+            uiBackdropTint = Boolean.parseBoolean(props.getProperty("ui.backdrop_tint", "false"));
+            uiShowMascot = Boolean.parseBoolean(props.getProperty("ui.show_mascot", "true"));
+            try {
+                uiMascotX = Math.max(0.0f, Math.min(1.0f, Float.parseFloat(props.getProperty("ui.mascot_x", "0.6365741"))));
+                uiMascotY = Math.max(0.0f, Math.min(1.0f, Float.parseFloat(props.getProperty("ui.mascot_y", "0.9079831"))));
+            } catch (NumberFormatException e) {
+                uiMascotX = 0.6365741f;
+                uiMascotY = 0.9079831f;
+            }
             updateCheckerEnabled = Boolean.parseBoolean(props.getProperty("update.checker_enabled", "true"));
 
             infiniteChat = Boolean.parseBoolean(props.getProperty("chat.infinite_history", "true"));
@@ -487,6 +538,17 @@ public class KiemConfig {
             cosmeticWaistHideCape = Boolean.parseBoolean(props.getProperty("cosmetic.waist_hide_cape", "true"));
             cosmeticFoot = com.example.client.cosmetic.CosmeticCatalog.FootType.fromName(props.getProperty("cosmetic.foot", "OFF")).id;
             cosmeticTrailEffect = com.example.client.cosmetic.CosmeticCatalog.TrailEffectType.fromName(props.getProperty("cosmetic.trail_effect", "OFF")).id;
+
+            cosmeticAdjustments.clear();
+            for (String slot : ADJUSTABLE_SLOTS) {
+                String k = "cosmetic.adj." + slot.toLowerCase(java.util.Locale.ROOT);
+                if (props.containsKey(k + ".y") || props.containsKey(k + ".z") || props.containsKey(k + ".s")) {
+                    float y = Float.parseFloat(props.getProperty(k + ".y", "0"));
+                    float z = Float.parseFloat(props.getProperty(k + ".z", "0"));
+                    float s = Float.parseFloat(props.getProperty(k + ".s", "1"));
+                    setCosmeticAdjustment(slot, y, z, s);
+                }
+            }
         } catch (Exception ignored) {
         }
     }
@@ -601,9 +663,16 @@ public class KiemConfig {
                 props.setProperty("afk.raycast_enabled", String.valueOf(afkRaycastEnabled));
                 props.setProperty("afk.cinematic_bars", String.valueOf(afkCinematicBars));
 
-                // Save Language
+                // Save Language & UI Theme/Font
                 props.setProperty("language", language);
                 props.setProperty("has_selected_language", String.valueOf(hasSelectedLanguage));
+                props.setProperty("ui.theme", uiTheme);
+                props.setProperty("ui.font", uiFont);
+                props.setProperty("ui.fullscreen", String.valueOf(uiFullscreen));
+                props.setProperty("ui.backdrop_tint", String.valueOf(uiBackdropTint));
+                props.setProperty("ui.show_mascot", String.valueOf(uiShowMascot));
+                props.setProperty("ui.mascot_x", String.valueOf(uiMascotX));
+                props.setProperty("ui.mascot_y", String.valueOf(uiMascotY));
                 props.setProperty("update.checker_enabled", String.valueOf(updateCheckerEnabled));
 
                 // Save Recents
@@ -622,6 +691,16 @@ public class KiemConfig {
                 props.setProperty("cosmetic.waist_hide_cape", String.valueOf(cosmeticWaistHideCape));
                 props.setProperty("cosmetic.foot", cosmeticFoot);
                 props.setProperty("cosmetic.trail_effect", cosmeticTrailEffect);
+
+                for (String slot : ADJUSTABLE_SLOTS) {
+                    String k = "cosmetic.adj." + slot.toLowerCase(java.util.Locale.ROOT);
+                    float[] v = cosmeticAdjustments.get(slot);
+                    if (v != null && (v[0] != 0.0f || v[1] != 0.0f || v[2] != 1.0f)) {
+                        props.setProperty(k + ".y", String.valueOf(v[0]));
+                        props.setProperty(k + ".z", String.valueOf(v[1]));
+                        props.setProperty(k + ".s", String.valueOf(v[2]));
+                    }
+                }
 
                 props.store(writer, "Kiem Addons Settings");
             }

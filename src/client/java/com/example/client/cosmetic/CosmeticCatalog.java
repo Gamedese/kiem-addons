@@ -10,11 +10,7 @@ public final class CosmeticCatalog {
     public enum WingType {
         OFF("OFF"),
         SERAPHIM("SERAPHIM"),
-        DEMON_DRAGON("DEMON_DRAGON"),
-        ARCANE_BUTTERFLY("ARCANE_BUTTERFLY"),
-        FALLEN_ANGEL("FALLEN_ANGEL"),
-        VAMPIRE_BAT("VAMPIRE_BAT"),
-        ENDER_DRAGON("ENDER_DRAGON");
+        VALKYRIE("VALKYRIE");
 
         public final String id;
         WingType(String id) { this.id = id; }
@@ -38,11 +34,11 @@ public final class CosmeticCatalog {
         ONI_HORNS("ONI_HORNS"),
         KITSUNE_MASK("KITSUNE_MASK"),
         BROKEN_HALO("BROKEN_HALO"),
-        ROYAL_CROWN("ROYAL_CROWN"),
-        NEKO_HEADPHONES("NEKO_HEADPHONES"),
+        CROWN("CROWN"),
         STRAW_PIRATE("STRAW_PIRATE"),
         USHANKA_FUR("USHANKA_FUR"),
         TRICORN_CAPTAIN("TRICORN_CAPTAIN"),
+        NAPOLEON_BICORNE("NAPOLEON_BICORNE"),
         EGIRL_HEADPHONES("EGIRL_HEADPHONES");
 
         public final String id;
@@ -50,6 +46,7 @@ public final class CosmeticCatalog {
 
         public static HatType fromName(String s) {
             if (s == null) return OFF;
+            if ("ROYAL_CROWN".equalsIgnoreCase(s)) return CROWN;
             for (HatType t : values()) {
                 if (t.id.equalsIgnoreCase(s)) return t;
             }
@@ -60,16 +57,12 @@ public final class CosmeticCatalog {
     public enum NeckType {
         OFF("OFF"),
         CRIMSON_SCARF("CRIMSON_SCARF"),
-        ARCANE_PENDANT("ARCANE_PENDANT"),
         GOLD_CHAIN("GOLD_CHAIN"),
         SHADOW_NINJA_MASK("SHADOW_NINJA_MASK"),
         ONI_MENPO("ONI_MENPO"),
         COOL_SUNGLASSES("COOL_SUNGLASSES"),
         SNOW_SCARF("SNOW_SCARF"),
-        SKULL_BANDANA("SKULL_BANDANA"),
-        ROYAL_BROOCH("ROYAL_BROOCH"),
-        RUBY_CHOKER("RUBY_CHOKER"),
-        SILVER_FANG("SILVER_FANG");
+        RUBY_CHOKER("RUBY_CHOKER");
 
         public final String id;
         NeckType(String id) { this.id = id; }
@@ -107,7 +100,7 @@ public final class CosmeticCatalog {
         KITSUNE_TAIL("KITSUNE_TAIL"),
         DEMON_TAIL("DEMON_TAIL"),
         TWIN_DAGGERS("TWIN_DAGGERS"),
-        NEKOMATA_TAILS("NEKOMATA_TAILS"),
+        CAT_TAIL("CAT_TAIL"),
         WOLF_TAIL("WOLF_TAIL");
 
         public final String id;
@@ -119,6 +112,7 @@ public final class CosmeticCatalog {
 
         public static WaistType fromName(String s) {
             if (s == null) return OFF;
+            if ("NEKOMATA_TAILS".equalsIgnoreCase(s)) return CAT_TAIL;
             for (WaistType t : values()) {
                 if (t.id.equalsIgnoreCase(s)) return t;
             }
@@ -130,7 +124,10 @@ public final class CosmeticCatalog {
         OFF("OFF"),
         HERMES_BOOTS("HERMES_BOOTS"),
         SHINOBI_WRAPS("SHINOBI_WRAPS"),
-        FIGHTER_LEG_WRAPS("FIGHTER_LEG_WRAPS");
+        FIGHTER_LEG_WRAPS("FIGHTER_LEG_WRAPS"),
+        BARE_FEET("BARE_FEET"),
+        COMBAT_BOOTS("COMBAT_BOOTS"),
+        CLASSIC_SNEAKERS("CLASSIC_SNEAKERS");
 
         public final String id;
         public final String key;

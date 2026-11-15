@@ -10,109 +10,63 @@ import net.minecraft.client.model.geom.builders.MeshDefinition;
 import net.minecraft.client.model.geom.builders.PartDefinition;
 
 /**
- * Detailed gold royal crown at y = -8.2f with 8 pointed spikes and inlaid ruby/emerald voxel gems (256x256 HD, 0.25x scale).
- * Texture: assets/modid/textures/cosmetic/hat_crown.png
+ * Technoblade tarzı altın bantlı, kırmızı kadife kubbeli ve mücevherli Taç (Crown).
+ * Doku: assets/modid/textures/cosmetic/hat_crown.png (64x64).
  */
 public class RoyalCrownModel extends CosmeticModel {
-    private static final float MODEL_SCALE = 0.25f;
-
-    private final ModelPart root;
-    private final ModelPart crownRoot;
+    private final ModelPart crown;
 
     public RoyalCrownModel(ModelPart root) {
         super(root);
-        this.root = root;
-        this.crownRoot = root.getChild("crownRoot");
+        this.crown = root.getChild("crown");
     }
 
     public static LayerDefinition createLayer() {
         MeshDefinition mesh = new MeshDefinition();
         PartDefinition root = mesh.getRoot();
 
-        // y = -8.2f -> -32.8f in 0.25x scale
-        PartDefinition crownRoot = root.addOrReplaceChild("crownRoot",
-                CubeListBuilder.create()
-                        // Inner crimson velvet cap
-                        .texOffs(0, 0)
-                        .addBox(-15.0f, -4.0f, -15.0f, 30.0f, 5.0f, 30.0f)
-                        // Front & back gold band walls
-                        .texOffs(0, 40)
-                        .addBox(-17.0f, -5.0f, -17.5f, 34.0f, 6.0f, 2.0f)
-                        .texOffs(0, 40)
-                        .addBox(-17.0f, -5.0f, 15.5f, 34.0f, 6.0f, 2.0f)
-                        // Left & right gold band walls (slight y/x separation to prevent z-fighting)
-                        .texOffs(0, 52)
-                        .addBox(-17.5f, -5.05f, -16.5f, 2.0f, 6.0f, 33.0f)
-                        .texOffs(0, 52)
-                        .addBox(15.5f, -5.05f, -16.5f, 2.0f, 6.0f, 33.0f),
-                PartPose.offset(0.0f, -32.8f, 0.0f));
+        CubeListBuilder b = CubeListBuilder.create();
 
-        // 8 pointed spikes (4 cardinal + 4 corners)
-        float[][] spikePositions = {
-                {0.0f, -16.5f, 0.0f, 1.0f},     // Front
-                {0.0f, 16.5f, 0.0f, 1.0f},      // Back
-                {16.5f, 0.0f, 1.5708f, 1.0f},   // Left
-                {-16.5f, 0.0f, 1.5708f, 1.0f},  // Right
-                {15.5f, -15.5f, 0.7854f, 0.0f}, // Front-Left
-                {-15.5f, -15.5f, -0.7854f, 0.0f}, // Front-Right
-                {15.5f, 15.5f, -0.7854f, 0.0f}, // Back-Left
-                {-15.5f, 15.5f, 0.7854f, 0.0f}  // Back-Right
+        // Kirmizi kadife ic kubbe (32, 0)
+        b.texOffs(32, 0).addBox(-3.8f, -10.6f, -3.8f, 7.6f, 2.4f, 7.6f);
+        b.texOffs(32, 0).addBox(-2.8f, -11.4f, -2.8f, 5.6f, 1.0f, 5.6f);
+
+        // Kalin altin kafa bandi (0, 0)
+        b.texOffs(0, 0).addBox(-4.5f, -9.6f, -4.5f, 9.0f, 2.0f, 0.9f); // on
+        b.texOffs(0, 0).addBox(-4.5f, -9.6f,  3.6f, 9.0f, 2.0f, 0.9f); // arka
+        b.texOffs(0, 0).addBox(-4.5f, -9.6f, -3.6f, 0.9f, 2.0f, 7.2f); // sol
+        b.texOffs(0, 0).addBox( 3.6f, -9.6f, -3.6f, 0.9f, 2.0f, 7.2f); // sag
+
+        // 8 adet basamakli altin tac disi (on, arka, sag, sol + 4 kose)
+        float[][] spikes = {
+            {  0.0f, -4.1f, 2.4f }, {  0.0f,  4.1f, 2.0f },
+            { -4.1f,  0.0f, 2.0f }, {  4.1f,  0.0f, 2.0f },
+            { -3.9f, -3.9f, 2.4f }, {  3.9f, -3.9f, 2.4f },
+            { -3.9f,  3.9f, 2.2f }, {  3.9f,  3.9f, 2.2f }
         };
-
-        for (int i = 0; i < spikePositions.length; i++) {
-            float sx = spikePositions[i][0];
-            float sz = spikePositions[i][1];
-            float syRot = spikePositions[i][2];
-            boolean cardinal = spikePositions[i][3] > 0.5f;
-
-            CubeListBuilder sb = CubeListBuilder.create()
-                    .texOffs(0, 96)
-                    .addBox(-2.0f, -10.5f, -1.0f, 4.0f, 6.0f, 2.0f)
-                    .texOffs(16, 96)
-                    .addBox(-1.0f, -14.2f, -1.0f, 2.0f, 4.0f, 2.0f);
-
-            if (cardinal) {
-                sb.texOffs(28, 96).addBox(-1.5f, -15.8f, -1.5f, 3.0f, 2.0f, 3.0f);
-            }
-
-            crownRoot.addOrReplaceChild("spike_" + i, sb,
-                    PartPose.offsetAndRotation(sx, 0.0f, sz, 0.0f, syRot, 0.0f));
+        for (float[] sp : spikes) {
+            float sx = sp[0], sz = sp[1], h = sp[2];
+            float h1 = h * 0.58f;
+            b.texOffs(0, 0).addBox(sx - 0.7f, -9.6f - h1, sz - 0.7f, 1.4f, h1, 1.4f);
+            b.texOffs(0, 0).addBox(sx - 0.45f, -9.6f - h, sz - 0.45f, 0.9f, h - h1, 0.9f);
+            b.texOffs(0, 0).addBox(sx - 0.55f, -9.6f - h - 0.75f, sz - 0.55f, 1.1f, 0.75f, 1.1f);
         }
 
-        // Inlaid protruding ruby & emerald voxel gems on the 4 band faces
-        crownRoot.addOrReplaceChild("gemsFB",
-                CubeListBuilder.create()
-                        // Front gems
-                        .texOffs(44, 96).addBox(-1.5f, -3.5f, -18.0f, 3.0f, 3.0f, 1.0f)
-                        .texOffs(56, 96).addBox(-10.5f, -3.5f, -18.0f, 3.0f, 3.0f, 1.0f)
-                        .texOffs(56, 96).addBox(7.5f, -3.5f, -18.0f, 3.0f, 3.0f, 1.0f)
-                        // Back gems
-                        .texOffs(44, 96).addBox(-1.5f, -3.5f, 17.0f, 3.0f, 3.0f, 1.0f)
-                        .texOffs(56, 96).addBox(-10.5f, -3.5f, 17.0f, 3.0f, 3.0f, 1.0f)
-                        .texOffs(56, 96).addBox(7.5f, -3.5f, 17.0f, 3.0f, 3.0f, 1.0f),
-                PartPose.ZERO);
+        // Mucevherler: Yakut (0,32), Zumrut (16,32), Safir (32,32)
+        b.texOffs(0, 32).addBox(-0.7f, -9.3f, -4.75f, 1.4f, 1.4f, 0.45f);
+        b.texOffs(16, 32).addBox(-2.6f, -9.1f, -4.70f, 1.1f, 1.1f, 0.40f);
+        b.texOffs(32, 32).addBox( 1.5f, -9.1f, -4.70f, 1.1f, 1.1f, 0.40f);
 
-        crownRoot.addOrReplaceChild("gemsLR",
-                CubeListBuilder.create()
-                        // Left gems
-                        .texOffs(44, 96).addBox(-1.5f, -3.5f, -18.0f, 3.0f, 3.0f, 1.0f)
-                        .texOffs(56, 96).addBox(-10.5f, -3.5f, -18.0f, 3.0f, 3.0f, 1.0f)
-                        .texOffs(56, 96).addBox(7.5f, -3.5f, -18.0f, 3.0f, 3.0f, 1.0f)
-                        // Right gems
-                        .texOffs(44, 96).addBox(-1.5f, -3.5f, 17.0f, 3.0f, 3.0f, 1.0f)
-                        .texOffs(56, 96).addBox(-10.5f, -3.5f, 17.0f, 3.0f, 3.0f, 1.0f)
-                        .texOffs(56, 96).addBox(7.5f, -3.5f, 17.0f, 3.0f, 3.0f, 1.0f),
-                PartPose.rotation(0.0f, (float) (Math.PI / 2.0), 0.0f));
+        b.texOffs(0, 32).addBox(-0.7f, -9.3f,  4.30f, 1.4f, 1.4f, 0.45f);
+        b.texOffs(32, 32).addBox(-4.75f, -9.3f, -0.7f, 0.45f, 1.4f, 1.4f);
+        b.texOffs(16, 32).addBox( 4.30f, -9.3f, -0.7f, 0.45f, 1.4f, 1.4f);
 
-        return LayerDefinition.create(mesh, 256, 256);
+        root.addOrReplaceChild("crown", b, PartPose.ZERO);
+        return LayerDefinition.create(mesh, 64, 64);
     }
 
     @Override
     public void setupAnim(CosmeticRenderState s) {
-        root.xScale = MODEL_SCALE;
-        root.yScale = MODEL_SCALE;
-        root.zScale = MODEL_SCALE;
-
-        crownRoot.xRot = sin(s.walkPos * 0.6662f) * 0.015f * s.walkSpeed;
+        this.crown.yRot = 0.0f;
     }
 }
