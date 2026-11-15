@@ -1,6 +1,6 @@
-# ✦ Kiem Addons (v1.0)
+# ✦ Kiem Addons (v1.1.0)
 
-A clean, modern Quality of Life (QoL) and visual enhancement mod for **Minecraft (Fabric 26.1.2 & 26.2)**.
+A clean, modern Quality of Life (QoL) and visual enhancement mod for **Minecraft (Fabric 26.1.2, 26.2 & 26.3)**.
 
 Crafted by **gamedese**.
 
@@ -8,9 +8,17 @@ Crafted by **gamedese**.
 
 ## 🌟 Features
 
-### ✨ Animated & Static Capes
-- **Smooth 24 FPS & HD Capes:** High-resolution animated and static anime capes (Sanara V1/V2/V3 and Rikka).
-- **In-Game Selector:** Preview and equip capes directly inside the `F6` menu.
+### 🎨 Redesigned Boutique Menu
+- **Switchable Themes & Custom Fonts:** Customize the look and typography of the `F6` menu.
+- **Interactive Rikka Mascot & Welcome Tab:** Quick access to What's New, links, and cosmetic slots.
+
+### 🧥 3D Wardrobe & Capes (WIP)
+- **3D Cosmetics:** Wings, masks, hats, waist & feet cosmetics with per-part **X / Y / Z & Scale** customization and **Reset Wardrobe**.
+- **256-Color & Animated Capes:** High-resolution animated and static capes (Sanara V1/V2/V3, Rikka, and customizable 256-color capes).
+
+### 🐾 Companions, Trails & Auras (WIP)
+- **Companions:** Animated 3D shoulder companions and roaming ground pets.
+- **Trails & Auras:** Visual trails and aura effects *(more coming soon)*.
 
 ### 🗡 Custom Viewmodel & Swing
 - **Item Positioning:** Adjust held item scale, position (X/Y/Z), and rotation.
@@ -62,8 +70,8 @@ Crafted by **gamedese**.
 
 ## 🛠️ Installation
 
-1. Install [Fabric Loader](https://fabricmc.net/) for Minecraft `26.2` (or `26.1.2`).
-2. Download `kiem-addons-1.0-26.2.jar` (or `26.1.2`) from the **Releases** tab.
+1. Install [Fabric Loader](https://fabricmc.net/) for Minecraft `26.3`, `26.2`, or `26.1.2`.
+2. Download `kiem-addons-1.1.0-26.3.jar` (or `26.2` / `26.1.2`) from the **Releases** tab.
 3. Put the jar file into your `.minecraft/mods` folder.
 4. Launch Minecraft and press **`F6`** to customize!
 
@@ -74,9 +82,9 @@ Crafted by **gamedese**.
 ```bash
 git clone https://github.com/Gamedese/kiem-addons.git
 cd kiem-addons
-./gradlew build
+./gradlew buildAll
 ```
-The compiled jar file will be in `build/libs/`.
+The compiled jar files will be in `build/libs/`.
 
 ---
 
