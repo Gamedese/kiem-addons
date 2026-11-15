@@ -38,3 +38,17 @@ hs_err_*.log
 replay_*.log
 *.hprof
 *.jfr
+
+# python
+
+__pycache__/
+*.pyc
+*.pyo
+
+# local backups, blockbench sources & temp files
+
+*.bbmodel
+backups/
+*.bak
+*.tmp
+*.log
