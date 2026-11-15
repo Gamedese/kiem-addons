@@ -18,8 +18,10 @@ import java.util.concurrent.CompletableFuture;
 
 public class UpdateChecker {
     public static final String MODRINTH_SLUG = "kiem-addons";
+    public static final String DISCORD_URL = "https://discord.gg/2tNTpQrDU5";
+    public static final String GITHUB_URL = "https://github.com/Gamedese/kiem-addons";
     public static final String MODRINTH_URL = "https://modrinth.com/mod/" + MODRINTH_SLUG;
-    public static final String CURSEFORGE_URL = "https://www.curseforge.com/minecraft/mc-mods/kiem-addons";
+    public static final String CURSEFORGE_URL = "https://legacy.curseforge.com/minecraft/mc-mods/kiem-addons";
 
     private static final String MOD_ID = "modid";
 
@@ -49,9 +51,9 @@ public class UpdateChecker {
             return FabricLoader.getInstance()
                     .getModContainer(MOD_ID)
                     .map(c -> c.getMetadata().getVersion().getFriendlyString())
-                    .orElse("1.0.1");
+                    .orElse("1.1.0");
         } catch (Throwable ignored) {
-            return "1.0.1";
+            return "1.1.0";
         }
     }
 

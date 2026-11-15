@@ -133,6 +133,7 @@ public class KiemScreen extends Screen {
     private float mascotDragOffsetY = 0.0f;
     private static final int MASCOT_SIZE = 88;
     private boolean showResetConfirmModal = false;
+    private boolean pendingResetWardrobe = false;
     private boolean showLanguageModal = !KiemConfig.hasSelectedLanguage;
 
     // Interactive slider dragging state
@@ -357,6 +358,9 @@ public class KiemScreen extends Screen {
             BoutiqueDraw.drawPill(graphics, px, py, pw, pillH, active, hover);
             int txtColor = active ? theme.textOnActivePill : (hover ? theme.textPrimary : theme.textMuted);
             BoutiqueDraw.drawCenteredText(graphics, this.font, t.getLabel(), px + pw / 2, py + 7, txtColor);
+            if (t == Tab.WELCOME && KiemConfig.updateCheckerEnabled && UpdateChecker.hasUpdate()) {
+                graphics.fill(px + pw - 6, py + 2, px + pw - 2, py + 6, theme.textPositive);
+            }
             px += pw + pillGap;
         }
     }
@@ -546,25 +550,34 @@ public class KiemScreen extends Screen {
             BoutiqueDraw.drawCenteredText(graphics, this.font, "3D", px + pw / 2, py + ph / 2 - 4, BoutiqueDraw.theme().textDim);
         }
 
-        // Floating Reset View & Customize pills at bottom of stage
+        // Floating Reset View, Reset Wardrobe & Customize pills at bottom of stage
         int gap = 4;
         int totalW = pw - 12;
-        int resetW = (totalW - gap) / 2;
-        int custW = totalW - gap - resetW;
+        int resetW = (totalW - 2 * gap) / 3;
+        int resetWardrobeW = (totalW - 2 * gap) / 3;
+        int custW = totalW - 2 * gap - resetW - resetWardrobeW;
         int btnH = 20;
         int resetX = px + 6;
-        int custX = resetX + resetW + gap;
+        int resetWardrobeX = resetX + resetW + gap;
+        int custX = resetWardrobeX + resetWardrobeW + gap;
         int btnY = py + ph - 26;
 
         boolean resetHover = mouseX >= resetX && mouseX <= resetX + resetW && mouseY >= btnY && mouseY <= btnY + btnH;
         BoutiqueDraw.drawPill(graphics, resetX, btnY, resetW, btnH, false, resetHover);
-        String resetLabel = BoutiqueDraw.fitText(this.font, KiemLang.get("auras.custom.reset_view"), resetW - 8);
+        String resetLabel = BoutiqueDraw.fitText(this.font, KiemLang.get("auras.custom.reset_view"), resetW - 6);
         BoutiqueDraw.drawCenteredText(graphics, this.font, resetLabel, resetX + resetW / 2, btnY + 6,
                 resetHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
 
+        boolean resetWardrobeHover = mouseX >= resetWardrobeX && mouseX <= resetWardrobeX + resetWardrobeW
+                && mouseY >= btnY && mouseY <= btnY + btnH;
+        BoutiqueDraw.drawPill(graphics, resetWardrobeX, btnY, resetWardrobeW, btnH, false, resetWardrobeHover);
+        String resetWardrobeLabel = BoutiqueDraw.fitText(this.font, KiemLang.get("wardrobe.reset_btn"), resetWardrobeW - 6);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, resetWardrobeLabel, resetWardrobeX + resetWardrobeW / 2, btnY + 6,
+                resetWardrobeHover ? 0xFFFF8899 : 0xFFFF9AA8);
+
         boolean custHover = mouseX >= custX && mouseX <= custX + custW && mouseY >= btnY && mouseY <= btnY + btnH;
         BoutiqueDraw.drawPill(graphics, custX, btnY, custW, btnH, cosmeticCustomizeOpen, custHover);
-        String custLabel = BoutiqueDraw.fitText(this.font, "Customize", custW - 8);
+        String custLabel = BoutiqueDraw.fitText(this.font, "Customize", custW - 6);
         BoutiqueDraw.drawCenteredText(graphics, this.font, custLabel, custX + custW / 2, btnY + 6,
                 cosmeticCustomizeOpen ? BoutiqueDraw.theme().textOnActivePill
                         : (custHover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted));
@@ -1356,107 +1369,207 @@ public class KiemScreen extends Screen {
 
     // ==================== WELCOME TAB ====================
 
+    private record WelcomeLayout(
+            int leftX, int leftW, int rightX, int rightW,
+            int topH, int bottomY, int bottomH,
+            int pad, int lx, int lw,
+            int row1Y, int row1H, int verW, int keyX, int keyW,
+            int resetY, int resetH,
+            int linksTitleY, int linkStartY, int linkW, int linkH, int linkGap,
+            int featuresY, int wardrobeY, int navBtnH,
+            int rPad, int rx, int rw,
+            int recentListY, int recentItemH, int recentItemGap
+    ) {}
+
+    private WelcomeLayout computeWelcomeLayout(int x, int y, int w, int h) {
+        int colGap = 10;
+        int leftW = Math.max(185, (w * 39) / 100);
+        int rightW = w - leftW - colGap;
+        int leftX = x;
+        int rightX = x + leftW + colGap;
+
+        int topH = ((h - colGap) * 46) / 100;
+        int bottomY = y + topH + colGap;
+        int bottomH = h - topH - colGap;
+
+        int pad = 12;
+        int lx = leftX + pad;
+        int lw = leftW - pad * 2;
+        int ly = y + pad + 14; // after title
+
+        int row1Y = ly;
+        int row1H = 20;
+        int pillGap = 6;
+        int verW = ((lw - pillGap) * 53) / 100;
+        int keyX = lx + verW + pillGap;
+        int keyW = lw - pillGap - verW;
+
+        int resetY = row1Y + row1H + 6;
+        int resetH = 19;
+
+        int linksTitleY = resetY + resetH + 7;
+        int linkStartY = (h >= 215) ? (linksTitleY + 11) : (resetY + resetH + 7);
+        int linkH = 18;
+        int linkGap = 5;
+        int linkW = (lw - pillGap) / 2;
+
+        int navBtnH = 21;
+        int navGap = 5;
+        int wardrobeY = y + h - pad - navBtnH;
+        int featuresY = wardrobeY - navGap - navBtnH;
+
+        int rPad = 12;
+        int rx = rightX + rPad;
+        int rw = rightW - rPad * 2;
+        int recentListY = bottomY + rPad + 14;
+        int availListH = Math.max(60, (bottomY + bottomH - rPad) - recentListY);
+        int recentItemGap = 5;
+        int recentItemH = Math.max(18, (availListH - 2 * recentItemGap) / 3);
+
+        return new WelcomeLayout(
+                leftX, leftW, rightX, rightW,
+                topH, bottomY, bottomH,
+                pad, lx, lw,
+                row1Y, row1H, verW, keyX, keyW,
+                resetY, resetH,
+                linksTitleY, linkStartY, linkW, linkH, linkGap,
+                featuresY, wardrobeY, navBtnH,
+                rPad, rx, rw,
+                recentListY, recentItemH, recentItemGap
+        );
+    }
+
     private void renderWelcomeTab(GuiGraphicsExtractor graphics, int x, int y, int w, int h, int mouseX, int mouseY) {
-        BoutiqueDraw.drawGlassPanel(graphics, x, y, w, h);
+        BoutiqueDraw.Theme theme = BoutiqueDraw.theme();
+        WelcomeLayout l = computeWelcomeLayout(x, y, w, h);
 
-        int ix = x + 16;
-        int iy = y + 14;
-        int iw = w - 32;
-        int curBaseY = iy;
+        // --- LEFT PANEL (Editorial Controls & Links) ---
+        BoutiqueDraw.drawGlassPanel(graphics, l.leftX, y, l.leftW, h);
+        drawBoundedText(graphics, KiemLang.get("welcome.hero_title"), l.lx, y + l.pad, l.lw, theme.textAccent);
 
-        if (KiemConfig.updateCheckerEnabled && UpdateChecker.hasUpdate()) {
-            int bannerH = 34;
-            int dlBtnW = 96;
-            int dlBtnH = 20;
-            int dlBtnX = ix + iw - dlBtnW - 10;
-            int dlBtnY = curBaseY + (bannerH - dlBtnH) / 2;
-            boolean dlHover = mouseX >= dlBtnX && mouseX <= dlBtnX + dlBtnW && mouseY >= dlBtnY && mouseY <= dlBtnY + dlBtnH;
+        // Row 1: Version/Update pill + Keybind pill
+        boolean hasUpdate = KiemConfig.updateCheckerEnabled && UpdateChecker.hasUpdate();
+        boolean verHover = hasUpdate && mouseX >= l.lx && mouseX <= l.lx + l.verW && mouseY >= l.row1Y && mouseY <= l.row1Y + l.row1H;
+        BoutiqueDraw.drawPill(graphics, l.lx, l.row1Y, l.verW, l.row1H, hasUpdate, verHover);
+        String verText = hasUpdate
+                ? KiemLang.get("welcome.update_prefix") + " v" + UpdateChecker.getLatestVersion() + "!"
+                : "v" + UpdateChecker.getCurrentVersion() + " · " + KiemLang.get("welcome.latest");
+        int verColor = hasUpdate ? theme.textOnActivePill : theme.textPositive;
+        BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, verText, l.verW - 8),
+                l.lx + l.verW / 2, l.row1Y + 6, verColor);
 
-            BoutiqueDraw.drawGlassCard(graphics, ix, curBaseY, iw, bannerH, true, dlHover);
-            int maxTextW = dlBtnX - (ix + 14) - 8;
-            String verTag = "v" + UpdateChecker.getLatestVersion();
-            drawBoundedText(graphics, "✦ " + KiemLang.get("update.banner.title") + " (" + verTag + ")", ix + 14, curBaseY + 6, maxTextW, 0xFF88F5B5);
-            drawBoundedText(graphics, KiemLang.get("update.banner.desc") + " " + verTag, ix + 14, curBaseY + 19, maxTextW, BoutiqueDraw.theme().textPrimary);
+        boolean keyHover = mouseX >= l.keyX && mouseX <= l.keyX + l.keyW && mouseY >= l.row1Y && mouseY <= l.row1Y + l.row1H;
+        BoutiqueDraw.drawPill(graphics, l.keyX, l.row1Y, l.keyW, l.row1H, listeningForMenuKey, keyHover);
+        String keyLabel = listeningForMenuKey
+                ? "[...]"
+                : KiemLang.get("welcome.keybind_prefix") + " [" + KiemConfig.getKeyName(KiemConfig.menuKey) + "]";
+        int keyColor = listeningForMenuKey ? theme.textOnActivePill : (keyHover ? theme.textPrimary : theme.textAccent);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, keyLabel, l.keyW - 8),
+                l.keyX + l.keyW / 2, l.row1Y + 6, keyColor);
 
-            BoutiqueDraw.drawPill(graphics, dlBtnX, dlBtnY, dlBtnW, dlBtnH, true, dlHover);
-            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("update.banner.download"), dlBtnX + dlBtnW / 2, dlBtnY + 6, BoutiqueDraw.theme().textOnActivePill);
+        // Row 2: Reset to Defaults pill
+        boolean resetHover = mouseX >= l.lx && mouseX <= l.lx + l.lw && mouseY >= l.resetY && mouseY <= l.resetY + l.resetH;
+        BoutiqueDraw.drawPill(graphics, l.lx, l.resetY, l.lw, l.resetH, false, resetHover);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, KiemLang.get("welcome.reset_all"), l.lw - 10),
+                l.lx + l.lw / 2, l.resetY + 6, resetHover ? 0xFFFF8899 : 0xFFFF9AA8);
 
-            curBaseY += bannerH + 8;
+        // Community & Links 2x2 pill grid
+        if (h >= 215) {
+            drawBoundedText(graphics, KiemLang.get("welcome.links_title"), l.lx, l.linksTitleY, l.lw, theme.textDim);
+        }
+        String[] linkLabels = { "Discord", "GitHub", "Modrinth", "CurseForge" };
+        Identifier[] linkIcons = {
+                guiTex("icon_discord.png"),
+                guiTex("icon_github.png"),
+                guiTex("icon_modrinth.png"),
+                guiTex("icon_curseforge.png")
+        };
+        int pillGap = 6;
+        int iconSize = 12;
+        int iconGap = 5;
+        for (int i = 0; i < 4; i++) {
+            int col = i % 2;
+            int row = i / 2;
+            int bx = l.lx + col * (l.linkW + pillGap);
+            int by = l.linkStartY + row * (l.linkH + l.linkGap);
+            if (by + l.linkH <= l.featuresY - 4) {
+                boolean lHover = mouseX >= bx && mouseX <= bx + l.linkW && mouseY >= by && mouseY <= by + l.linkH;
+                BoutiqueDraw.drawPill(graphics, bx, by, l.linkW, l.linkH, false, lHover);
+                String fitted = BoutiqueDraw.fitText(this.font, linkLabels[i], l.linkW - iconSize - iconGap - 10);
+                int labelW = BoutiqueDraw.textWidth(this.font, fitted);
+                int startX = bx + (l.linkW - (iconSize + iconGap + labelW)) / 2;
+                int iconY = by + (l.linkH - iconSize) / 2;
+                graphics.blit(linkIcons[i], startX, iconY, startX + iconSize, iconY + iconSize, 0.0f, 1.0f, 0.0f, 1.0f);
+                BoutiqueDraw.drawText(graphics, this.font, fitted, startX + iconSize + iconGap, by + (l.linkH - 8) / 2,
+                        lHover ? theme.textPrimary : theme.textMuted);
+            }
         }
 
-        // Hero Header Banner
-        int heroH = 72;
-        BoutiqueDraw.drawGlassCard(graphics, ix, curBaseY, iw, heroH, false, false);
-        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("welcome.hero_title"), ix + 14, curBaseY + 12, BoutiqueDraw.theme().textAccent);
-        drawBoundedText(graphics, KiemLang.get("welcome.hero_desc"), ix + 14, curBaseY + 26, iw - 28, BoutiqueDraw.theme().textPrimary);
+        // Bottom Stacked Buttons: Features Menu & Open Wardrobe
+        boolean featHover = mouseX >= l.lx && mouseX <= l.lx + l.lw && mouseY >= l.featuresY && mouseY <= l.featuresY + l.navBtnH;
+        BoutiqueDraw.drawPill(graphics, l.lx, l.featuresY, l.lw, l.navBtnH, false, featHover);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, KiemLang.get("welcome.nav_features"), l.lw - 10),
+                l.lx + l.lw / 2, l.featuresY + 7, featHover ? theme.textPrimary : theme.textMuted);
 
-        // Keybind Pill inside Hero Banner
-        int keyBoxX = ix + 14;
-        int keyBoxY = curBaseY + 44;
-        int keyBoxH = 20;
-        String menuKeyName = KiemConfig.getKeyName(KiemConfig.menuKey);
-        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("welcome.menu_key"), keyBoxX, keyBoxY + 6, BoutiqueDraw.theme().textMuted);
-        int labelW = BoutiqueDraw.textWidth(this.font, KiemLang.get("welcome.menu_key")) + 8;
-        int btnW = 90;
-        boolean keyHover = mouseX >= keyBoxX + labelW && mouseX <= keyBoxX + labelW + btnW && mouseY >= keyBoxY && mouseY <= keyBoxY + keyBoxH;
-        drawKeybindButton(graphics, keyBoxX + labelW, keyBoxY, btnW, keyBoxH, menuKeyName, listeningForMenuKey, keyHover);
+        boolean wardHover = mouseX >= l.lx && mouseX <= l.lx + l.lw && mouseY >= l.wardrobeY && mouseY <= l.wardrobeY + l.navBtnH;
+        BoutiqueDraw.drawPill(graphics, l.lx, l.wardrobeY, l.lw, l.navBtnH, true, wardHover);
+        BoutiqueDraw.drawCenteredText(graphics, this.font, BoutiqueDraw.fitText(this.font, KiemLang.get("welcome.nav_cosmetics"), l.lw - 10),
+                l.lx + l.lw / 2, l.wardrobeY + 7, theme.textOnActivePill);
 
-        // Reset to Defaults Button inside Hero Banner
-        int resetBtnW = 142;
-        int resetBtnX = ix + iw - resetBtnW - 14;
-        boolean resetHover = mouseX >= resetBtnX && mouseX <= resetBtnX + resetBtnW && mouseY >= keyBoxY && mouseY <= keyBoxY + keyBoxH;
-        BoutiqueDraw.drawPill(graphics, resetBtnX, keyBoxY, resetBtnW, keyBoxH, false, resetHover);
-        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("welcome.reset_all"), resetBtnX + resetBtnW / 2, keyBoxY + 6,
-                resetHover ? 0xFFFF8899 : 0xFFFF9AA8);
+        // --- RIGHT TOP CARD (What's New) ---
+        BoutiqueDraw.drawGlassPanel(graphics, l.rightX, y, l.rightW, l.topH);
+        String whatsNewTitle = KiemLang.get("welcome.whats_new");
+        BoutiqueDraw.drawText(graphics, this.font, whatsNewTitle, l.rx, y + l.rPad, theme.textAccent);
+        int wnTitleW = BoutiqueDraw.textWidth(this.font, whatsNewTitle);
+        if (l.rx + wnTitleW + 10 < l.rx + l.rw) {
+            graphics.fill(l.rx + wnTitleW + 10, y + l.rPad + 4, l.rx + l.rw, y + l.rPad + 5, theme.panelBorder);
+        }
 
-        // Recent Modules Section Header
-        int featY = curBaseY + heroH + 10;
-        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("welcome.recent_title"), ix, featY, BoutiqueDraw.theme().textPrimary);
-        int titleW = BoutiqueDraw.textWidth(this.font, KiemLang.get("welcome.recent_title"));
-        graphics.fill(ix + titleW + 10, featY + 4, ix + iw, featY + 5, BoutiqueDraw.theme().panelBorder);
+        int bulletStartY = y + l.rPad + 16;
+        int availBulletH = Math.max(40, (y + l.topH - l.rPad) - bulletStartY);
+        int bulletStep = Math.max(10, Math.min(18, availBulletH / 4));
+        for (int i = 0; i < 4; i++) {
+            int by = bulletStartY + i * bulletStep;
+            if (by + 8 <= y + l.topH - 4) {
+                drawBoundedText(graphics, KiemLang.get("welcome.whats_new." + (i + 1)), l.rx + 2, by, l.rw - 4, theme.textPrimary);
+            }
+        }
 
-        int listY = featY + 14;
-        int navBtnH = 24;
-        int availListH = (y + h - 12) - listY - navBtnH - 8;
-        int itemGap = 6;
-        int itemH = Math.min(44, Math.max(32, (availListH - 2 * itemGap) / 3));
-        int goW = 78;
-        int goX = ix + iw - goW - 12;
+        // --- RIGHT BOTTOM CARD (Recently Modified) ---
+        BoutiqueDraw.drawGlassPanel(graphics, l.rightX, l.bottomY, l.rightW, l.bottomH);
+        String recentTitle = KiemLang.get("welcome.recent_title");
+        drawBoundedText(graphics, recentTitle, l.rx, l.bottomY + l.rPad, l.rw, theme.textPrimary);
+        int recTitleW = BoutiqueDraw.textWidth(this.font, recentTitle);
+        if (l.rx + recTitleW + 10 < l.rx + l.rw) {
+            graphics.fill(l.rx + recTitleW + 10, l.bottomY + l.rPad + 4, l.rx + l.rw, l.bottomY + l.rPad + 5, theme.panelBorder);
+        }
 
+        int goW = 58;
+        int goX = l.rx + l.rw - goW - 8;
         java.util.List<String> recents = KiemConfig.recentModules;
         int count = Math.min(3, recents.size());
 
         for (int i = 0; i < 3; i++) {
-            int curY = listY + i * (itemH + itemGap);
+            int curY = l.recentListY + i * (l.recentItemH + l.recentItemGap);
             String modId = (i < count) ? recents.get(i) : (i == 0 ? "afk_cinematics" : (i == 1 ? "better_third_person" : "custom_viewmodel"));
             RecentModuleMeta meta = getModuleMeta(modId);
 
-            boolean cardHover = mouseX >= ix && mouseX <= ix + iw && mouseY >= curY && mouseY <= curY + itemH;
-            BoutiqueDraw.drawGlassCard(graphics, ix, curY, iw, itemH, false, cardHover);
-            int maxMetaW = goX - (ix + 14) - 8;
-            drawBoundedText(graphics, meta.title, ix + 14, curY + Math.max(5, itemH / 2 - 12), maxMetaW, BoutiqueDraw.theme().textPrimary);
-            drawBoundedText(graphics, meta.desc, ix + 14, curY + Math.max(17, itemH / 2 + 1), maxMetaW, BoutiqueDraw.theme().textDim);
+            boolean cardHover = mouseX >= l.rx && mouseX <= l.rx + l.rw && mouseY >= curY && mouseY <= curY + l.recentItemH;
+            BoutiqueDraw.drawGlassCard(graphics, l.rx, curY, l.rw, l.recentItemH, false, cardHover);
+            int maxMetaW = Math.max(40, goX - (l.rx + 10) - 8);
+            if (l.recentItemH >= 30) {
+                drawBoundedText(graphics, meta.title, l.rx + 10, curY + Math.max(4, l.recentItemH / 2 - 10), maxMetaW, theme.textPrimary);
+                drawBoundedText(graphics, meta.desc, l.rx + 10, curY + Math.max(15, l.recentItemH / 2 + 1), maxMetaW, theme.textDim);
+            } else {
+                drawBoundedText(graphics, meta.title, l.rx + 10, curY + (l.recentItemH - 8) / 2, maxMetaW, theme.textPrimary);
+            }
 
-            int btnCurY = curY + (itemH - 20) / 2;
-            BoutiqueDraw.drawPill(graphics, goX, btnCurY, goW, 20, cardHover, cardHover);
-            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("ui.edit"), goX + goW / 2, btnCurY + 6,
-                    cardHover ? BoutiqueDraw.theme().textOnActivePill : BoutiqueDraw.theme().textMuted);
+            int btnH = Math.min(18, l.recentItemH - 4);
+            int btnCurY = curY + (l.recentItemH - btnH) / 2;
+            BoutiqueDraw.drawPill(graphics, goX, btnCurY, goW, btnH, cardHover, cardHover);
+            BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("welcome.edit_arrow"), goX + goW / 2, btnCurY + (btnH - 8) / 2,
+                    cardHover ? theme.textOnActivePill : theme.textMuted);
         }
-
-        // Quick Bottom Nav Bar (Features & Cosmetics)
-        int navY = listY + 3 * (itemH + itemGap) + 2;
-        int navBtnW = (iw - 8) / 2;
-
-        int b1X = ix;
-        boolean b1Hover = mouseX >= b1X && mouseX <= b1X + navBtnW && mouseY >= navY && mouseY <= navY + navBtnH;
-        BoutiqueDraw.drawPill(graphics, b1X, navY, navBtnW, navBtnH, false, b1Hover);
-        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("welcome.nav_features"), b1X + navBtnW / 2, navY + 8,
-                b1Hover ? BoutiqueDraw.theme().textPrimary : BoutiqueDraw.theme().textMuted);
-
-        int b2X = b1X + navBtnW + 8;
-        boolean b2Hover = mouseX >= b2X && mouseX <= b2X + navBtnW && mouseY >= navY && mouseY <= navY + navBtnH;
-        BoutiqueDraw.drawPill(graphics, b2X, navY, navBtnW, navBtnH, true, b2Hover);
-        BoutiqueDraw.drawCenteredText(graphics, this.font, KiemLang.get("welcome.nav_cosmetics"), b2X + navBtnW / 2, navY + 8, BoutiqueDraw.theme().textOnActivePill);
     }
 
     // ==================== CONFIG (FEATURES) TAB ====================
@@ -2578,6 +2691,19 @@ public class KiemScreen extends Screen {
         pose.popMatrix();
     }
 
+    private void resetWardrobeExceptPetsAndTrails() {
+        CapeManager.setCurrentCape(CapeManager.CapeType.OFF);
+        KiemConfig.cosmeticWing = "NONE";
+        KiemConfig.cosmeticHat = "NONE";
+        KiemConfig.cosmeticNeck = "NONE";
+        KiemConfig.cosmeticHand = "NONE";
+        KiemConfig.cosmeticWaist = "NONE";
+        KiemConfig.cosmeticFoot = "NONE";
+        KiemConfig.cosmeticAdjustments.clear();
+        cosmeticCustomizeOpen = false;
+        KiemConfig.save();
+    }
+
     private void renderResetConfirmModal(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
         graphics.fill(0, 0, this.width, this.height, 0xB0000000);
 
@@ -2588,12 +2714,13 @@ public class KiemScreen extends Screen {
 
         BoutiqueDraw.drawGlassPanel(graphics, popX, popY, popW, popH);
 
-        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("reset_modal.title"), popX + 16, popY + 16, 0xFFFF8899);
+        String keyPrefix = pendingResetWardrobe ? "reset_wardrobe_modal." : "reset_modal.";
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get(keyPrefix + "title"), popX + 16, popY + 16, 0xFFFF8899);
         graphics.fill(popX + 16, popY + 30, popX + popW - 16, popY + 31, BoutiqueDraw.theme().panelBorder);
 
-        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("reset_modal.desc1"), popX + 16, popY + 40, BoutiqueDraw.theme().textPrimary);
-        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("reset_modal.desc2"), popX + 16, popY + 54, BoutiqueDraw.theme().textMuted);
-        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get("reset_modal.desc3"), popX + 16, popY + 68, BoutiqueDraw.theme().textDim);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get(keyPrefix + "desc1"), popX + 16, popY + 40, BoutiqueDraw.theme().textPrimary);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get(keyPrefix + "desc2"), popX + 16, popY + 54, BoutiqueDraw.theme().textMuted);
+        BoutiqueDraw.drawText(graphics, this.font, KiemLang.get(keyPrefix + "desc3"), popX + 16, popY + 68, BoutiqueDraw.theme().textDim);
 
         int btnW = 90;
         int btnH = 24;
@@ -2758,15 +2885,22 @@ public class KiemScreen extends Screen {
                 int btnY = popY + popH - 36;
 
                 if (mouseX >= confirmX && mouseX <= confirmX + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
-                    KiemConfig.resetToDefaults();
+                    if (pendingResetWardrobe) {
+                        resetWardrobeExceptPetsAndTrails();
+                    } else {
+                        KiemConfig.resetToDefaults();
+                    }
+                    pendingResetWardrobe = false;
                     showResetConfirmModal = false;
                     return true;
                 }
                 if (mouseX >= cancelX && mouseX <= cancelX + btnW && mouseY >= btnY && mouseY <= btnY + btnH) {
+                    pendingResetWardrobe = false;
                     showResetConfirmModal = false;
                     return true;
                 }
                 if (mouseX < popX || mouseX > popX + popW || mouseY < popY || mouseY > popY + popH) {
+                    pendingResetWardrobe = false;
                     showResetConfirmModal = false;
                     return true;
                 }
@@ -2830,6 +2964,7 @@ public class KiemScreen extends Screen {
                 return true;
             }
             if (mouseX >= gearX && mouseX <= gearX + circleSize && mouseY >= circleY && mouseY <= circleY + circleSize) {
+                pendingResetWardrobe = false;
                 showResetConfirmModal = true;
                 return true;
             }
@@ -2882,53 +3017,62 @@ public class KiemScreen extends Screen {
     }
 
     private boolean handleWelcomeClick(int x, int y, int w, int h, double mouseX, double mouseY) {
-        int ix = x + 16;
-        int iy = y + 14;
-        int iw = w - 32;
-        int curBaseY = iy;
+        WelcomeLayout l = computeWelcomeLayout(x, y, w, h);
 
         if (KiemConfig.updateCheckerEnabled && UpdateChecker.hasUpdate()) {
-            int bannerH = 34;
-            int dlBtnW = 96;
-            int dlBtnH = 20;
-            int dlBtnX = ix + iw - dlBtnW - 10;
-            int dlBtnY = curBaseY + (bannerH - dlBtnH) / 2;
-            if (mouseX >= dlBtnX && mouseX <= dlBtnX + dlBtnW && mouseY >= dlBtnY && mouseY <= dlBtnY + dlBtnH) {
+            if (mouseX >= l.lx && mouseX <= l.lx + l.verW && mouseY >= l.row1Y && mouseY <= l.row1Y + l.row1H) {
                 net.minecraft.util.Util.getPlatform().openUri(UpdateChecker.getDownloadUrl());
                 return true;
             }
-            curBaseY += bannerH + 8;
         }
 
-        int keyBoxX = ix + 14;
-        int keyBoxY = curBaseY + 44;
-        int keyBoxH = 20;
-        int labelW = BoutiqueDraw.textWidth(this.font, KiemLang.get("welcome.menu_key")) + 8;
-        int btnW = 90;
-        if (mouseX >= keyBoxX + labelW && mouseX <= keyBoxX + labelW + btnW && mouseY >= keyBoxY && mouseY <= keyBoxY + keyBoxH) {
+        if (mouseX >= l.keyX && mouseX <= l.keyX + l.keyW && mouseY >= l.row1Y && mouseY <= l.row1Y + l.row1H) {
             listeningForMenuKey = !listeningForMenuKey;
             return true;
         }
 
-        int resetBtnW = 142;
-        int resetBtnX = ix + iw - resetBtnW - 14;
-        if (mouseX >= resetBtnX && mouseX <= resetBtnX + resetBtnW && mouseY >= keyBoxY && mouseY <= keyBoxY + keyBoxH) {
+        if (mouseX >= l.lx && mouseX <= l.lx + l.lw && mouseY >= l.resetY && mouseY <= l.resetY + l.resetH) {
+            pendingResetWardrobe = false;
             showResetConfirmModal = true;
             return true;
         }
 
-        int featY = curBaseY + 72 + 10;
-        int listY = featY + 14;
-        int navBtnH = 24;
-        int availListH = (y + h - 12) - listY - navBtnH - 8;
-        int itemGap = 6;
-        int itemH = Math.min(44, Math.max(32, (availListH - 2 * itemGap) / 3));
+        String[] linkUrls = {
+                UpdateChecker.DISCORD_URL,
+                UpdateChecker.GITHUB_URL,
+                UpdateChecker.MODRINTH_URL,
+                UpdateChecker.CURSEFORGE_URL
+        };
+        int pillGap = 6;
+        for (int i = 0; i < 4; i++) {
+            int col = i % 2;
+            int row = i / 2;
+            int bx = l.lx + col * (l.linkW + pillGap);
+            int by = l.linkStartY + row * (l.linkH + l.linkGap);
+            if (by + l.linkH <= l.featuresY - 4
+                    && mouseX >= bx && mouseX <= bx + l.linkW && mouseY >= by && mouseY <= by + l.linkH) {
+                net.minecraft.util.Util.getPlatform().openUri(linkUrls[i]);
+                return true;
+            }
+        }
+
+        if (mouseX >= l.lx && mouseX <= l.lx + l.lw && mouseY >= l.featuresY && mouseY <= l.featuresY + l.navBtnH) {
+            currentTab = Tab.CONFIG;
+            configSubView = ConfigSubView.MAIN;
+            return true;
+        }
+
+        if (mouseX >= l.lx && mouseX <= l.lx + l.lw && mouseY >= l.wardrobeY && mouseY <= l.wardrobeY + l.navBtnH) {
+            currentTab = Tab.COSMETICS;
+            configSubView = ConfigSubView.MAIN;
+            return true;
+        }
 
         java.util.List<String> recents = KiemConfig.recentModules;
         int count = Math.min(3, recents.size());
         for (int i = 0; i < 3; i++) {
-            int curY = listY + i * (itemH + itemGap);
-            if (mouseX >= ix && mouseX <= ix + iw && mouseY >= curY && mouseY <= curY + itemH) {
+            int curY = l.recentListY + i * (l.recentItemH + l.recentItemGap);
+            if (mouseX >= l.rx && mouseX <= l.rx + l.rw && mouseY >= curY && mouseY <= curY + l.recentItemH) {
                 String modId = (i < count) ? recents.get(i) : (i == 0 ? "afk_cinematics" : (i == 1 ? "better_third_person" : "custom_viewmodel"));
                 RecentModuleMeta meta = getModuleMeta(modId);
                 currentTab = meta.tab;
@@ -2937,21 +3081,6 @@ public class KiemScreen extends Screen {
                 clearKeyListening();
                 return true;
             }
-        }
-
-        int navY = listY + 3 * (itemH + itemGap) + 2;
-        int navBtnW = (iw - 8) / 2;
-        int b1X = ix;
-        if (mouseX >= b1X && mouseX <= b1X + navBtnW && mouseY >= navY && mouseY <= navY + navBtnH) {
-            currentTab = Tab.CONFIG;
-            configSubView = ConfigSubView.MAIN;
-            return true;
-        }
-        int b2X = b1X + navBtnW + 8;
-        if (mouseX >= b2X && mouseX <= b2X + navBtnW && mouseY >= navY && mouseY <= navY + navBtnH) {
-            currentTab = Tab.COSMETICS;
-            configSubView = ConfigSubView.MAIN;
-            return true;
         }
         return false;
     }
@@ -2984,19 +3113,26 @@ public class KiemScreen extends Screen {
             }
         }
 
-        // 2. 3D Stage Drag, Reset View & Customize
+        // 2. 3D Stage Drag, Reset View, Reset Wardrobe & Customize
         int btnGap = 4;
         int totalW = stageW - 12;
-        int resetBtnW = (totalW - btnGap) / 2;
-        int custBtnW = totalW - btnGap - resetBtnW;
+        int resetBtnW = (totalW - 2 * btnGap) / 3;
+        int resetWardrobeBtnW = (totalW - 2 * btnGap) / 3;
+        int custBtnW = totalW - 2 * btnGap - resetBtnW - resetWardrobeBtnW;
         int resetBtnH = 20;
         int resetBtnX = stageX + 6;
-        int custBtnX = resetBtnX + resetBtnW + btnGap;
+        int resetWardrobeBtnX = resetBtnX + resetBtnW + btnGap;
+        int custBtnX = resetWardrobeBtnX + resetWardrobeBtnW + btnGap;
         int resetBtnY = y + h - 26;
         if (mouseX >= resetBtnX && mouseX <= resetBtnX + resetBtnW && mouseY >= resetBtnY && mouseY <= resetBtnY + resetBtnH) {
             cosmeticPreviewYaw = 0.0f;
             cosmeticPreviewPitch = 0.0f;
             cosmeticPreviewScale = 1.0f;
+            return true;
+        }
+        if (mouseX >= resetWardrobeBtnX && mouseX <= resetWardrobeBtnX + resetWardrobeBtnW && mouseY >= resetBtnY && mouseY <= resetBtnY + resetBtnH) {
+            pendingResetWardrobe = true;
+            showResetConfirmModal = true;
             return true;
         }
         if (mouseX >= custBtnX && mouseX <= custBtnX + custBtnW && mouseY >= resetBtnY && mouseY <= resetBtnY + resetBtnH) {

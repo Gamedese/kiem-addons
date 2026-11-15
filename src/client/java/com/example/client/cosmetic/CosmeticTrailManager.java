@@ -78,7 +78,7 @@ public final class CosmeticTrailManager {
             case SHADOW_SMOKE -> tickShadowSmoke(level, pos, age, moving, sprinting, rng);
             case SNOWFLAKE_AURA -> tickSnowflakeAura(level, pos, age, moving, firstPerson, rng);
             case CRIMSON_PETALS -> tickCrimsonPetals(level, pos, age, moving, firstPerson, rng);
-            case OFF -> { }
+            case OFF -> {}
         }
     }
 

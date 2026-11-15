@@ -110,8 +110,30 @@ public class KiemLang {
         en("welcome.nav_features", "⚙ Features Menu");
         tr("welcome.nav_visuals", "🎨 Visual Stuffs Menüsü");
         en("welcome.nav_visuals", "🎨 Visual Stuffs Menu");
-        tr("welcome.nav_cosmetics", "✨ Pelerinler (Cosmetics)");
-        en("welcome.nav_cosmetics", "✨ Capes (Cosmetics)");
+        tr("welcome.nav_cosmetics", "✨ Gardırobu Aç");
+        en("welcome.nav_cosmetics", "✨ Open Wardrobe");
+        tr("welcome.latest", "Güncel");
+        en("welcome.latest", "Latest");
+        tr("welcome.update_prefix", "✦ Güncelle");
+        en("welcome.update_prefix", "✦ Update");
+        tr("welcome.keybind_prefix", "Kısayol:");
+        en("welcome.keybind_prefix", "Keybind:");
+        tr("welcome.links_title", "Topluluk & Bağlantılar");
+        en("welcome.links_title", "Community & Links");
+        tr("welcome.whats_new", "✨ Yenilikler — v1.1");
+        en("welcome.whats_new", "✨ What's New — v1.1");
+        tr("welcome.whats_new.1", "✿ Sakura & Ink Boutique Arayüz, Temalar & Maskot");
+        en("welcome.whats_new.1", "✿ Sakura & Ink Boutique UI, Themes & Mascot");
+        tr("welcome.whats_new.2", "⚔ Yeni Blockbench Şapka, Maske & Bel Kozmetikleri");
+        en("welcome.whats_new.2", "⚔ Redesigned Blockbench Hats, Masks & Waist");
+        tr("welcome.whats_new.3", "⚙ Gardırop Customize (Y/Z/Ölçek) & Gardırop Sıfırlama");
+        en("welcome.whats_new.3", "⚙ Wardrobe Customize (Y/Z/Scale) & Reset");
+        tr("welcome.whats_new.4", "⚡ 256-Renk Pelerin Optimizasyonu & Güncelleme Kontrolü");
+        en("welcome.whats_new.4", "⚡ 256-Color Cape Optimization & Update Checker");
+        tr("welcome.edit_arrow", "Düzenle →");
+        en("welcome.edit_arrow", "Edit →");
+        tr("wardrobe.reset_btn", "Gardırop Sıfırla");
+        en("wardrobe.reset_btn", "Reset Wardrobe");
 
         // --- RESET MODAL ---
         tr("reset_modal.title", "⚠ Tüm Ayarları Sıfırla");
@@ -122,6 +144,14 @@ public class KiemLang {
         en("reset_modal.desc2", "settings to their default values?");
         tr("reset_modal.desc3", "Bu işlem geri alınamaz.");
         en("reset_modal.desc3", "This action cannot be undone.");
+        tr("reset_wardrobe_modal.title", "⚠ Gardırobu Sıfırla");
+        en("reset_wardrobe_modal.title", "⚠ Reset Wardrobe");
+        tr("reset_wardrobe_modal.desc1", "Gardırop ayarlarını sıfırlamak istediğine emin misin?");
+        en("reset_wardrobe_modal.desc1", "Are you sure you want to reset your wardrobe?");
+        tr("reset_wardrobe_modal.desc2", "Pelerin, kanat, şapka, maske, el, bel ve ayak çıkarılır");
+        en("reset_wardrobe_modal.desc2", "Unequips cape, wings, hats, masks, hand, waist & feet");
+        tr("reset_wardrobe_modal.desc3", "ve Customize konumları temizlenir (Pet & Trail korunur).");
+        en("reset_wardrobe_modal.desc3", "and clears Customize offsets (keeps Pets & Trails).");
 
         // --- MODULE TITLES & DESCRIPTIONS ---
         // Mini Models

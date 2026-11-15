@@ -8,7 +8,9 @@
 		"gamedese"
 	],
 	"contact": {
-		"homepage": "https://github.com/Gamedese/kiem-addons"
+		"homepage": "https://github.com/Gamedese/kiem-addons",
+		"sources": "https://github.com/Gamedese/kiem-addons",
+		"issues": "https://github.com/Gamedese/kiem-addons/issues"
 	},
 	"license": "MIT",
 	"icon": "assets/modid/icon.png",
